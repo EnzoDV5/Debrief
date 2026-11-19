@@ -6,9 +6,9 @@ import { Spinner } from './Spinner';
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'dangerOutline';
 type Size = 'sm' | 'md';
 
-// Each variant owns its colours completely. Don't recolour a variant with className
-// (e.g. variant="secondary" className="text-danger"): when two Tailwind classes set the same
-// property, CSS order decides, not class order, so the override may silently lose. Add a variant.
+// Each variant owns its colours completely. className can still adjust layout (and cn() makes
+// a conflicting class win), but a new colour scheme belongs in a new variant, so every button
+// of that kind looks the same everywhere.
 
 const base =
   'inline-flex items-center justify-center gap-2 rounded-md font-semibold whitespace-nowrap select-none ' +
