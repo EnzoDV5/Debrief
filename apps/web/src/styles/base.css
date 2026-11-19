@@ -68,3 +68,33 @@
 @utility numeric {
   font-variant-numeric: tabular-nums;
 }
+
+/*
+ * The page panel's scrollbar: a thin rounded thumb floating inside the panel, kept clear of its
+ * rounded corners, instead of the browser's square bar clipped against the panel edge.
+ * Chrome/Edge/Safari use the ::-webkit-scrollbar parts (only while scrollbar-width/color are
+ * unset, so those are applied to Firefox alone, which has no ::-webkit-scrollbar).
+ */
+@utility scrollbar-panel {
+  &::-webkit-scrollbar {
+    width: 14px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+    margin-block: 20px; /* stop short of the rounded corners */
+  }
+  &::-webkit-scrollbar-thumb {
+    /* The transparent border + padding-box clip turns a 14px bar into a 6px pill with a gap. */
+    border: 4px solid transparent;
+    border-radius: var(--radius-pill);
+    background-clip: padding-box;
+    background-color: color-mix(in srgb, var(--color-fg) 22%, transparent);
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in srgb, var(--color-fg) 40%, transparent);
+  }
+  @supports not selector(::-webkit-scrollbar) {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--color-fg) 22%, transparent) transparent;
+  }
+}
