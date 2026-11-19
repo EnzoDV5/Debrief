@@ -1,5 +1,5 @@
 import type { Meeting } from '@debrief/shared';
-import { CalendarDays, FileSearch, Pencil, Rows3, Sparkles, Trash2 } from 'lucide-react';
+import { CalendarDays, FileSearch, Pencil, Rows3, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { ApiError } from '@/api/client';
@@ -10,7 +10,7 @@ import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { AnalysisStatusBadge } from '@/features/meetings/AnalysisStatusBadge';
+import { AnalysisPanel } from '@/features/meetings/AnalysisPanel';
 import { DeleteMeetingDialog } from '@/features/meetings/DeleteMeetingDialog';
 import { EditMeetingDialog } from '@/features/meetings/EditMeetingDialog';
 import { useMeeting } from '@/features/meetings/hooks';
@@ -98,28 +98,10 @@ function MeetingDetail({ meeting }: { meeting: Meeting }) {
         </Alert>
       )}
 
-      {/* Desktop: analysis beside the transcript (it'll cite line numbers from Phase 3).
+      {/* Desktop: analysis beside the transcript.
           Mobile: stacked, analysis first because it's the summary of everything below. */}
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
-        <Card className="p-5 sm:p-6 lg:sticky lg:top-6">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-bold">Analysis</h2>
-            <AnalysisStatusBadge status={meeting.analysisStatus} />
-          </div>
-          <div className="mt-5 flex flex-col items-center rounded-md bg-surface-2 px-6 py-10 text-center">
-            <div
-              aria-hidden="true"
-              className="mb-3 grid size-11 place-items-center rounded-pill bg-accent-soft text-accent"
-            >
-              <Sparkles className="size-5" />
-            </div>
-            <p className="font-semibold">Summary, decisions and action items appear here</p>
-            <p className="mt-1 max-w-sm text-sm text-muted">
-              AI analysis is the next feature being built. Your transcript is already saved and
-              numbered, ready for it.
-            </p>
-          </div>
-        </Card>
+        <AnalysisPanel meeting={meeting} />
 
         <Card className="p-5 sm:p-6">
           <div className="mb-4 flex items-center justify-between gap-3">

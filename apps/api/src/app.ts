@@ -9,10 +9,17 @@ import { logger } from './lib/logger';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { originCheck } from './middleware/originCheck';
 import { createAuthRouter } from './modules/auth/auth.routes';
+import type { AnalysisQueue } from './modules/analysis/queue';
 import { createMeetingsRouter } from './modules/meetings/meetings.routes';
 
+export type AppDeps = {
+  /** Where "analyse this meeting" jobs go: pg-boss in the server, a recording fake in tests. */
+  analysisQueue: AnalysisQueue;
+};
+
 // Builds the app without starting a server, so tests can call it directly with Supertest.
-export function createApp() {
+// Dependencies are passed in (not imported), so tests can swap them without touching real services.
+export function createApp(deps: AppDeps) {
   const app = express();
 
   // Behind nginx/Render, read the real client IP from X-Forwarded-For (needed for rate limits).
@@ -56,7 +63,7 @@ export function createApp() {
     res.json(body);
   });
   api.use('/auth', createAuthRouter());
-  api.use('/meetings', createMeetingsRouter());
+  api.use('/meetings', createMeetingsRouter(deps));
   app.use('/api', api);
 
   app.use(notFoundHandler);

@@ -88,6 +88,23 @@ export const meetingsRepository = {
     return meeting ?? null;
   },
 
+  /** Puts a meeting back in the queue state ('pending') before a new analysis job is sent. */
+  async setAnalysisPending(userId: string, meetingId: string): Promise<MeetingRow | null> {
+    const [meeting] = await db
+      .update(meetings)
+      .set({ analysisStatus: 'pending', analysisError: null })
+      .where(and(eq(meetings.id, meetingId), eq(meetings.userId, userId)))
+      .returning();
+    return meeting ?? null;
+  },
+
+  async setAnalysisFailed(userId: string, meetingId: string, message: string): Promise<void> {
+    await db
+      .update(meetings)
+      .set({ analysisStatus: 'failed', analysisError: message })
+      .where(and(eq(meetings.id, meetingId), eq(meetings.userId, userId)));
+  },
+
   /** Returns false if there was nothing (of this user's) to delete. */
   async deleteForUser(userId: string, meetingId: string): Promise<boolean> {
     const deleted = await db

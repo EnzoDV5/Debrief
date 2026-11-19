@@ -1,8 +1,9 @@
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../src/app';
+import { testAppDeps } from './helpers';
 
-const app = createApp();
+const app = createApp(testAppDeps);
 
 describe('GET /api/health', () => {
   it('returns ok with a request id and security headers', async () => {

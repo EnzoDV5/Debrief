@@ -9,13 +9,14 @@ import {
   sessionCookieHeader,
   sessionCookiePair,
   WEB_ORIGIN,
+  testAppDeps,
 } from './helpers';
 
 // A fresh app per test = fresh rate-limit counters. A fresh database per test = no leftovers.
 let app: ReturnType<typeof createApp>;
 beforeEach(async () => {
   await resetDatabase();
-  app = createApp();
+  app = createApp(testAppDeps);
 });
 afterAll(closeDatabase);
 

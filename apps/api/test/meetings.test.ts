@@ -3,7 +3,7 @@ import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app';
 import { pool } from '../src/db/client';
-import { closeDatabase, resetDatabase, signUp, WEB_ORIGIN } from './helpers';
+import { closeDatabase, resetDatabase, signUp, testAppDeps, WEB_ORIGIN } from './helpers';
 
 const fixture = (name: string) =>
   readFileSync(new URL(`./fixtures/transcripts/${name}`, import.meta.url));
@@ -14,7 +14,7 @@ let bob: string;
 
 beforeEach(async () => {
   await resetDatabase();
-  app = createApp();
+  app = createApp(testAppDeps);
   alice = await signUp(app, 'Alice');
   bob = await signUp(app, 'Bob');
 });

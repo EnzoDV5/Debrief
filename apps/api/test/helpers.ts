@@ -1,9 +1,12 @@
 import type { Express } from 'express';
 import request, { type Response } from 'supertest';
 import { pool } from '../src/db/client';
+import type { AppDeps } from '../src/app';
 
 export const PASSWORD = 'correct-horse-battery';
 export const WEB_ORIGIN = 'http://localhost:5173'; // the default in env.ts
+
+export const testAppDeps: AppDeps = { analysisQueue: { enqueue: async () => {} } };
 
 /** Empties every table so each test starts from a clean database. */
 export async function resetDatabase() {

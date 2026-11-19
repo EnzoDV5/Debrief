@@ -1,3 +1,4 @@
+import type { Meeting } from '@debrief/shared';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
@@ -173,6 +174,87 @@ describe('new meeting: upload', () => {
 });
 
 describe('meeting detail', () => {
+  it('shows analysis results, review flags, and transcript links', async () => {
+    const analysed = {
+      ...meeting,
+      analysisStatus: 'done' as const,
+      summary: 'The team chose blue.',
+      decisions: [{ id: crypto.randomUUID(), text: 'Use blue', sourceLine: 1, position: 0 }],
+      actionItems: [
+        {
+          id: crypto.randomUUID(),
+          meetingId: meeting.id,
+          text: 'Send the files',
+          owner: null,
+          dueDate: null,
+          dueDateText: 'soon',
+          status: 'todo',
+          needsReview: true,
+          reviewReason: 'Check the due date',
+          sourceLine: 2,
+          sourceQuote: 'Hi there',
+          origin: 'ai',
+          position: 0,
+        },
+      ],
+    };
+    mockApi({ ...me, [`GET ${detailUrl}`]: { status: 200, body: { meeting: analysed } } });
+    renderApp(`/meetings/${meeting.id}`);
+
+    expect(await screen.findByText('The team chose blue.')).toBeInTheDocument();
+    expect(screen.getByText('Use blue')).toBeInTheDocument();
+    expect(screen.getByText('Send the files')).toBeInTheDocument();
+    expect(screen.getByText(/Check the due date/)).toHaveTextContent('Needs review:');
+    expect(screen.getAllByRole('link', { name: 'Line 2' })).toHaveLength(2);
+  });
+
+  it('confirms a re-analysis and keeps existing results visible while it runs', async () => {
+    let current: Meeting = { ...meeting, analysisStatus: 'done', summary: 'Original summary' };
+    const fetchMock = mockApi({
+      ...me,
+      [`GET ${detailUrl}`]: () => ({ status: 200, body: { meeting: current } }),
+      [`POST ${detailUrl}/analyze`]: () => {
+        current = { ...current, analysisStatus: 'pending' as const };
+        return { status: 202, body: { meeting: current } };
+      },
+    });
+    const user = userEvent.setup();
+    renderApp(`/meetings/${meeting.id}`);
+    await user.click(await screen.findByRole('button', { name: 'Re-analyse' }));
+    const dialog = screen.getByRole('dialog', { name: 'Re-analyse this meeting?' });
+    expect(dialog).toHaveTextContent('Items you added yourself will stay');
+    expect(fetchMock.mock.calls.filter(([url]) => url === `${detailUrl}/analyze`)).toHaveLength(0);
+    await user.click(within(dialog).getByRole('button', { name: 'Re-analyse' }));
+    expect(
+      await screen.findByText('Your transcript is saved. Analysis will start shortly.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Original summary')).toBeInTheDocument();
+    expect(fetchMock.mock.calls.filter(([url]) => url === `${detailUrl}/analyze`)).toHaveLength(1);
+  });
+
+  it('shows the failure reason and lets the user retry', async () => {
+    const failed = {
+      ...meeting,
+      analysisStatus: 'failed' as const,
+      analysisError: 'AI quota used up',
+    };
+    mockApi({
+      ...me,
+      [`GET ${detailUrl}`]: { status: 200, body: { meeting: failed } },
+      [`POST ${detailUrl}/analyze`]: {
+        status: 202,
+        body: { meeting: { ...failed, analysisStatus: 'pending', analysisError: null } },
+      },
+    });
+    const user = userEvent.setup();
+    renderApp(`/meetings/${meeting.id}`);
+    expect(await screen.findByText('AI quota used up')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Retry analysis' }));
+    expect(
+      await screen.findByText('Your transcript is saved. Analysis will start shortly.'),
+    ).toBeInTheDocument();
+  });
+
   it('shows the numbered transcript with linkable line numbers', async () => {
     mockApi({ ...me, [`GET ${detailUrl}`]: { status: 200, body: { meeting } } });
     renderApp(`/meetings/${meeting.id}`);

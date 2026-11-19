@@ -27,6 +27,29 @@ export function useMeeting(id: string) {
     queryKey: meetingKeys.detail(id),
     queryFn: async () =>
       (await request(`/meetings/${id}`, { schema: meetingResponseSchema })).meeting,
+    // Stop polling once the worker has a final result; no refresh is needed for a finished page.
+    refetchInterval: (query) =>
+      query.state.data?.analysisStatus === 'pending' ||
+      query.state.data?.analysisStatus === 'processing'
+        ? 2_000
+        : false,
+  });
+}
+
+export function useAnalyzeMeeting(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () =>
+      (
+        await request(`/meetings/${id}/analyze`, {
+          method: 'POST',
+          schema: meetingResponseSchema,
+        })
+      ).meeting,
+    onSuccess: (meeting) => {
+      queryClient.setQueryData(meetingKeys.detail(id), meeting);
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.list, exact: true });
+    },
   });
 }
 
