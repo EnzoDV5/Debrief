@@ -20,17 +20,21 @@ import { MeetingMenu } from '@/features/meetings/MeetingMenu';
 import { cn } from '@/lib/cn';
 import { SkipLink } from './SkipLink';
 
-/** Conversation-style workspace: history stays in reach while the current meeting is open. */
+/**
+ * Conversation-style workspace: history stays in reach while the current meeting is open.
+ * On desktop the page sits in a rounded panel framed by the sidebar colour, and the panel (not
+ * the window) scrolls, so the frame and sidebar never move.
+ */
 export function AppShell() {
   const mainRef = useMainFocusOnNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-dvh bg-bg">
+    <div className="min-h-dvh bg-bg lg:flex lg:h-dvh lg:bg-sidebar">
       <SkipLink />
       <aside
         aria-label="Workspace sidebar"
-        className="fixed inset-y-0 left-0 z-30 hidden w-sidebar flex-col bg-sidebar text-sidebar-fg lg:flex"
+        className="hidden w-sidebar shrink-0 flex-col bg-sidebar text-sidebar-fg lg:flex"
       >
         <SidebarContent />
       </aside>
@@ -61,7 +65,12 @@ export function AppShell() {
         </Button>
       </header>
 
-      <main id="main" ref={mainRef} tabIndex={-1} className="min-w-0 outline-none lg:pl-sidebar">
+      <main
+        id="main"
+        ref={mainRef}
+        tabIndex={-1}
+        className="min-w-0 outline-none lg:my-3 lg:mr-3 lg:flex-1 lg:overflow-y-auto lg:rounded-panel lg:bg-bg"
+      >
         <div className="mx-auto w-full px-4 py-7 sm:px-8 lg:px-8 lg:py-10">
           <Outlet />
         </div>
@@ -72,13 +81,16 @@ export function AppShell() {
 
 function useMainFocusOnNavigate() {
   const mainRef = useRef<HTMLElement>(null);
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
   const previousPath = useRef(pathname);
   useEffect(() => {
     if (previousPath.current === pathname) return;
     previousPath.current = pathname;
     mainRef.current?.focus({ preventScroll: true });
-  }, [pathname]);
+    // On desktop the panel is the scroller, which ScrollRestoration (window only) doesn't reset.
+    // A #L12 link scrolls to its own line, so leave those alone.
+    if (!hash) mainRef.current?.scrollTo?.({ top: 0 });
+  }, [pathname, hash]);
   return mainRef;
 }
 

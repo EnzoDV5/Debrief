@@ -249,7 +249,7 @@ function ReviewStep({ draft, onBack }: { draft: Draft; onBack: () => void }) {
   });
 
   return (
-    <form onSubmit={onSubmit} noValidate className="mx-auto max-w-3xl pb-28">
+    <form onSubmit={onSubmit} noValidate className="mx-auto max-w-3xl">
       <button
         type="button"
         onClick={onBack}
@@ -306,9 +306,10 @@ function ReviewStep({ draft, onBack }: { draft: Draft; onBack: () => void }) {
         </Card>
       </section>
 
-      {/* Always-visible action bar, so the decision is one click away however long the file is. */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 px-4 py-3 backdrop-blur lg:pl-sidebar">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
+      {/* Always-visible action bar, so the decision is one click away however long the file is.
+          Sticky (not fixed) so it stays inside the page panel instead of covering the frame. */}
+      <div className="sticky bottom-3 z-20 mt-6 rounded-card border border-line bg-surface/95 px-4 py-3 shadow-raised backdrop-blur">
+        <div className="flex items-center justify-between gap-3">
           <p className="hidden items-center gap-1.5 text-sm text-muted sm:flex">
             <Info aria-hidden="true" className="size-4" />
             Saving keeps the original text. The AI reads it next.
