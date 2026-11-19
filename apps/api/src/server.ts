@@ -1,7 +1,8 @@
 import { createApp } from './app';
-import { env } from './config/env';
+import { aiModelChain, env } from './config/env';
 import { logger } from './lib/logger';
 import { createIntegrationsFromEnv } from './modules/integrations/integrations.service';
+import { createOpenRouterClient } from './modules/analysis/openRouterClient';
 import { startAnalysisWorker } from './worker';
 
 // The background worker starts first: the api hands it jobs as soon as a meeting is saved.
@@ -12,7 +13,18 @@ if (!integrations.available) {
   logger.info('Google Calendar is off (GOOGLE_CLIENT_ID/SECRET or ENCRYPTION_KEY not set)');
 }
 
-const server = createApp({ analysisQueue: analysis, integrations }).listen(env.PORT, () => {
+const ask = {
+  ai: createOpenRouterClient({
+    apiKey: env.OPENROUTER_API_KEY,
+    appUrl: env.APP_URL,
+    // A question is an interactive request, so keep the whole fallback chain below proxy timeouts.
+    timeoutMs: Math.min(env.AI_TIMEOUT_MS, 15_000),
+    retryDelaysMs: [],
+  }),
+  models: aiModelChain(env).slice(0, 2),
+};
+
+const server = createApp({ analysisQueue: analysis, integrations, ask }).listen(env.PORT, () => {
   logger.info(`API listening on http://localhost:${env.PORT}`);
 });
 

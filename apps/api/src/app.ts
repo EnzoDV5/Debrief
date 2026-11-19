@@ -12,6 +12,7 @@ import { createActionItemsRouter } from './modules/actionItems/actionItems.route
 import { createAuthRouter } from './modules/auth/auth.routes';
 import { createDecisionsRouter } from './modules/decisions/decisions.routes';
 import type { AnalysisQueue } from './modules/analysis/queue';
+import type { AskDeps } from './modules/analysis/ask.service';
 import { createGoogleClient } from './modules/integrations/googleClient';
 import { createIntegrationsController } from './modules/integrations/integrations.controller';
 import { createIntegrationsRouter } from './modules/integrations/integrations.routes';
@@ -25,6 +26,8 @@ import { createProjectsRouter } from './modules/projects/projects.routes';
 export type AppDeps = {
   /** Where "analyse this meeting" jobs go: pg-boss in the server, a recording fake in tests. */
   analysisQueue: AnalysisQueue;
+  /** On-demand questions about one meeting. Tests inject a fake AI client. */
+  ask?: AskDeps;
   /** Google Calendar. Left out (tests, or a server without Google keys) = feature switched off. */
   integrations?: IntegrationsService;
 };

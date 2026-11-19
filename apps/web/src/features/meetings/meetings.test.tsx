@@ -242,6 +242,71 @@ describe('new meeting: drop, review, then analyse', () => {
 });
 
 describe('meeting detail', () => {
+  it('answers meeting questions with source links and handles missing answers', async () => {
+    const asked: string[] = [];
+    mockApi({
+      ...me,
+      [`GET ${detailUrl}`]: { status: 200, body: { meeting } },
+      [`POST ${detailUrl}/ask`]: (body) => {
+        const question = (body as { question: string }).question;
+        asked.push(question);
+        return question === 'What decisions were made?'
+          ? {
+              status: 200,
+              body: { answer: 'Ben agreed to send the files.', citations: [2] },
+            }
+          : { status: 200, body: { answer: null, citations: [] } };
+      },
+    });
+    const user = userEvent.setup();
+    const { router } = renderApp(`/meetings/${meeting.id}`);
+
+    await screen.findByRole('heading', { name: 'Ask this meeting' });
+    await user.click(screen.getByRole('button', { name: 'What decisions were made?' }));
+    const input = screen.getByRole('textbox', { name: 'Ask a question about this meeting' });
+    expect(input).toHaveValue('What decisions were made?');
+    await user.click(screen.getByRole('button', { name: 'Ask' }));
+    expect(await screen.findByText('Ben agreed to send the files.')).toBeInTheDocument();
+    expect(asked).toEqual(['What decisions were made?']);
+    await user.click(
+      within(screen.getByRole('region', { name: 'Ask this meeting' })).getByRole('link', {
+        name: 'Line 2',
+      }),
+    );
+    expect(router.state.location.hash).toBe('#L2');
+
+    await user.type(input, 'Who owns the budget?');
+    await user.click(screen.getByRole('button', { name: 'Ask' }));
+    expect(
+      await screen.findByText('I couldn’t find an answer supported by this transcript.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'What decisions were made?' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(asked).toEqual(['What decisions were made?', 'Who owns the budget?']);
+  });
+
+  it('keeps the question and shows a retryable error when the AI is busy', async () => {
+    mockApi({
+      ...me,
+      [`GET ${detailUrl}`]: { status: 200, body: { meeting } },
+      [`POST ${detailUrl}/ask`]: {
+        status: 429,
+        body: { error: { code: 'AI_BUSY', message: 'The AI is busy. Try again in a minute.' } },
+      },
+    });
+    const user = userEvent.setup();
+    renderApp(`/meetings/${meeting.id}`);
+    const input = await screen.findByRole('textbox', { name: 'Ask a question about this meeting' });
+    await user.type(input, 'What is blocking progress?');
+    await user.click(screen.getByRole('button', { name: 'Ask' }));
+
+    expect(await screen.findByText('The AI is busy. Try again in a minute.')).toBeInTheDocument();
+    expect(input).toHaveValue('What is blocking progress?');
+    expect(screen.getByRole('button', { name: 'Ask' })).toBeEnabled();
+  });
+
   it('shows analysis results, review flags, and transcript links', async () => {
     const analysed = {
       ...meeting,

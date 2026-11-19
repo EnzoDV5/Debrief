@@ -9,6 +9,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { MeetingDocument } from '@/features/meetings/document/MeetingDocument';
 import { MeetingOverview } from '@/features/meetings/document/MeetingOverview';
+import { AskMeetingCard } from '@/features/meetings/document/AskMeetingCard';
 import { useMeeting } from '@/features/meetings/hooks';
 import { formatCalendarDate, plural } from '@/lib/format';
 import { usePageTitle } from '@/lib/usePageTitle';
@@ -67,6 +68,7 @@ function MeetingDetail({ meeting }: { meeting: Meeting }) {
         <section aria-label="Meeting summary">
           <MeetingOverview meeting={meeting} />
         </section>
+        <AskMeetingCard key={meeting.id} meetingId={meeting.id} />
       </div>
 
       <div className="pt-8">

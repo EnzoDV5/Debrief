@@ -1,6 +1,8 @@
 import {
   meetingListResponseSchema,
   meetingResponseSchema,
+  askMeetingResponseSchema,
+  type AskMeetingResponse,
   projectResponseSchema,
   projectsResponseSchema,
   type Meeting,
@@ -85,6 +87,17 @@ export function useAnalyzeMeeting(id: string) {
       queryClient.setQueryData(meetingKeys.detail(id), meeting);
       void invalidateMeetingLists(queryClient);
     },
+  });
+}
+
+export function useAskMeeting(id: string) {
+  return useMutation({
+    mutationFn: async (question: string): Promise<AskMeetingResponse> =>
+      request(`/meetings/${id}/ask`, {
+        method: 'POST',
+        body: { question },
+        schema: askMeetingResponseSchema,
+      }),
   });
 }
 
