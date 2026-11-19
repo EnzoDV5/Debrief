@@ -34,6 +34,10 @@ services:
       NODE_ENV: production
       PORT: 3000
       DATABASE_URL: postgres://debrief:debrief@db:5432/debrief
+      # The browser sees the app on :8080, so that's the only origin allowed to change data.
+      WEB_ORIGIN: http://localhost:8080
+      # nginx sits in front of the api; trust its X-Forwarded-For for the real client IP.
+      TRUST_PROXY: 1
     # No published port: like production, the api is only reachable through the web proxy.
     # (This also keeps port 3000 free for `npm run dev:api`.)
     depends_on:

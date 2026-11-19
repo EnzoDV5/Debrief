@@ -24,6 +24,7 @@ EXPOSE 3000
 # Don't run as root inside the container.
 USER node
 
-# Run TypeScript through tsx's loader inside a single node process (no build step yet), so
-# SIGTERM from `docker stop` reaches our shutdown handler in server.ts directly.
-CMD ["node", "--import", "tsx", "src/server.ts"]
+# 1. Apply pending database migrations (a no-op when up to date), then
+# 2. start the server. TypeScript runs through tsx's loader (no build step yet), and `exec`
+#    makes node PID 1, so SIGTERM from `docker stop` reaches the shutdown handler in server.ts.
+CMD ["sh", "-c", "node --import tsx src/db/migrate.ts && exec node --import tsx src/server.ts"]

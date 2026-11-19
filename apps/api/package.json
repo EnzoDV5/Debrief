@@ -6,21 +6,31 @@
   "scripts": {
     "dev": "tsx watch --env-file-if-exists=../../.env src/server.ts",
     "start": "tsx --env-file-if-exists=../../.env src/server.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx --env-file-if-exists=../../.env src/db/migrate.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
     "@debrief/shared": "*",
+    "argon2": "^0.45.2",
+    "cookie-parser": "^1.4.7",
+    "drizzle-orm": "^0.45.4",
     "express": "^5.3.0",
+    "express-rate-limit": "^8.7.5",
     "helmet": "^8.3.0",
+    "pg": "^8.23.1",
     "pino": "^10.4.0",
     "pino-http": "^11.0.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
     "@types/node": "^24.0.0",
+    "@types/pg": "^8.23.1",
     "@types/supertest": "^7.2.1",
+    "drizzle-kit": "^0.31.11",
     "pino-pretty": "^13.2.0",
     "supertest": "^7.3.2",
     "tsx": "^4.23.15",
