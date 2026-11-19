@@ -47,7 +47,7 @@ export function useActionItems(filters: ActionItemFilters) {
 
 type ItemUpdate = (item: ActionItem) => ActionItem | null; // null = remove
 
-function updateItemEverywhere(queryClient: QueryClient, id: string, update: ItemUpdate) {
+export function updateItemEverywhere(queryClient: QueryClient, id: string, update: ItemUpdate) {
   const apply = <T extends ActionItem>(items: T[]) =>
     items.flatMap((item) => {
       if (item.id !== id) return [item];

@@ -3,6 +3,7 @@ import { CalendarDays, Pencil, Trash2, TriangleAlert, UserRound } from 'lucide-r
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { Badge } from '@/components/ui/Badge';
+import { AddToCalendar } from '@/features/integrations/AddToCalendar';
 import { cn } from '@/lib/cn';
 import { formatCalendarDate, todayDate } from '@/lib/format';
 import { useUpdateActionItem } from './hooks';
@@ -84,6 +85,7 @@ export function ActionItemCard({
             </p>
           )}
           {source && <div className="mt-2 text-sm">{source}</div>}
+          <AddToCalendar item={item} />
           {update.error && (
             <p role="alert" className="mt-2 text-sm text-danger">
               Couldn’t save: {update.error.message}
