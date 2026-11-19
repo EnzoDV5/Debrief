@@ -23,7 +23,7 @@ export function BackLink() {
       className="mb-4 inline-flex min-h-9 items-center gap-1.5 text-sm font-semibold text-muted hover:text-fg"
     >
       <ArrowLeft aria-hidden="true" className="size-4" />
-      All meetings
+      Workspace
     </Link>
   );
 }

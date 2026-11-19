@@ -1,7 +1,7 @@
 import type { AnalysisStatus } from '@debrief/shared';
-import { FileText, ListChecks, LogOut, Menu, Plus, Search, UserRound, X } from 'lucide-react';
+import { ListChecks, LogOut, Menu, Plus, Search, UserRound, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { Button } from '@/components/ui/Button';
 import { Logo } from '@/components/ui/Logo';
 import { useCurrentUser, useLogout } from '@/features/auth/hooks';
@@ -32,7 +32,9 @@ export function AppShell() {
           >
             <Menu aria-hidden="true" className="size-5" />
           </button>
-          <Logo />
+          <Link to="/meetings" aria-label="Workspace home">
+            <Logo />
+          </Link>
         </div>
         <Button to="/meetings/new" size="sm" icon={<Plus aria-hidden="true" className="size-4" />}>
           New<span className="sr-only"> meeting</span>
@@ -107,7 +109,9 @@ function SidebarContent({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex h-18 shrink-0 items-center justify-between px-5">
-        <Logo inverse />
+        <Link to="/meetings" aria-label="Workspace home" onClick={onNavigate}>
+          <Logo inverse />
+        </Link>
         {onClose && (
           <button
             type="button"
@@ -132,10 +136,6 @@ function SidebarContent({
       </div>
 
       <nav aria-label="Workspace" className="space-y-1 px-3">
-        <NavLink to="/meetings" end onClick={onNavigate} className={navClass}>
-          <FileText aria-hidden="true" className="size-5" />
-          All meetings
-        </NavLink>
         <NavLink to="/items" onClick={onNavigate} className={navClass}>
           <ListChecks aria-hidden="true" className="size-5" />
           Open items
@@ -145,7 +145,7 @@ function SidebarContent({
       <div className="mt-6 flex min-h-0 flex-1 flex-col border-t border-sidebar-line pt-5">
         <div className="flex items-center justify-between px-5">
           <h2 className="text-xs font-bold tracking-[0.12em] text-sidebar-muted uppercase">
-            Recent meetings
+            Meeting history
           </h2>
           {meetings && (
             <span className="text-xs tabular-nums text-sidebar-muted">{meetings.length}</span>

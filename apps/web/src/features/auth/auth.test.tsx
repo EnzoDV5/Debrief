@@ -19,7 +19,9 @@ describe('route guards', () => {
     mockApi({ 'GET /api/auth/me': { status: 200, body: { user: testUser } } });
     renderApp('/login');
 
-    expect(await screen.findByRole('heading', { name: 'Meetings' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'What would you like to debrief?' }),
+    ).toBeInTheDocument();
   });
 
   it('shows an error with retry when the api is unreachable', async () => {
@@ -102,7 +104,9 @@ describe('login', () => {
     expect(loginCalls).toHaveLength(1);
 
     finish({ status: 200, body: { user: testUser } });
-    expect(await screen.findByRole('heading', { name: 'Meetings' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'What would you like to debrief?' }),
+    ).toBeInTheDocument();
   });
 
   it('toggles password visibility', async () => {
