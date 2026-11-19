@@ -59,7 +59,7 @@
   font-family: var(--font-mono);
   font-size: 0.6875rem;
   line-height: 1.2;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--tracking-label);
   font-weight: 500;
   text-transform: uppercase;
 }
@@ -123,4 +123,27 @@
   background-color: color-mix(in srgb, var(--color-surface) 78%, transparent);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   backdrop-filter: blur(20px) saturate(180%);
+}
+
+/* PanelBackdrop's colour blobs: a soft circle of brand colour fading to nothing at the edge. */
+@utility blob-lime {
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-spark) 45%, transparent) 0%,
+    transparent 68%
+  );
+}
+@utility blob-cobalt {
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-accent) 22%, transparent) 0%,
+    transparent 68%
+  );
+}
+@utility blob-cobalt-soft {
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-accent) 12%, transparent) 0%,
+    transparent 68%
+  );
 }

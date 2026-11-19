@@ -16,9 +16,7 @@ const base =
   'disabled:cursor-not-allowed disabled:opacity-60 disabled:active:translate-y-0';
 
 const variants: Record<Variant, string> = {
-  // A faint top highlight and a cobalt glow give the main action a little depth.
-  primary:
-    'bg-accent text-accent-fg shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_8px_20px_-10px_var(--color-accent)] hover:bg-accent-hover',
+  primary: 'bg-accent text-accent-fg shadow-glow hover:bg-accent-hover',
   // Glass: translucent with the bright rim. The border stays strong (3:1) so it reads as a control.
   secondary: 'border border-line-strong bg-surface/60 text-fg shadow-card hover:bg-surface',
   // No text colour: inherits from its surroundings (e.g. muted in the sidebar).

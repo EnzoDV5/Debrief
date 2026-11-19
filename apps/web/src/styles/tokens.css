@@ -59,6 +59,9 @@
 
   /* App type scale: fixed sizes (a dashboard shouldn't grow with the viewport like a
      marketing page), with tighter tracking on the larger steps. */
+  /* Wide spacing for small uppercase labels ("RECENT MEETINGS", eyebrows). */
+  --tracking-label: 0.12em;
+
   --text-xs: 0.75rem;
   --text-xs--line-height: 1.4;
   --text-sm: 0.875rem;
@@ -83,6 +86,7 @@
   --radius-card: 16px;
   --radius-panel: 24px; /* the framed page area beside the sidebar (desktop) */
   --radius-pill: 999px;
+  --radius-mark: 3px; /* highlighted words in the transcript */
 
   /*
    * Shadows: soft and low. Each starts with a thin white inset line along the top edge, the
@@ -94,6 +98,8 @@
   --shadow-raised:
     inset 0 1px 0 rgb(255 255 255 / 0.9), 0 18px 40px -14px rgb(12 14 22 / 0.24),
     0 2px 6px rgb(12 14 22 / 0.06);
+  /* Primary button: a faint top shine and a cobalt glow underneath. */
+  --shadow-glow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 8px 20px -10px var(--color-accent);
 
   /* Motion: short and calm. Turned off entirely for prefers-reduced-motion (base.css). */
   --ease-out-3: cubic-bezier(0.215, 0.61, 0.355, 1);

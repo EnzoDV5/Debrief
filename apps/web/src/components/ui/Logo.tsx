@@ -35,9 +35,7 @@ export function Logo({
         <rect x="8" y="20.5" width="8" height="2.5" rx="1.25" fill="var(--color-spark)" />
         <circle cx="21.5" cy="21.75" r="2.25" fill="var(--color-spark)" />
       </svg>
-      <span
-        className={cn('text-lg font-bold tracking-[-0.02em]', inverse ? 'text-white' : 'text-fg')}
-      >
+      <span className={cn('text-lg font-bold tracking-tight', inverse ? 'text-white' : 'text-fg')}>
         Debrief
       </span>
     </span>

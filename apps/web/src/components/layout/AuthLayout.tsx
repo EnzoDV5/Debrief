@@ -32,7 +32,7 @@ function BrandPanel() {
       {/* Soft light in the corner, purely decorative. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-40 -right-40 size-[32rem] rounded-full bg-white/10 blur-3xl"
+        className="pointer-events-none absolute -top-40 -right-40 size-128 rounded-full bg-white/10 blur-3xl"
       />
       <Logo inverse />
 

@@ -184,7 +184,7 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
                 </div>
               </div>
               {notes && (notes.items.length > 0 || notes.decisions.length > 0) && (
-                <div className="space-y-3 pl-[3rem] sm:pl-[3.5rem] xl:pl-0">
+                <div className="space-y-3 pl-12 sm:pl-14 xl:pl-0">
                   {notes.decisions.map((decision) => (
                     <DecisionBubble
                       key={decision.id}
@@ -290,7 +290,7 @@ function LineText({
             onMouseEnter={() => onActive(owner.itemId)}
             onMouseLeave={() => onActive(null)}
             className={cn(
-              'rounded-[3px] px-0.5 text-fg transition-shadow',
+              'rounded-mark px-0.5 text-fg transition-shadow',
               MARK_STYLES[kind],
               active && 'ring-2 ring-accent/50',
             )}

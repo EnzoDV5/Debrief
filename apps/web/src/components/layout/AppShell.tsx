@@ -192,7 +192,7 @@ function SidebarContent({
 
       <div className="mt-6 flex min-h-0 flex-1 flex-col border-t border-sidebar-line pt-5">
         <div className="flex items-center justify-between px-5">
-          <h2 className="text-xs font-bold tracking-[0.12em] text-sidebar-muted uppercase">
+          <h2 className="text-xs font-bold tracking-label text-sidebar-muted uppercase">
             Recent meetings
           </h2>
           {meetings && (

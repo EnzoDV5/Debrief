@@ -10,8 +10,9 @@ import { extendTailwindMerge } from 'tailwind-merge';
 const twMerge = extendTailwindMerge({
   extend: {
     theme: {
-      radius: ['card', 'panel', 'pill'],
-      shadow: ['card', 'raised'],
+      radius: ['card', 'panel', 'pill', 'mark'],
+      shadow: ['card', 'raised', 'glow'],
+      tracking: ['label'],
       spacing: ['sidebar', 'topbar', 'tabbar'],
       container: ['content', 'form'],
       animate: ['blob-1', 'blob-2', 'blob-3'],
