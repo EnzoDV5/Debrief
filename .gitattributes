@@ -1,0 +1,7 @@
+# Store and check out text files with LF on every OS, so Prettier/ESLint agree on
+# Windows (core.autocrlf=true) and in CI (Linux).
+* text=auto eol=lf
+*.pdf binary
+*.png binary
+*.jpg binary
+*.ico binary

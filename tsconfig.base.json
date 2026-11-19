@@ -1,0 +1,28 @@
+{
+  // Shared compiler settings. Each workspace extends this and adds only what differs
+  // (DOM + JSX for web, Node types for api).
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    // "Bundler" resolution lets us write extensionless imports. The api runs through tsx and
+    // the web through Vite, so neither needs tsc to emit JavaScript: tsc is only the type checker.
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+
+    "strict": true,
+    // Makes `array[i]` possibly undefined, which catches off-by-one bugs (e.g. transcript lines).
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    // TS 6 no longer pulls in every @types package automatically; workspaces list theirs.
+    "types": []
+  }
+}
