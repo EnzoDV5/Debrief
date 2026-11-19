@@ -29,6 +29,17 @@ function shortDate(iso: string): string {
   }).format(new Date(`${iso}T00:00:00Z`));
 }
 
+const MONTHS = 'jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec';
+
+/** A day of the month written out in the words: "the 18th", "18 November", "November 18". */
+function explicitDayOfMonth(text: string): number | null {
+  const match =
+    /\b(\d{1,2})(?:st|nd|rd|th)\b/i.exec(text) ??
+    new RegExp(`\\b(\\d{1,2})\\s+(?:${MONTHS})[a-z]*\\b`, 'i').exec(text) ??
+    new RegExp(`\\b(?:${MONTHS})[a-z]*\\s+(\\d{1,2})\\b`, 'i').exec(text);
+  return match ? Number(match[1]) : null;
+}
+
 /** "the 12th" / "on the 3rd": the next such day of the month, on or after the meeting. */
 function resolveDayOfMonth(text: string, meetingDate: string): string | null {
   const match = /\bthe\s+(\d{1,2})(?:st|nd|rd|th)\b/i.exec(text);
@@ -64,6 +75,17 @@ export function resolveDueDate(text: string, meetingDate: string): DueDateResult
   }
 
   const date = ymd(start.get('year') ?? 0, start.get('month') ?? 0, start.get('day') ?? 0);
+
+  // "Wednesday the 18th" can contradict itself relative to the meeting date (e.g. the meeting
+  // date is wrong): chrono then picks the weekday and ignores the 18th. Never guess between
+  // them: keep a suggestion, but say the words don't add up.
+  const statedDay = explicitDayOfMonth(text);
+  if (statedDay !== null && statedDay !== start.get('day')) {
+    return {
+      date,
+      review: `“${text}” doesn't match a single date after the meeting (check the meeting date)`,
+    };
+  }
 
   // "next Friday" said on a Tuesday: this week's Friday or next week's? People mean both.
   const nextWeekday = /\bnext\s+(sun|mon|tue|wed|thu|fri|sat)[a-z]*/i.exec(text);

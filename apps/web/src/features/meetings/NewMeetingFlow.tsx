@@ -1,4 +1,5 @@
 import {
+  detectMeetingDate,
   meetingDetailsSchema,
   parseTranscript,
   type MeetingDetailsInput,
@@ -213,6 +214,9 @@ function ReviewStep({ draft, onBack }: { draft: Draft; onBack: () => void }) {
   const navigate = useNavigate();
   const create = useCreateMeeting();
   const speakers = new Set(draft.lines.map((l) => l.speaker).filter(Boolean)).size;
+  // Deadlines like "Wednesday the 18th" are worked out from the meeting date, so use the date
+  // the transcript states (e.g. "Date: Monday 16 November 2026") rather than today, when it has one.
+  const detectedDate = detectMeetingDate(draft.lines);
 
   const {
     register,
@@ -221,7 +225,7 @@ function ReviewStep({ draft, onBack }: { draft: Draft; onBack: () => void }) {
     formState: { errors, isSubmitting },
   } = useForm<MeetingDetailsInput>({
     resolver: zodResolver(meetingDetailsSchema),
-    defaultValues: { title: draft.suggestedTitle, meetingDate: todayDate() },
+    defaultValues: { title: draft.suggestedTitle, meetingDate: detectedDate ?? todayDate() },
   });
 
   const onSubmit = handleSubmit(async (details) => {
@@ -270,7 +274,11 @@ function ReviewStep({ draft, onBack }: { draft: Draft; onBack: () => void }) {
           <Field label="Title" error={errors.title?.message}>
             {(control) => <Input {...control} {...register('title')} />}
           </Field>
-          <Field label="Meeting date" error={errors.meetingDate?.message}>
+          <Field
+            label="Meeting date"
+            hint={detectedDate ? 'Found in the transcript' : 'Today, by default'}
+            error={errors.meetingDate?.message}
+          >
             {(control) => <Input {...control} {...register('meetingDate')} type="date" />}
           </Field>
         </div>

@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { parseTranscript } from '@debrief/shared';
+import { detectMeetingDate, parseTranscript } from '@debrief/shared';
 import { describe, expect, it } from 'vitest';
 
 const fixture = (name: string) =>
@@ -128,5 +128,33 @@ describe('parseTranscript: Markdown', () => {
       text: 'The new review checklist made pull requests much faster to get through.',
     });
     expect(lines.find((l) => l.text.startsWith('Honestly'))?.speaker).toBe('Naledi');
+  });
+});
+
+describe('detectMeetingDate', () => {
+  const lines = (...texts: string[]) => texts.map((text, i) => ({ n: i + 1, text }));
+
+  it.each([
+    ['Date: Monday 16 November 2026', '2026-11-16'],
+    ['Meeting date: 2026-11-16', '2026-11-16'],
+    ['Date - November 16, 2026', '2026-11-16'],
+    ['Date: 16/11/2026', '2026-11-16'],
+    ['Date: 16th Nov, 2026', '2026-11-16'],
+  ])('reads "%s"', (text, expected) => {
+    expect(detectMeetingDate(lines('Weekly check-in', text, 'Ann: hi'))).toBe(expected);
+  });
+
+  it('uses a full date in the title line when there is no "Date:" label', () => {
+    expect(
+      detectMeetingDate(lines('Weekly product sync, Tuesday 24 November 2026', 'Ann: hi')),
+    ).toBe('2026-11-24');
+  });
+
+  it('ignores dates without a year, impossible dates, and dates deep in the discussion', () => {
+    expect(detectMeetingDate(lines('Date: Wednesday the 18th'))).toBeNull();
+    expect(detectMeetingDate(lines('Date: 31 February 2026'))).toBeNull();
+    expect(
+      detectMeetingDate(lines('Standup', 'Ann: hi', 'Ben: hi', 'Ann: ship it by 2 December 2026')),
+    ).toBeNull();
   });
 });

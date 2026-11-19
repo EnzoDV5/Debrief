@@ -179,6 +179,19 @@ describe('resolveDueDate', () => {
   });
 });
 
+describe('resolveDueDate: contradictions', () => {
+  it('flags a weekday + day-of-month that disagree with the meeting date, instead of guessing', () => {
+    // Transcript said 'Date: Monday 16 November', but the meeting date was left as the 19th.
+    expect(resolveDueDate('by Wednesday the 18th', '2026-11-19')).toEqual({
+      date: '2026-11-25',
+      review:
+        "“by Wednesday the 18th” doesn't match a single date after the meeting (check the meeting date)",
+    });
+    // With the right meeting date it simply resolves.
+    expect(resolveDueDate('by Wednesday the 18th', '2026-11-16')).toEqual({ date: '2026-11-18' });
+  });
+});
+
 describe('prompt safety helpers', () => {
   it('numbers lines and neutralises transcript tags inside the transcript', () => {
     const formatted = formatTranscript([
