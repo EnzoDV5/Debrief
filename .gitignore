@@ -1,0 +1,23 @@
+# Dependencies and build output
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Secrets: only .env.example (placeholders) is committed
+.env
+.env.*
+!.env.example
+
+# Confidential brief and sample transcripts
+docs/private/
+
+# Logs and OS / editor noise
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
