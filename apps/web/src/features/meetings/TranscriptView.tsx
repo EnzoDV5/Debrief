@@ -1,6 +1,6 @@
 import type { TranscriptLine } from '@debrief/shared';
 import { useEffect } from 'react';
-import { useLocation } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { cn } from '@/lib/cn';
 
 /** "#L12" → 12. Anything else → null. */
@@ -37,7 +37,7 @@ export function TranscriptView({
   // Bring the linked line into view once it exists (also after a reload or a shared link).
   useEffect(() => {
     if (targetLine === null) return;
-    document.getElementById(`L${targetLine}`)?.scrollIntoView({ block: 'center' });
+    document.getElementById(`L${targetLine}`)?.scrollIntoView?.({ block: 'center' });
   }, [targetLine, lines]);
 
   return (
@@ -57,13 +57,13 @@ export function TranscriptView({
             )}
           >
             {linkable ? (
-              <a
-                href={`#L${line.n}`}
+              <Link
+                to={`#L${line.n}`}
                 aria-label={`Line ${line.n}`}
                 className="pt-0.5 text-right font-mono text-xs text-muted tabular-nums hover:text-accent"
               >
                 {line.n}
-              </a>
+              </Link>
             ) : (
               <span
                 aria-hidden="true"

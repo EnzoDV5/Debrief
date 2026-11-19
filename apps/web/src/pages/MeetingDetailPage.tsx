@@ -1,5 +1,5 @@
 import type { Meeting } from '@debrief/shared';
-import { CalendarDays, FileSearch, Pencil, Rows3, Trash2 } from 'lucide-react';
+import { CalendarDays, ChevronDown, FileSearch, Pencil, Rows3, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { ApiError } from '@/api/client';
@@ -52,11 +52,13 @@ export function MeetingDetailPage() {
 
 function MeetingDetail({ meeting }: { meeting: Meeting }) {
   const navigate = useNavigate();
-  const justCreated = (useLocation().state as { created?: boolean } | null)?.created;
+  const location = useLocation();
+  const justCreated = (location.state as { created?: boolean } | null)?.created;
   const [dialog, setDialog] = useState<'edit' | 'delete' | null>(null);
+  const [transcriptOpen, setTranscriptOpen] = useState(() => /^#L\d+$/.test(location.hash));
 
   return (
-    <>
+    <div className="mx-auto max-w-4xl">
       <BackLink />
       <PageHeader
         title={meeting.title}
@@ -98,21 +100,36 @@ function MeetingDetail({ meeting }: { meeting: Meeting }) {
         </Alert>
       )}
 
-      {/* Desktop: analysis beside the transcript.
-          Mobile: stacked, analysis first because it's the summary of everything below. */}
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
-        <AnalysisPanel meeting={meeting} />
+      <AnalysisPanel meeting={meeting} onSourceJump={() => setTranscriptOpen(true)} />
 
-        <Card className="p-5 sm:p-6">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="text-lg font-bold">Transcript</h2>
-            <span className="text-sm text-muted numeric">
-              {plural(meeting.transcriptLines.length, 'line')}
+      <Card className="mt-6 overflow-hidden">
+        <button
+          type="button"
+          aria-expanded={transcriptOpen}
+          aria-controls="meeting-transcript"
+          onClick={() => setTranscriptOpen((open) => !open)}
+          className="flex min-h-16 w-full items-center justify-between gap-3 px-5 text-left hover:bg-surface-2 sm:px-7"
+        >
+          <span>
+            <span className="block font-bold">Transcript</span>
+            <span className="block text-sm text-muted">
+              Original source · {plural(meeting.transcriptLines.length, 'line')}
             </span>
+          </span>
+          <ChevronDown
+            aria-hidden="true"
+            className={`size-5 text-muted transition-transform ${transcriptOpen ? 'rotate-180' : ''}`}
+          />
+        </button>
+        {transcriptOpen && (
+          <div
+            id="meeting-transcript"
+            className="max-h-[75vh] overflow-y-auto border-t border-line px-3 py-5 sm:px-6"
+          >
+            <TranscriptView lines={meeting.transcriptLines} />
           </div>
-          <TranscriptView lines={meeting.transcriptLines} />
-        </Card>
-      </div>
+        )}
+      </Card>
 
       <EditMeetingDialog
         meeting={meeting}
@@ -127,7 +144,7 @@ function MeetingDetail({ meeting }: { meeting: Meeting }) {
           navigate('/meetings', { replace: true, state: { deleted: meeting.title } })
         }
       />
-    </>
+    </div>
   );
 }
 

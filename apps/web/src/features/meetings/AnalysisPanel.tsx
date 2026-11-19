@@ -1,6 +1,7 @@
 import type { Meeting } from '@debrief/shared';
 import { RotateCcw } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -9,16 +10,26 @@ import { formatCalendarDate } from '@/lib/format';
 import { AnalysisStatusBadge } from './AnalysisStatusBadge';
 import { useAnalyzeMeeting } from './hooks';
 
-function LineLink({ line }: { line: number | null }) {
+function LineLink({ line, onJump }: { line: number | null; onJump?: () => void }) {
   return line === null ? null : (
-    <a className="text-sm font-semibold text-accent hover:underline" href={`#L${line}`}>
+    <Link
+      className="text-sm font-semibold text-accent hover:underline"
+      to={`#L${line}`}
+      onClick={onJump}
+    >
       Line {line}
-    </a>
+    </Link>
   );
 }
 
 /** Shows the saved analysis while a re-run is in progress, so useful notes never disappear. */
-export function AnalysisPanel({ meeting }: { meeting: Meeting }) {
+export function AnalysisPanel({
+  meeting,
+  onSourceJump,
+}: {
+  meeting: Meeting;
+  onSourceJump?: () => void;
+}) {
   const analyze = useAnalyzeMeeting(meeting.id);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const running = meeting.analysisStatus === 'pending' || meeting.analysisStatus === 'processing';
@@ -29,9 +40,12 @@ export function AnalysisPanel({ meeting }: { meeting: Meeting }) {
   };
 
   return (
-    <Card className="p-5 sm:p-6 lg:sticky lg:top-6">
+    <Card className="overflow-hidden p-5 sm:p-7">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-bold">Analysis</h2>
+        <div>
+          <p className="eyebrow text-accent">Meeting intelligence</p>
+          <h2 className="mt-1 text-xl font-bold">Analysis</h2>
+        </div>
         <AnalysisStatusBadge status={meeting.analysisStatus} />
       </div>
 
@@ -54,24 +68,29 @@ export function AnalysisPanel({ meeting }: { meeting: Meeting }) {
       )}
 
       {hasResults ? (
-        <div className="mt-6 space-y-7">
+        <div className="mt-8 space-y-8">
           <section aria-labelledby="summary-heading">
-            <h3 id="summary-heading" className="font-bold">
+            <h3 id="summary-heading" className="text-lg font-bold">
               Summary
             </h3>
-            <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{meeting.summary}</p>
+            <p className="mt-3 border-l-2 border-accent pl-4 text-base leading-7 whitespace-pre-wrap">
+              {meeting.summary}
+            </p>
           </section>
 
-          <section aria-labelledby="decisions-heading">
-            <h3 id="decisions-heading" className="font-bold">
-              Decisions
-            </h3>
+          <section aria-labelledby="decisions-heading" className="border-t border-line pt-6">
+            <div className="flex items-baseline justify-between gap-3">
+              <h3 id="decisions-heading" className="text-lg font-bold">
+                Decisions
+              </h3>
+              <span className="text-sm tabular-nums text-muted">{meeting.decisions.length}</span>
+            </div>
             {meeting.decisions.length ? (
               <ol className="mt-3 space-y-3">
                 {meeting.decisions.map((decision) => (
-                  <li key={decision.id} className="rounded-md bg-surface-2 p-3 text-sm">
+                  <li key={decision.id} className="rounded-md bg-surface-2 p-4 text-sm">
                     <p>{decision.text}</p>
-                    <LineLink line={decision.sourceLine} />
+                    <LineLink line={decision.sourceLine} onJump={onSourceJump} />
                   </li>
                 ))}
               </ol>
@@ -80,14 +99,17 @@ export function AnalysisPanel({ meeting }: { meeting: Meeting }) {
             )}
           </section>
 
-          <section aria-labelledby="items-heading">
-            <h3 id="items-heading" className="font-bold">
-              Action items
-            </h3>
+          <section aria-labelledby="items-heading" className="border-t border-line pt-6">
+            <div className="flex items-baseline justify-between gap-3">
+              <h3 id="items-heading" className="text-lg font-bold">
+                Action items
+              </h3>
+              <span className="text-sm tabular-nums text-muted">{meeting.actionItems.length}</span>
+            </div>
             {meeting.actionItems.length ? (
               <ol className="mt-3 space-y-3">
                 {meeting.actionItems.map((item) => (
-                  <li key={item.id} className="rounded-md border border-line p-3 text-sm">
+                  <li key={item.id} className="rounded-md border border-line p-4 text-sm">
                     <p className="font-semibold">{item.text}</p>
                     <p className="mt-1 text-muted">
                       {item.owner ?? 'No owner named'}
@@ -102,7 +124,7 @@ export function AnalysisPanel({ meeting }: { meeting: Meeting }) {
                       </p>
                     )}
                     {item.sourceQuote && <p className="mt-2 text-muted">“{item.sourceQuote}”</p>}
-                    <LineLink line={item.sourceLine} />
+                    <LineLink line={item.sourceLine} onJump={onSourceJump} />
                   </li>
                 ))}
               </ol>

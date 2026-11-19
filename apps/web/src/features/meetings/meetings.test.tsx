@@ -37,11 +37,67 @@ const {
 const detailUrl = `/api/meetings/${meeting.id}`;
 
 describe('meetings list', () => {
+  it('keeps previous meetings in a searchable sidebar and filters the library', async () => {
+    const sprint = {
+      ...listItem,
+      id: 'e84b8177-ecb1-48b7-aa22-b53b09a637e2',
+      title: 'Sprint review',
+      analysisStatus: 'done' as const,
+    };
+    mockApi({
+      ...me,
+      'GET /api/meetings': { status: 200, body: { meetings: [sprint, listItem] } },
+    });
+    const user = userEvent.setup();
+    renderApp('/meetings');
+
+    await screen.findByRole('heading', { name: 'Meetings', level: 1 });
+    const sidebar = screen.getByRole('complementary');
+    expect(await within(sidebar).findByRole('link', { name: 'Sprint review' })).toHaveAttribute(
+      'href',
+      `/meetings/${sprint.id}`,
+    );
+    await user.type(within(sidebar).getByRole('searchbox', { name: 'Search meetings' }), 'sprint');
+    expect(within(sidebar).queryByRole('link', { name: 'Weekly sync' })).not.toBeInTheDocument();
+
+    const main = screen.getByRole('main');
+    await user.selectOptions(
+      within(main).getByRole('combobox', { name: 'Filter by analysis status' }),
+      'done',
+    );
+    expect(within(main).getByRole('link', { name: /Sprint review/ })).toBeInTheDocument();
+    expect(within(main).queryByRole('link', { name: /Weekly sync/ })).not.toBeInTheDocument();
+    await user.type(within(main).getByRole('searchbox', { name: 'Search all meetings' }), 'weekly');
+    expect(within(main).getByText('No matching meetings')).toBeInTheDocument();
+    await user.click(within(main).getByRole('button', { name: 'Clear filters' }));
+    expect(within(main).getByRole('link', { name: /Weekly sync/ })).toBeInTheDocument();
+  });
+
+  it('opens the meeting history as a mobile drawer', async () => {
+    mockApi({
+      ...me,
+      'GET /api/meetings': { status: 200, body: { meetings: [listItem] } },
+      [`GET ${detailUrl}`]: { status: 200, body: { meeting } },
+    });
+    const user = userEvent.setup();
+    const { router } = renderApp('/meetings');
+    await screen.findByRole('heading', { name: 'Meetings', level: 1 });
+
+    await user.click(screen.getByRole('button', { name: 'Open sidebar' }));
+    const drawer = screen.getByRole('dialog', { name: 'Workspace sidebar' });
+    expect(drawer).toHaveAttribute('open');
+    await user.click(within(drawer).getByRole('link', { name: 'Weekly sync' }));
+    await screen.findByRole('heading', { name: 'Weekly sync', level: 1 });
+    expect(router.state.location.pathname).toBe(`/meetings/${meeting.id}`);
+    expect(drawer).not.toHaveAttribute('open');
+  });
+
   it('shows each meeting with its date, size and analysis status', async () => {
     mockApi({ ...me, 'GET /api/meetings': { status: 200, body: { meetings: [listItem] } } });
     renderApp('/meetings');
 
-    const card = await screen.findByRole('link', { name: /Weekly sync/ });
+    await screen.findByRole('heading', { name: 'Meetings', level: 1 });
+    const card = await within(screen.getByRole('main')).findByRole('link', { name: /Weekly sync/ });
     expect(card).toHaveAttribute('href', `/meetings/${meeting.id}`);
     expect(within(card).getByText('Tue, 24 Nov 2026')).toBeInTheDocument();
     expect(within(card).getByText('2 lines')).toBeInTheDocument();
@@ -57,7 +113,9 @@ describe('meetings list', () => {
     renderApp('/meetings');
 
     expect(await screen.findByText("Couldn't load your meetings")).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('main')).getByRole('button', { name: 'Try again' }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -205,7 +263,14 @@ describe('meeting detail', () => {
     expect(screen.getByText('Use blue')).toBeInTheDocument();
     expect(screen.getByText('Send the files')).toBeInTheDocument();
     expect(screen.getByText(/Check the due date/)).toHaveTextContent('Needs review:');
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('link', { name: 'Line 2' }));
+    expect(screen.getByRole('button', { name: /Transcript/ })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
     expect(screen.getAllByRole('link', { name: 'Line 2' })).toHaveLength(2);
+    expect(document.getElementById('L2')).toHaveAttribute('aria-current', 'location');
   });
 
   it('confirms a re-analysis and keeps existing results visible while it runs', async () => {
@@ -257,12 +322,17 @@ describe('meeting detail', () => {
 
   it('shows the numbered transcript with linkable line numbers', async () => {
     mockApi({ ...me, [`GET ${detailUrl}`]: { status: 200, body: { meeting } } });
+    const user = userEvent.setup();
     renderApp(`/meetings/${meeting.id}`);
 
     expect(
       await screen.findByRole('heading', { name: 'Weekly sync', level: 1 }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Line 2' })).toHaveAttribute('href', '#L2');
+    await user.click(screen.getByRole('button', { name: /Transcript/ }));
+    expect(screen.getByRole('link', { name: 'Line 2' })).toHaveAttribute(
+      'href',
+      `/meetings/${meeting.id}#L2`,
+    );
     expect(screen.getByText('Hi there')).toBeInTheDocument();
     expect(screen.getAllByText('Not analysed yet').length).toBeGreaterThan(0);
   });

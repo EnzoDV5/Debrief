@@ -2,6 +2,7 @@ import {
   meetingListResponseSchema,
   meetingResponseSchema,
   type Meeting,
+  type MeetingListItem,
   type MeetingDetailsInput,
   type UpdateMeetingInput,
 } from '@debrief/shared';
@@ -23,10 +24,23 @@ export function useMeetings() {
 }
 
 export function useMeeting(id: string) {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: meetingKeys.detail(id),
-    queryFn: async () =>
-      (await request(`/meetings/${id}`, { schema: meetingResponseSchema })).meeting,
+    queryFn: async () => {
+      const meeting = (await request(`/meetings/${id}`, { schema: meetingResponseSchema })).meeting;
+      // The sidebar stays mounted while detail polling runs; keep its status and title current.
+      queryClient.setQueryData<MeetingListItem[]>(meetingKeys.list, (list) => {
+        if (!list) return list;
+        return list.map((item) =>
+          item.id === id &&
+          (item.analysisStatus !== meeting.analysisStatus || item.title !== meeting.title)
+            ? { ...item, analysisStatus: meeting.analysisStatus, title: meeting.title }
+            : item,
+        );
+      });
+      return meeting;
+    },
     // Stop polling once the worker has a final result; no refresh is needed for a finished page.
     refetchInterval: (query) =>
       query.state.data?.analysisStatus === 'pending' ||

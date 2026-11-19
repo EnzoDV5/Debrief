@@ -15,9 +15,17 @@
   --color-white: #ffffff;
 
   /* Surfaces */
-  --color-bg: #eef0f4; /* app background (chalk) */
+  --color-bg: #f7f8f7; /* quiet reading surface */
   --color-surface: #ffffff; /* cards, inputs, panels */
-  --color-surface-2: #f5f6f9; /* hover rows, subtle fills */
+  --color-surface-2: #f0f2f2; /* hover rows, subtle fills */
+
+  /* Conversation history sidebar */
+  --color-sidebar: #171923;
+  --color-sidebar-fg: #e9ebf2;
+  --color-sidebar-muted: #a7adbb;
+  --color-sidebar-hover: #272a36;
+  --color-sidebar-active: #353a49;
+  --color-sidebar-line: #333746;
 
   /* Text */
   --color-fg: #0c0e16; /* ink: body text, 19.3:1 on surface */
@@ -84,7 +92,7 @@
   --duration-fast: 150ms;
 
   /* Layout */
-  --spacing-sidebar: 16rem;
+  --spacing-sidebar: 17.5rem;
   --spacing-topbar: 3.5rem;
   --spacing-tabbar: 4rem;
   --container-content: 72rem;

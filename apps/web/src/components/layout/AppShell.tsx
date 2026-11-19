@@ -1,108 +1,238 @@
-import { FileText, ListChecks, LogOut, Plus, UserRound, type LucideIcon } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import type { AnalysisStatus } from '@debrief/shared';
+import { FileText, ListChecks, LogOut, Menu, Plus, Search, UserRound, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { Button } from '@/components/ui/Button';
 import { Logo } from '@/components/ui/Logo';
 import { useCurrentUser, useLogout } from '@/features/auth/hooks';
+import { useMeetings } from '@/features/meetings/hooks';
 import { cn } from '@/lib/cn';
 import { SkipLink } from './SkipLink';
 
-type NavItem = { to: string; label: string; icon: LucideIcon };
-
-const primaryNav: NavItem[] = [
-  { to: '/meetings', label: 'Meetings', icon: FileText },
-  { to: '/items', label: 'Open items', icon: ListChecks },
-];
-const mobileTabs: NavItem[] = [
-  ...primaryNav,
-  { to: '/account', label: 'Account', icon: UserRound },
-];
-
-/**
- * Logged-in layout.
- * Desktop (lg+): fixed sidebar with navigation, the main action and the account block.
- * Mobile: slim top bar (logo + New meeting) and a bottom tab bar in thumb reach.
- */
+/** Conversation-style workspace: history stays in reach while the current meeting is open. */
 export function AppShell() {
   const mainRef = useMainFocusOnNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-dvh">
+    <div className="min-h-dvh bg-bg">
       <SkipLink />
-      <Sidebar />
-      <MobileTopBar />
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-sidebar flex-col bg-sidebar text-sidebar-fg lg:flex">
+        <SidebarContent />
+      </aside>
+      <MobileSidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
 
-      <main id="main" ref={mainRef} tabIndex={-1} className="outline-none lg:pl-sidebar">
-        {/* Bottom padding on mobile leaves room for the tab bar and the iPhone home indicator. */}
-        <div className="mx-auto w-full max-w-content px-4 pt-6 pb-[calc(var(--spacing-tabbar)+env(safe-area-inset-bottom)+1.5rem)] sm:px-6 lg:px-10 lg:pt-10 lg:pb-12">
+      <header className="sticky top-0 z-20 flex h-topbar items-center justify-between border-b border-line bg-bg/95 px-4 backdrop-blur lg:hidden">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-label="Open sidebar"
+            onClick={() => setMenuOpen(true)}
+            className="grid size-10 place-items-center rounded-md text-fg hover:bg-surface-2"
+          >
+            <Menu aria-hidden="true" className="size-5" />
+          </button>
+          <Logo />
+        </div>
+        <Button to="/meetings/new" size="sm" icon={<Plus aria-hidden="true" className="size-4" />}>
+          New<span className="sr-only"> meeting</span>
+        </Button>
+      </header>
+
+      <main id="main" ref={mainRef} tabIndex={-1} className="min-w-0 outline-none lg:pl-sidebar">
+        <div className="mx-auto w-full max-w-content px-4 py-7 sm:px-8 lg:px-10 lg:py-10">
           <Outlet />
         </div>
       </main>
-
-      <MobileTabBar />
     </div>
   );
 }
 
-/**
- * In a single-page app the browser doesn't reset focus on navigation, so keyboard and
- * screen-reader users would stay on the link they clicked. Move focus to the new page instead.
- */
 function useMainFocusOnNavigate() {
   const mainRef = useRef<HTMLElement>(null);
   const { pathname } = useLocation();
-  // Compare with the previous path (not a "first render" flag): React StrictMode runs effects
-  // twice on mount in development, which would otherwise steal focus on page load.
   const previousPath = useRef(pathname);
+  useEffect(() => {
+    if (previousPath.current === pathname) return;
+    previousPath.current = pathname;
+    mainRef.current?.focus({ preventScroll: true });
+  }, [pathname]);
+  return mainRef;
+}
+
+function MobileSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const { pathname } = useLocation();
+  const previousPath = useRef(pathname);
+
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+    if (open && !dialog.open) dialog.showModal();
+    if (!open && dialog.open) dialog.close();
+  }, [open]);
 
   useEffect(() => {
     if (previousPath.current === pathname) return;
     previousPath.current = pathname;
-    // preventScroll: <ScrollRestoration> in routes.tsx owns the scroll position.
-    mainRef.current?.focus({ preventScroll: true });
+    ref.current?.close();
   }, [pathname]);
 
-  return mainRef;
-}
-
-function navLinkClasses({ isActive }: { isActive: boolean }) {
-  return cn(
-    'flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-semibold transition-colors',
-    isActive ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-surface-2 hover:text-fg',
+  return (
+    <dialog
+      ref={ref}
+      aria-label="Workspace sidebar"
+      onClose={onClose}
+      className="m-0 h-dvh max-h-dvh w-[min(88vw,21rem)] max-w-none bg-sidebar p-0 text-sidebar-fg shadow-raised lg:hidden"
+    >
+      <SidebarContent onNavigate={onClose} onClose={onClose} />
+    </dialog>
   );
 }
 
-function Sidebar() {
+function SidebarContent({
+  onNavigate,
+  onClose,
+}: {
+  onNavigate?: () => void;
+  onClose?: () => void;
+}) {
+  const [search, setSearch] = useState('');
+  const { data: meetings, isPending, error, refetch } = useMeetings();
+  const query = search.trim().toLocaleLowerCase();
+  const visibleMeetings = meetings?.filter((meeting) =>
+    meeting.title.toLocaleLowerCase().includes(query),
+  );
+
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 hidden w-sidebar flex-col border-r border-line bg-surface lg:flex">
-      <div className="flex h-16 items-center px-5">
-        <Logo />
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex h-18 shrink-0 items-center justify-between px-5">
+        <Logo inverse />
+        {onClose && (
+          <button
+            type="button"
+            aria-label="Close sidebar"
+            onClick={onClose}
+            className="grid size-9 place-items-center rounded-md text-sidebar-muted hover:bg-sidebar-hover hover:text-white"
+          >
+            <X aria-hidden="true" className="size-5" />
+          </button>
+        )}
       </div>
 
-      <div className="px-4 pt-2 pb-4">
-        <Button to="/meetings/new" fullWidth icon={<Plus aria-hidden="true" className="size-4" />}>
+      <div className="px-3 pb-4">
+        <NavLink
+          to="/meetings/new"
+          onClick={onNavigate}
+          className="flex min-h-11 items-center gap-3 rounded-md bg-sidebar-hover px-3 text-sm font-semibold text-white transition-colors hover:bg-sidebar-active"
+        >
+          <Plus aria-hidden="true" className="size-5" />
           New meeting
-        </Button>
+        </NavLink>
       </div>
 
-      <nav aria-label="Main" className="flex-1 px-3">
-        <ul className="space-y-1">
-          {primaryNav.map(({ to, label, icon: Icon }) => (
-            <li key={to}>
-              {/* Meetings stays highlighted on every /meetings/... page (new, detail);
-                  the other links only on their exact path. */}
-              <NavLink to={to} end={to !== '/meetings'} className={navLinkClasses}>
-                <Icon aria-hidden="true" className="size-5" />
-                {label}
-              </NavLink>
-            </li>
-          ))}
-        </ul>
+      <nav aria-label="Workspace" className="space-y-1 px-3">
+        <NavLink to="/meetings" end onClick={onNavigate} className={navClass}>
+          <FileText aria-hidden="true" className="size-5" />
+          All meetings
+        </NavLink>
+        <NavLink to="/items" onClick={onNavigate} className={navClass}>
+          <ListChecks aria-hidden="true" className="size-5" />
+          Open items
+        </NavLink>
       </nav>
 
-      <AccountBlock />
-    </aside>
+      <div className="mt-6 flex min-h-0 flex-1 flex-col border-t border-sidebar-line pt-5">
+        <div className="flex items-center justify-between px-5">
+          <h2 className="text-xs font-bold tracking-[0.12em] text-sidebar-muted uppercase">
+            Recent meetings
+          </h2>
+          {meetings && (
+            <span className="text-xs tabular-nums text-sidebar-muted">{meetings.length}</span>
+          )}
+        </div>
+        <label className="relative mx-3 mt-3 block">
+          <Search
+            aria-hidden="true"
+            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-sidebar-muted"
+          />
+          <input
+            type="search"
+            aria-label="Search meetings"
+            placeholder="Search meetings"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            className="h-10 w-full rounded-md border border-sidebar-line bg-sidebar-hover pr-3 pl-9 text-sm text-white placeholder:text-sidebar-muted focus:border-sidebar-muted focus:outline-none"
+          />
+        </label>
+        <div className="mt-3 min-h-0 flex-1 overflow-y-auto px-2 pb-4">
+          {isPending ? (
+            <p className="px-3 py-2 text-sm text-sidebar-muted">Loading meetings…</p>
+          ) : error ? (
+            <div className="px-3 py-2 text-sm text-sidebar-muted">
+              <p>Couldn&apos;t load meeting history.</p>
+              <button
+                type="button"
+                onClick={() => void refetch()}
+                className="mt-1 font-semibold text-white underline"
+              >
+                Try again
+              </button>
+            </div>
+          ) : visibleMeetings?.length ? (
+            <ul className="space-y-0.5">
+              {visibleMeetings.map((meeting) => (
+                <li key={meeting.id}>
+                  <NavLink
+                    to={`/meetings/${meeting.id}`}
+                    onClick={onNavigate}
+                    title={meeting.title}
+                    className={({ isActive }) =>
+                      cn(
+                        'flex min-h-10 items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
+                        isActive
+                          ? 'bg-sidebar-active text-white'
+                          : 'text-sidebar-fg hover:bg-sidebar-hover',
+                      )
+                    }
+                  >
+                    <span
+                      className={cn(
+                        'size-1.5 shrink-0 rounded-pill',
+                        statusDot(meeting.analysisStatus),
+                      )}
+                      aria-hidden="true"
+                    />
+                    <span className="min-w-0 flex-1 truncate">{meeting.title}</span>
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="px-3 py-2 text-sm text-sidebar-muted">
+              {query ? 'No meetings match your search.' : 'Your meetings will appear here.'}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <AccountBlock onNavigate={onNavigate} />
+    </div>
   );
+}
+
+function navClass({ isActive }: { isActive: boolean }) {
+  return cn(
+    'flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors',
+    isActive ? 'bg-sidebar-active text-white' : 'text-sidebar-fg hover:bg-sidebar-hover',
+  );
+}
+
+function statusDot(status: AnalysisStatus) {
+  if (status === 'done') return 'bg-success-soft';
+  if (status === 'failed') return 'bg-warning-soft';
+  if (status === 'processing') return 'bg-spark';
+  return 'bg-sidebar-muted';
 }
 
 function initials(name: string) {
@@ -112,85 +242,50 @@ function initials(name: string) {
   ).toUpperCase();
 }
 
-function AccountBlock() {
+function AccountBlock({ onNavigate }: { onNavigate?: () => void }) {
   const user = useCurrentUser();
   const logout = useLogout();
   const navigate = useNavigate();
-
   return (
-    <div className="border-t border-line p-3">
+    <div className="shrink-0 border-t border-sidebar-line p-3">
       <NavLink
         to="/account"
+        onClick={onNavigate}
         className={({ isActive }) =>
           cn(
             'flex items-center gap-3 rounded-md p-2 transition-colors',
-            isActive ? 'bg-accent-soft' : 'hover:bg-surface-2',
+            isActive ? 'bg-sidebar-active' : 'hover:bg-sidebar-hover',
           )
         }
       >
         <span
           aria-hidden="true"
-          className="grid size-9 shrink-0 place-items-center rounded-pill bg-fg text-xs font-bold text-white"
+          className="grid size-9 shrink-0 place-items-center rounded-pill bg-sidebar-active text-xs font-bold text-white"
         >
           {initials(user.name)}
         </span>
-        <span className="min-w-0">
-          <span className="block truncate text-sm font-semibold">{user.name}</span>
-          <span className="block truncate text-xs text-muted">{user.email}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold text-white">{user.name}</span>
+          <span className="block truncate text-xs text-sidebar-muted">{user.email}</span>
         </span>
+        <UserRound aria-hidden="true" className="size-4 text-sidebar-muted" />
       </NavLink>
-      <Button
-        variant="ghost"
-        size="sm"
-        // Not full width, so it sits left under the account row without overriding `justify`.
-        className="mt-1 text-muted"
-        loading={logout.isPending}
-        icon={<LogOut aria-hidden="true" className="size-4" />}
-        onClick={() => logout.mutate(undefined, { onSettled: () => navigate('/login') })}
+      <button
+        type="button"
+        disabled={logout.isPending}
+        onClick={() =>
+          logout.mutate(undefined, {
+            onSettled: () => {
+              onNavigate?.();
+              navigate('/login');
+            },
+          })
+        }
+        className="mt-1 flex min-h-9 items-center gap-2 rounded-md px-3 text-sm text-sidebar-muted hover:bg-sidebar-hover hover:text-white disabled:opacity-60"
       >
-        Log out
-      </Button>
+        <LogOut aria-hidden="true" className="size-4" />
+        {logout.isPending ? 'Logging out…' : 'Log out'}
+      </button>
     </div>
-  );
-}
-
-function MobileTopBar() {
-  return (
-    <header className="sticky top-0 z-30 flex h-topbar items-center justify-between border-b border-line bg-surface/90 px-4 backdrop-blur lg:hidden">
-      <Logo />
-      <Button to="/meetings/new" size="sm" icon={<Plus aria-hidden="true" className="size-4" />}>
-        New
-        <span className="sr-only"> meeting</span>
-      </Button>
-    </header>
-  );
-}
-
-function MobileTabBar() {
-  return (
-    <nav
-      aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
-    >
-      <ul className="grid h-tabbar grid-cols-3">
-        {mobileTabs.map(({ to, label, icon: Icon }) => (
-          <li key={to}>
-            <NavLink
-              to={to}
-              end={to !== '/meetings'}
-              className={({ isActive }) =>
-                cn(
-                  'flex h-full flex-col items-center justify-center gap-1 text-xs font-semibold transition-colors',
-                  isActive ? 'text-accent' : 'text-muted hover:text-fg',
-                )
-              }
-            >
-              <Icon aria-hidden="true" className="size-5" />
-              {label}
-            </NavLink>
-          </li>
-        ))}
-      </ul>
-    </nav>
   );
 }
