@@ -8,7 +8,9 @@ import { env } from './config/env';
 import { logger } from './lib/logger';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { originCheck } from './middleware/originCheck';
+import { createActionItemsRouter } from './modules/actionItems/actionItems.routes';
 import { createAuthRouter } from './modules/auth/auth.routes';
+import { createDecisionsRouter } from './modules/decisions/decisions.routes';
 import type { AnalysisQueue } from './modules/analysis/queue';
 import { createMeetingsRouter } from './modules/meetings/meetings.routes';
 
@@ -64,6 +66,8 @@ export function createApp(deps: AppDeps) {
   });
   api.use('/auth', createAuthRouter());
   api.use('/meetings', createMeetingsRouter(deps));
+  api.use('/action-items', createActionItemsRouter());
+  api.use('/decisions', createDecisionsRouter());
   app.use('/api', api);
 
   app.use(notFoundHandler);

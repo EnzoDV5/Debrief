@@ -66,7 +66,16 @@ export const createMeetingFromTextSchema = meetingDetailsSchema.extend({
 export type CreateMeetingFromTextInput = z.infer<typeof createMeetingFromTextSchema>;
 
 export const updateMeetingSchema = z
-  .object({ title: titleSchema, meetingDate: meetingDateSchema })
+  .object({
+    title: titleSchema,
+    meetingDate: meetingDateSchema,
+    // The AI's summary, as corrected by the user.
+    summary: z
+      .string()
+      .trim()
+      .min(1, 'The summary can’t be empty')
+      .max(5000, 'Use 5000 characters or fewer'),
+  })
   .partial()
   .refine((patch) => Object.keys(patch).length > 0, 'Nothing to update');
 export type UpdateMeetingInput = z.infer<typeof updateMeetingSchema>;

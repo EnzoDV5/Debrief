@@ -1,8 +1,10 @@
 import { Router } from 'express';
+import type { AppDeps } from '../../app';
 import { requireAuth } from '../../middleware/requireAuth';
 import { transcriptUpload } from '../../middleware/upload';
+import { actionItemsController } from '../actionItems/actionItems.controller';
+import { decisionsController } from '../decisions/decisions.controller';
 import { createMeetingsController } from './meetings.controller';
-import type { AppDeps } from '../../app';
 
 // Mounted at /api/meetings. Every route needs a logged-in user.
 export function createMeetingsRouter(deps: AppDeps) {
@@ -18,6 +20,10 @@ export function createMeetingsRouter(deps: AppDeps) {
   router.post('/:id/analyze', meetingsController.analyze);
   router.patch('/:id', meetingsController.update);
   router.delete('/:id', meetingsController.remove);
+
+  // Adding items by hand belongs to a meeting, so it lives under the meeting's URL.
+  router.post('/:id/action-items', actionItemsController.create);
+  router.post('/:id/decisions', decisionsController.create);
 
   return router;
 }
