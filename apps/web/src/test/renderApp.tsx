@@ -6,7 +6,8 @@ import { createQueryClient } from '@/api/queryClient';
 import { routes } from '@/app/routes';
 
 type MockResponse = { status: number; body?: unknown };
-type Handler = MockResponse | ((body: unknown) => MockResponse | Promise<MockResponse>);
+type Handler =
+  MockResponse | ((body: unknown, url: string) => MockResponse | Promise<MockResponse>);
 
 // Answers every test gets unless it overrides them.
 const defaultHandlers: Record<string, Handler> = {
@@ -17,12 +18,14 @@ const defaultHandlers: Record<string, Handler> = {
  * Fake api: keys like "POST /api/auth/login" map to a response (or a function of the request
  * body). Unmatched requests fail the test loudly. Returns the mock so tests can inspect calls.
  * JSON bodies are parsed; FormData (file uploads) is passed to the handler as-is.
+ * A key without a query string matches any query (the handler gets the full URL to inspect).
  */
 export function mockApi(overrides: Record<string, Handler>) {
   const handlers = { ...defaultHandlers, ...overrides };
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
-    const key = `${init?.method ?? 'GET'} ${url}`;
-    const handler = handlers[key];
+    const method = init?.method ?? 'GET';
+    const key = `${method} ${url}`;
+    const handler = handlers[key] ?? handlers[`${method} ${url.split('?')[0]}`];
     if (!handler) throw new Error(`Unexpected request in test: ${key}`);
     const body: unknown =
       init?.body instanceof FormData
@@ -31,7 +34,7 @@ export function mockApi(overrides: Record<string, Handler>) {
           ? JSON.parse(String(init.body))
           : undefined;
     const { status, body: responseBody } =
-      typeof handler === 'function' ? await handler(body) : handler;
+      typeof handler === 'function' ? await handler(body, url) : handler;
     return {
       ok: status >= 200 && status < 300,
       status,

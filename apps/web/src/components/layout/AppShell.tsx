@@ -36,8 +36,14 @@ export function AppShell() {
             <Logo />
           </Link>
         </div>
-        <Button to="/meetings/new" size="sm" icon={<Plus aria-hidden="true" className="size-4" />}>
-          New<span className="sr-only"> meeting</span>
+        <Button
+          to="/meetings/new"
+          size="sm"
+          icon={<Plus aria-hidden="true" className="size-4" />}
+          // Explicit label: a hidden " meeting" span can lose its space ("Newmeeting").
+          aria-label="New meeting"
+        >
+          New
         </Button>
       </header>
 
