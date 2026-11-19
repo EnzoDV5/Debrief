@@ -16,6 +16,11 @@ export function Input({ className, ...props }: ComponentProps<'input'>) {
   return <input {...props} className={cn(inputClasses, className)} />;
 }
 
+/** Multi-line text, same look and states as Input. */
+export function Textarea({ className, ...props }: ComponentProps<'textarea'>) {
+  return <textarea {...props} className={cn(inputClasses, 'py-2.5 leading-relaxed', className)} />;
+}
+
 /** Password input with a show/hide toggle (instead of a "confirm password" field). */
 export function PasswordInput({ className, ...props }: Omit<ComponentProps<'input'>, 'type'>) {
   const [visible, setVisible] = useState(false);

@@ -142,8 +142,8 @@ function AccountBlock() {
       <Button
         variant="ghost"
         size="sm"
-        fullWidth
-        className="mt-1 justify-start text-muted"
+        // Not full width, so it sits left under the account row without overriding `justify`.
+        className="mt-1 text-muted"
         loading={logout.isPending}
         icon={<LogOut aria-hidden="true" className="size-4" />}
         onClick={() => logout.mutate(undefined, { onSettled: () => navigate('/login') })}

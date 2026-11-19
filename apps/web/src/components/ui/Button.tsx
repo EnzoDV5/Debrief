@@ -3,8 +3,12 @@ import { Link, type LinkProps } from 'react-router';
 import { cn } from '@/lib/cn';
 import { Spinner } from './Spinner';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'dangerOutline';
 type Size = 'sm' | 'md';
+
+// Each variant owns its colours completely. Don't recolour a variant with className
+// (e.g. variant="secondary" className="text-danger"): when two Tailwind classes set the same
+// property, CSS order decides, not class order, so the override may silently lose. Add a variant.
 
 const base =
   'inline-flex items-center justify-center gap-2 rounded-md font-semibold whitespace-nowrap select-none ' +
@@ -14,8 +18,11 @@ const base =
 const variants: Record<Variant, string> = {
   primary: 'bg-accent text-accent-fg hover:bg-accent-hover',
   secondary: 'border border-line-strong bg-surface text-fg hover:bg-surface-2',
-  ghost: 'text-fg hover:bg-surface-2',
+  // No text colour: inherits from its surroundings (e.g. muted in the sidebar).
+  ghost: 'hover:bg-surface-2 hover:text-fg',
   danger: 'bg-danger text-white hover:bg-danger-hover',
+  // A destructive action that shouldn't shout, e.g. "Delete" next to "Edit".
+  dangerOutline: 'border border-danger/40 bg-surface text-danger hover:bg-danger-soft',
 };
 
 // md is 44px tall: a comfortable touch target on phones.

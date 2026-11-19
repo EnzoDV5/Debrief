@@ -1,0 +1,231 @@
+import { screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it } from 'vitest';
+import { todayDate } from '@/lib/format';
+import { mockApi, renderApp, testUser } from '@/test/renderApp';
+
+const me = { 'GET /api/auth/me': { status: 200, body: { user: testUser } } };
+
+const meeting = {
+  id: '0b6f9c2e-4f6d-4c1a-9d3e-2a7b8c9d0e1f',
+  title: 'Weekly sync',
+  meetingDate: '2026-11-24',
+  sourceType: 'paste' as const,
+  analysisStatus: 'pending' as const,
+  lineCount: 2,
+  createdAt: '2026-11-24T08:00:00.000Z',
+  updatedAt: '2026-11-24T08:00:00.000Z',
+  transcriptLines: [
+    { n: 1, speaker: 'Ann', text: 'Hello' },
+    { n: 2, speaker: 'Ben', text: 'Hi there' },
+  ],
+  summary: null,
+  analysisError: null,
+};
+const { transcriptLines: _l, summary: _s, analysisError: _e, updatedAt: _u, ...listItem } = meeting;
+const detailUrl = `/api/meetings/${meeting.id}`;
+
+describe('meetings list', () => {
+  it('shows each meeting with its date, size and analysis status', async () => {
+    mockApi({ ...me, 'GET /api/meetings': { status: 200, body: { meetings: [listItem] } } });
+    renderApp('/meetings');
+
+    const card = await screen.findByRole('link', { name: /Weekly sync/ });
+    expect(card).toHaveAttribute('href', `/meetings/${meeting.id}`);
+    expect(within(card).getByText('Tue, 24 Nov 2026')).toBeInTheDocument();
+    expect(within(card).getByText('2 lines')).toBeInTheDocument();
+    expect(within(card).getByText('Not analysed yet')).toBeInTheDocument();
+    // The page-header action appears once there are meetings (the sidebar has its own).
+    expect(
+      within(screen.getByRole('main')).getByRole('link', { name: 'New meeting' }),
+    ).toBeVisible();
+  });
+
+  it('shows an error with retry when loading fails', async () => {
+    mockApi({ ...me, 'GET /api/meetings': { status: 500, body: {} } });
+    renderApp('/meetings');
+
+    expect(await screen.findByText("Couldn't load your meetings")).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+  });
+});
+
+describe('new meeting: paste', () => {
+  it('previews the parsed lines, saves, and opens the meeting', async () => {
+    let posted: unknown;
+    mockApi({
+      ...me,
+      'POST /api/meetings': (body) => {
+        posted = body;
+        return { status: 201, body: { meeting } };
+      },
+    });
+    const user = userEvent.setup();
+    const { router } = renderApp('/meetings/new');
+
+    await user.type(await screen.findByLabelText('Title'), 'Weekly sync');
+    await user.click(screen.getByLabelText('Transcript text'));
+    await user.paste('Ann: Hello\nBen: Hi there');
+
+    const preview = screen.getByRole('region', { name: 'Transcript preview' });
+    expect(within(preview).getByRole('status')).toHaveTextContent('2 lines · 2 speakers');
+
+    await user.click(screen.getByRole('button', { name: 'Save meeting' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'Weekly sync', level: 1 }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Meeting saved/)).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe(`/meetings/${meeting.id}`);
+    expect(posted).toEqual({
+      title: 'Weekly sync',
+      meetingDate: todayDate(),
+      transcript: 'Ann: Hello\nBen: Hi there',
+    });
+  });
+
+  it('shows inline errors and sends nothing when required fields are empty', async () => {
+    const fetchMock = mockApi(me);
+    const user = userEvent.setup();
+    renderApp('/meetings/new');
+
+    await user.click(await screen.findByRole('button', { name: 'Save meeting' }));
+
+    expect(await screen.findByText('Give the meeting a title')).toBeInTheDocument();
+    expect(screen.getByText('Paste the transcript text')).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
+  });
+});
+
+describe('new meeting: upload', () => {
+  const vtt = 'WEBVTT\n\n00:00:01.000 --> 00:00:02.000\n<v Ann>Hello</v>\n';
+
+  it('reads the file, suggests a title, previews it and uploads it as a form', async () => {
+    let posted: unknown;
+    mockApi({
+      ...me,
+      'POST /api/meetings': (body) => {
+        posted = body;
+        return { status: 201, body: { meeting } };
+      },
+    });
+    const user = userEvent.setup();
+    renderApp('/meetings/new');
+
+    await user.click(await screen.findByLabelText('Upload a file'));
+    await user.upload(
+      screen.getByLabelText('Transcript file'),
+      new File([vtt], 'q1-planning_call.vtt', { type: 'text/vtt' }),
+    );
+
+    expect(await screen.findByText('q1-planning_call.vtt')).toBeInTheDocument();
+    expect(screen.getByLabelText('Title')).toHaveValue('Q1 planning call');
+    expect(screen.getByRole('region', { name: 'Transcript preview' })).toHaveTextContent(
+      '1 line · 1 speaker',
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Save meeting' }));
+    await screen.findByRole('heading', { name: 'Weekly sync', level: 1 });
+
+    expect(posted).toBeInstanceOf(FormData);
+    const form = posted as FormData;
+    expect(form.get('title')).toBe('Q1 planning call');
+    expect((form.get('file') as File).name).toBe('q1-planning_call.vtt');
+  });
+
+  it('rejects a file type the app does not accept, before uploading', async () => {
+    mockApi(me);
+    // applyAccept: false lets the test pick a file the picker would normally hide.
+    const user = userEvent.setup({ applyAccept: false });
+    renderApp('/meetings/new');
+
+    await user.click(await screen.findByLabelText('Upload a file'));
+    await user.upload(
+      screen.getByLabelText('Transcript file'),
+      new File(['%PDF'], 'notes.pdf', { type: 'application/pdf' }),
+    );
+
+    expect(await screen.findByText('Upload a .txt, .vtt or .md file')).toBeInTheDocument();
+    expect(screen.getByLabelText('Transcript file')).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('asks for a file when none was chosen', async () => {
+    mockApi(me);
+    const user = userEvent.setup();
+    renderApp('/meetings/new');
+
+    await user.type(await screen.findByLabelText('Title'), 'Retro');
+    await user.click(screen.getByLabelText('Upload a file'));
+    await user.click(screen.getByRole('button', { name: 'Save meeting' }));
+
+    expect(await screen.findByText('Choose a transcript file to upload')).toBeInTheDocument();
+  });
+});
+
+describe('meeting detail', () => {
+  it('shows the numbered transcript with linkable line numbers', async () => {
+    mockApi({ ...me, [`GET ${detailUrl}`]: { status: 200, body: { meeting } } });
+    renderApp(`/meetings/${meeting.id}`);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Weekly sync', level: 1 }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Line 2' })).toHaveAttribute('href', '#L2');
+    expect(screen.getByText('Hi there')).toBeInTheDocument();
+    expect(screen.getAllByText('Not analysed yet').length).toBeGreaterThan(0);
+  });
+
+  it('shows "not found" for a meeting that does not exist or is not mine', async () => {
+    mockApi({
+      ...me,
+      [`GET ${detailUrl}`]: {
+        status: 404,
+        body: { error: { code: 'NOT_FOUND', message: 'Meeting not found' } },
+      },
+    });
+    renderApp(`/meetings/${meeting.id}`);
+
+    expect(await screen.findByRole('heading', { name: 'Meeting not found' })).toBeInTheDocument();
+  });
+
+  it('renames a meeting', async () => {
+    mockApi({
+      ...me,
+      [`GET ${detailUrl}`]: { status: 200, body: { meeting } },
+      [`PATCH ${detailUrl}`]: (body) => ({
+        status: 200,
+        body: { meeting: { ...meeting, ...(body as object) } },
+      }),
+    });
+    const user = userEvent.setup();
+    renderApp(`/meetings/${meeting.id}`);
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    const dialog = screen.getByRole('dialog', { name: 'Edit meeting' });
+    const title = within(dialog).getByLabelText('Title');
+    await user.clear(title);
+    await user.type(title, 'Product sync');
+    await user.click(within(dialog).getByRole('button', { name: 'Save changes' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'Product sync', level: 1 }),
+    ).toBeInTheDocument();
+  });
+
+  it('deletes after confirming and returns to the list with a message', async () => {
+    mockApi({
+      ...me,
+      [`GET ${detailUrl}`]: { status: 200, body: { meeting } },
+      [`DELETE ${detailUrl}`]: { status: 204 },
+    });
+    const user = userEvent.setup();
+    const { router } = renderApp(`/meetings/${meeting.id}`);
+
+    await user.click(await screen.findByRole('button', { name: 'Delete' }));
+    const dialog = screen.getByRole('dialog', { name: 'Delete this meeting?' });
+    await user.click(within(dialog).getByRole('button', { name: 'Delete meeting' }));
+
+    expect(await screen.findByText('Deleted “Weekly sync”.')).toBeInTheDocument();
+    await waitFor(() => expect(router.state.location.pathname).toBe('/meetings'));
+  });
+});

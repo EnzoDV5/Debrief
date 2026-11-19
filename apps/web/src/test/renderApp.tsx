@@ -8,16 +8,28 @@ import { routes } from '@/app/routes';
 type MockResponse = { status: number; body?: unknown };
 type Handler = MockResponse | ((body: unknown) => MockResponse | Promise<MockResponse>);
 
+// Answers every test gets unless it overrides them.
+const defaultHandlers: Record<string, Handler> = {
+  'GET /api/meetings': { status: 200, body: { meetings: [] } },
+};
+
 /**
  * Fake api: keys like "POST /api/auth/login" map to a response (or a function of the request
  * body). Unmatched requests fail the test loudly. Returns the mock so tests can inspect calls.
+ * JSON bodies are parsed; FormData (file uploads) is passed to the handler as-is.
  */
-export function mockApi(handlers: Record<string, Handler>) {
+export function mockApi(overrides: Record<string, Handler>) {
+  const handlers = { ...defaultHandlers, ...overrides };
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const key = `${init?.method ?? 'GET'} ${url}`;
     const handler = handlers[key];
     if (!handler) throw new Error(`Unexpected request in test: ${key}`);
-    const body: unknown = init?.body ? JSON.parse(String(init.body)) : undefined;
+    const body: unknown =
+      init?.body instanceof FormData
+        ? init.body
+        : init?.body
+          ? JSON.parse(String(init.body))
+          : undefined;
     const { status, body: responseBody } =
       typeof handler === 'function' ? await handler(body) : handler;
     return {

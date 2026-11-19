@@ -1,39 +1,128 @@
-import { FileText, Plus } from 'lucide-react';
-import { useLocation } from 'react-router';
+import type { MeetingListItem } from '@debrief/shared';
+import { CalendarDays, ChevronRight, FileText, Plus, Rows3 } from 'lucide-react';
+import { Link, useLocation } from 'react-router';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { useCurrentUser } from '@/features/auth/hooks';
+import { AnalysisStatusBadge } from '@/features/meetings/AnalysisStatusBadge';
+import { useMeetings } from '@/features/meetings/hooks';
+import { formatCalendarDate, plural } from '@/lib/format';
 
-// Phase 1: the list is always empty. Phase 2 adds the real meetings query here, plus a
-// "New meeting" header action once there's a list to put it above. While the list is empty,
-// the empty state's button is the one clear call to action (no duplicate buttons).
+type LocationState = { welcome?: boolean; deleted?: string } | null;
+
 export function MeetingsPage() {
   const user = useCurrentUser();
-  const justRegistered = (useLocation().state as { welcome?: boolean } | null)?.welcome;
-  const firstName = user.name.split(' ')[0];
+  const state = useLocation().state as LocationState;
+  const { data: meetings, isPending, error, refetch } = useMeetings();
+  const hasMeetings = Boolean(meetings?.length);
 
   return (
     <>
-      <PageHeader title="Meetings" description="Every transcript you've added, newest first." />
+      <PageHeader
+        title="Meetings"
+        description="Every transcript you've added, newest first."
+        // Only once there's a list (on an empty page the empty state's button is the one action),
+        // and not on phones, where the top bar's "New" button is right above it.
+        actions={
+          hasMeetings && (
+            <div className="hidden sm:block">
+              <Button to="/meetings/new" icon={<Plus aria-hidden="true" className="size-4" />}>
+                New meeting
+              </Button>
+            </div>
+          )
+        }
+      />
 
-      {justRegistered && (
-        <Alert tone="success" title={`Welcome to Debrief, ${firstName}!`} className="mb-6">
+      {state?.welcome && (
+        <Alert
+          tone="success"
+          title={`Welcome to Debrief, ${user.name.split(' ')[0]}!`}
+          className="mb-6"
+        >
           Add your first meeting to get its summary, decisions and action items.
         </Alert>
       )}
+      {state?.deleted && (
+        <Alert tone="success" className="mb-6">
+          Deleted &ldquo;{state.deleted}&rdquo;.
+        </Alert>
+      )}
 
-      <EmptyState
-        icon={<FileText />}
-        title="No meetings yet"
-        description="Paste a transcript or upload a .txt, .vtt or .md file. Debrief pulls out the summary, the decisions and every action item with its owner and due date."
-        action={
-          <Button to="/meetings/new" icon={<Plus aria-hidden="true" className="size-4" />}>
-            Add your first meeting
-          </Button>
-        }
-      />
+      {isPending ? (
+        <MeetingListSkeleton />
+      ) : error ? (
+        <ErrorState
+          title="Couldn't load your meetings"
+          message={error.message}
+          onRetry={() => void refetch()}
+        />
+      ) : hasMeetings ? (
+        <ul className="space-y-3">
+          {meetings?.map((meeting) => (
+            <li key={meeting.id}>
+              <MeetingCard meeting={meeting} />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <EmptyState
+          icon={<FileText />}
+          title="No meetings yet"
+          description="Paste a transcript or upload a .txt, .vtt or .md file. Debrief pulls out the summary, the decisions and every action item with its owner and due date."
+          action={
+            <Button to="/meetings/new" icon={<Plus aria-hidden="true" className="size-4" />}>
+              Add your first meeting
+            </Button>
+          }
+        />
+      )}
     </>
+  );
+}
+
+/** The whole card is one link: a big, easy target on a phone. */
+function MeetingCard({ meeting }: { meeting: MeetingListItem }) {
+  return (
+    <Link
+      to={`/meetings/${meeting.id}`}
+      className="group flex items-center gap-4 rounded-card border border-line bg-surface p-4 shadow-card transition-colors hover:border-accent/50 sm:p-5"
+    >
+      <div className="min-w-0 flex-1">
+        <h2 className="truncate font-bold group-hover:text-accent">{meeting.title}</h2>
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
+          <span className="inline-flex items-center gap-1.5">
+            <CalendarDays aria-hidden="true" className="size-4" />
+            {formatCalendarDate(meeting.meetingDate)}
+          </span>
+          <span className="inline-flex items-center gap-1.5 numeric">
+            <Rows3 aria-hidden="true" className="size-4" />
+            {plural(meeting.lineCount, 'line')}
+          </span>
+          <AnalysisStatusBadge status={meeting.analysisStatus} />
+        </div>
+      </div>
+      <ChevronRight
+        aria-hidden="true"
+        className="size-5 shrink-0 text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-accent"
+      />
+    </Link>
+  );
+}
+
+function MeetingListSkeleton() {
+  return (
+    <div role="status" aria-label="Loading meetings" className="space-y-3">
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="rounded-card border border-line bg-surface p-5">
+          <Skeleton className="h-5 w-2/5" />
+          <Skeleton className="mt-3 h-4 w-3/5" />
+        </div>
+      ))}
+    </div>
   );
 }
