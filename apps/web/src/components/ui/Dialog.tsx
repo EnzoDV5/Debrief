@@ -42,7 +42,7 @@ export function Dialog({
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
-      className="m-auto w-[min(100%-2rem,28rem)] rounded-card bg-surface p-0 text-fg shadow-raised"
+      className="m-auto w-[min(100%-2rem,28rem)] glass-float rounded-card border border-white/70 p-0 text-fg shadow-raised"
     >
       <div className="p-6">
         <div className="flex items-start justify-between gap-4">

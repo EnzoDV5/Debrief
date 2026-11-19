@@ -18,6 +18,7 @@ import { useCurrentUser, useLogout } from '@/features/auth/hooks';
 import { useMeetings } from '@/features/meetings/hooks';
 import { MeetingMenu } from '@/features/meetings/MeetingMenu';
 import { cn } from '@/lib/cn';
+import { PanelBackdrop } from './PanelBackdrop';
 import { SkipLink } from './SkipLink';
 
 /**
@@ -26,7 +27,7 @@ import { SkipLink } from './SkipLink';
  * the window) scrolls, so the frame and sidebar never move.
  */
 export function AppShell() {
-  const mainRef = useMainFocusOnNavigate();
+  const { mainRef, scrollRef } = useMainFocusOnNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -69,10 +70,15 @@ export function AppShell() {
         id="main"
         ref={mainRef}
         tabIndex={-1}
-        className="min-w-0 outline-none lg:my-5 lg:mr-5 lg:flex-1 lg:scrollbar-panel lg:overflow-y-auto lg:rounded-panel lg:panel-glow"
+        // Desktop: <main> is the rounded frame (clips the blobs); the div inside it scrolls, so
+        // the blobs stay put behind the moving content.
+        className="relative min-w-0 outline-none lg:my-5 lg:mr-5 lg:flex-1 lg:overflow-hidden lg:rounded-panel lg:bg-bg"
       >
-        <div className="mx-auto w-full px-4 py-7 sm:px-8 lg:px-8 lg:py-10">
-          <Outlet />
+        <PanelBackdrop />
+        <div ref={scrollRef} className="relative lg:h-full lg:scrollbar-panel lg:overflow-y-auto">
+          <div className="mx-auto w-full px-4 py-7 sm:px-8 lg:px-8 lg:py-10">
+            <Outlet />
+          </div>
         </div>
       </main>
     </div>
@@ -81,6 +87,7 @@ export function AppShell() {
 
 function useMainFocusOnNavigate() {
   const mainRef = useRef<HTMLElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const { pathname, hash } = useLocation();
   const previousPath = useRef(pathname);
   useEffect(() => {
@@ -89,9 +96,9 @@ function useMainFocusOnNavigate() {
     mainRef.current?.focus({ preventScroll: true });
     // On desktop the panel is the scroller, which ScrollRestoration (window only) doesn't reset.
     // A #L12 link scrolls to its own line, so leave those alone.
-    if (!hash) mainRef.current?.scrollTo?.({ top: 0 });
+    if (!hash) scrollRef.current?.scrollTo?.({ top: 0 });
   }, [pathname, hash]);
-  return mainRef;
+  return { mainRef, scrollRef };
 }
 
 function MobileSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {

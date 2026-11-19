@@ -31,7 +31,7 @@ export function DecisionBubble({
       onFocus={() => onActiveChange?.(true)}
       onBlur={() => onActiveChange?.(false)}
       className={cn(
-        'rounded-md border border-l-4 border-line border-l-success bg-surface p-3 text-sm shadow-card transition-shadow',
+        'rounded-md border border-l-4 border-white/70 border-l-success glass p-3 text-sm shadow-card transition-shadow',
         active && 'ring-2 ring-success/40',
       )}
     >

@@ -16,13 +16,16 @@ const base =
   'disabled:cursor-not-allowed disabled:opacity-60 disabled:active:translate-y-0';
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-accent text-accent-fg hover:bg-accent-hover',
-  secondary: 'border border-line-strong bg-surface text-fg hover:bg-surface-2',
+  // A faint top highlight and a cobalt glow give the main action a little depth.
+  primary:
+    'bg-accent text-accent-fg shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_8px_20px_-10px_var(--color-accent)] hover:bg-accent-hover',
+  // Glass: translucent with the bright rim. The border stays strong (3:1) so it reads as a control.
+  secondary: 'border border-line-strong bg-surface/60 text-fg shadow-card hover:bg-surface',
   // No text colour: inherits from its surroundings (e.g. muted in the sidebar).
   ghost: 'hover:bg-surface-2 hover:text-fg',
   danger: 'bg-danger text-white hover:bg-danger-hover',
   // A destructive action that shouldn't shout, e.g. "Delete" next to "Edit".
-  dangerOutline: 'border border-danger/40 bg-surface text-danger hover:bg-danger-soft',
+  dangerOutline: 'border border-danger/40 bg-surface/60 text-danger hover:bg-danger-soft',
 };
 
 // md is 44px tall: a comfortable touch target on phones.

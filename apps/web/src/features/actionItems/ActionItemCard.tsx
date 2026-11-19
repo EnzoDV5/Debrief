@@ -51,8 +51,8 @@ export function ActionItemCard({
       onFocus={() => onActiveChange?.(true)}
       onBlur={() => onActiveChange?.(false)}
       className={cn(
-        'rounded-md border bg-surface p-4 shadow-card transition-shadow',
-        item.needsReview ? 'border-warning/40' : 'border-line',
+        'glass rounded-md border p-4 shadow-card transition-shadow',
+        item.needsReview ? 'border-warning/40' : 'border-white/70',
         active && 'ring-2 ring-accent/40',
       )}
     >
