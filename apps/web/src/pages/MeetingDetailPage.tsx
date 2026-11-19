@@ -1,6 +1,5 @@
 import type { Meeting } from '@debrief/shared';
 import { CalendarDays, FileSearch, Rows3 } from 'lucide-react';
-import { useState } from 'react';
 import { useParams } from 'react-router';
 import { ApiError } from '@/api/client';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -10,7 +9,6 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { MeetingDocument } from '@/features/meetings/document/MeetingDocument';
 import { MeetingOverview } from '@/features/meetings/document/MeetingOverview';
-import { MeetingActions } from '@/features/meetings/document/MeetingActions';
 import { useMeeting } from '@/features/meetings/hooks';
 import { formatCalendarDate, plural } from '@/lib/format';
 import { usePageTitle } from '@/lib/usePageTitle';
@@ -47,7 +45,6 @@ export function MeetingDetailPage() {
  * Meeting details and summary sit above the reading area; actions stay beside the transcript.
  */
 function MeetingDetail({ meeting }: { meeting: Meeting }) {
-  const [activeItemId, setActiveItemId] = useState<string | null>(null);
   return (
     <div className="w-full">
       <div className="border-b border-line pb-8">
@@ -72,22 +69,8 @@ function MeetingDetail({ meeting }: { meeting: Meeting }) {
         </section>
       </div>
 
-      <div className="grid items-start gap-8 pt-8 xl:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_27rem]">
-        <MeetingDocument
-          meeting={meeting}
-          activeId={activeItemId}
-          onActiveChange={setActiveItemId}
-        />
-        <aside
-          aria-label="Meeting actions"
-          className="xl:sticky xl:top-6 xl:max-h-[calc(100dvh-3rem)] xl:overflow-y-auto"
-        >
-          <MeetingActions
-            meeting={meeting}
-            activeId={activeItemId}
-            onActiveChange={setActiveItemId}
-          />
-        </aside>
+      <div className="pt-8">
+        <MeetingDocument meeting={meeting} />
       </div>
     </div>
   );

@@ -273,14 +273,15 @@ describe('meeting detail', () => {
     expect(await screen.findByText('The team chose blue.')).toBeInTheDocument();
     expect(screen.getByText('Use blue')).toBeInTheDocument();
     expect(screen.getByText('Send the files')).toBeInTheDocument();
-    const actions = screen.getByRole('complementary', { name: 'Meeting actions' });
-    expect(within(actions).getByText('What was said')).toBeInTheDocument();
-    expect(within(actions).getByText(/Ben:.*Hi there/)).toBeInTheDocument();
+    const sourceLine = document.getElementById('L2')!;
+    expect(within(sourceLine).getByText('What was said:')).toBeInTheDocument();
+    expect(within(sourceLine).getByText('Send the files')).toBeInTheDocument();
+    expect(within(sourceLine).getByText(/Ben:.*Hi there/)).toBeInTheDocument();
     expect(screen.getByText(/Check the due date/)).toHaveTextContent('Needs review:');
     const user = userEvent.setup();
-    await user.click(within(actions).getByRole('link', { name: 'Line 2' }));
+    await user.click(within(sourceLine).getByRole('link', { name: 'Line 2' }));
     expect(screen.getByRole('heading', { name: 'Transcript' })).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: 'Line 2' })).toHaveLength(2);
+    expect(screen.getByRole('link', { name: 'Line 2' })).toBeInTheDocument();
     expect(document.getElementById('L2')).toBeInTheDocument();
   });
 

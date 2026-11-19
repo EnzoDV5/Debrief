@@ -1,7 +1,12 @@
 import type { ActionItem, Decision, Meeting, TranscriptLine } from '@debrief/shared';
-import { useEffect, useMemo } from 'react';
+import { Plus } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router';
+import { Button } from '@/components/ui/Button';
+import { ActionItemDialog } from '@/features/actionItems/ActionItemDialog';
 import { cn } from '@/lib/cn';
+import { plural } from '@/lib/format';
+import { MeetingActionCard } from './MeetingActionCard';
 import { findPhrase, segment, type Mark } from './highlight';
 
 type Annotations = { items: ActionItem[]; decisions: Decision[] };
@@ -38,24 +43,19 @@ function marksFor(line: TranscriptLine, notes: Annotations | undefined): Mark[] 
 }
 
 /**
- * The original transcript stays on the page background. Source words are highlighted and linked
- * to the action cards in the right rail.
+ * Each action shares a document row with the transcript line that produced it. Both sides
+ * therefore move together with the page, without an independent action-list scrollbar.
  */
-export function MeetingDocument({
-  meeting,
-  activeId,
-  onActiveChange,
-}: {
-  meeting: Meeting;
-  activeId: string | null;
-  onActiveChange: (id: string | null) => void;
-}) {
+export function MeetingDocument({ meeting }: { meeting: Meeting }) {
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
   const { hash } = useLocation();
   const targetLine = lineFromHash(hash);
 
-  const byLine = useMemo(() => {
+  const { byLine, unlinked } = useMemo(() => {
     const lineNumbers = new Set(meeting.transcriptLines.map((l) => l.n));
     const map = new Map<number, Annotations>();
+    const loose: ActionItem[] = [];
     const bucket = (n: number) => {
       if (!map.has(n)) map.set(n, { items: [], decisions: [] });
       return map.get(n)!;
@@ -63,13 +63,29 @@ export function MeetingDocument({
     for (const item of meeting.actionItems) {
       if (item.sourceLine !== null && lineNumbers.has(item.sourceLine))
         bucket(item.sourceLine).items.push(item);
+      else loose.push(item);
     }
     for (const decision of meeting.decisions) {
       if (decision.sourceLine !== null && lineNumbers.has(decision.sourceLine))
         bucket(decision.sourceLine).decisions.push(decision);
     }
-    return map;
+    return { byLine: map, unlinked: loose };
   }, [meeting.transcriptLines, meeting.actionItems, meeting.decisions]);
+
+  const ownerSuggestions = useMemo(
+    () =>
+      [
+        ...new Set(
+          [
+            ...meeting.transcriptLines.map((line) => line.speaker),
+            ...meeting.actionItems.map((item) => item.owner),
+          ].filter((name): name is string => Boolean(name)),
+        ),
+      ].sort((a, b) => a.localeCompare(b)),
+    [meeting.transcriptLines, meeting.actionItems],
+  );
+  const done = meeting.actionItems.filter((item) => item.status === 'done').length;
+  const needsReview = meeting.actionItems.filter((item) => item.needsReview).length;
 
   // Bring a linked line into view once it exists (after a reload or from a shared link).
   useEffect(() => {
@@ -80,13 +96,38 @@ export function MeetingDocument({
 
   return (
     <section aria-labelledby="transcript-title" className="min-w-0">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3">
-        <h2 id="transcript-title" className="text-lg font-bold">
-          Transcript
-        </h2>
-        <Legend />
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_27rem]">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3">
+          <h2 id="transcript-title" className="text-lg font-bold">
+            Transcript
+          </h2>
+          <Legend />
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3">
+          <div>
+            <h3 className="text-lg font-bold">Action items</h3>
+            <ul aria-label="Counts" className="mt-1 flex flex-wrap gap-x-3 text-xs text-muted">
+              <li>{plural(meeting.actionItems.length, 'action item')}</li>
+              {meeting.actionItems.length > 0 && <li>{done} done</li>}
+              {needsReview > 0 && <li className="text-warning">{needsReview} needs review</li>}
+            </ul>
+          </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            icon={<Plus aria-hidden="true" className="size-4" />}
+            onClick={() => setAdding(true)}
+          >
+            Add action item
+          </Button>
+          {meeting.actionItems.length === 0 && (
+            <p className="w-full text-sm text-muted">
+              No action items yet. Add one, or wait for the analysis to finish.
+            </p>
+          )}
+        </div>
       </div>
-      <ol className="py-5">
+      <ol className="pt-5">
         {meeting.transcriptLines.map((line, i) => {
           const notes = byLine.get(line.n);
           const newSpeaker =
@@ -97,7 +138,7 @@ export function MeetingDocument({
               id={`L${line.n}`}
               aria-current={line.n === targetLine ? 'location' : undefined}
               className={cn(
-                'scroll-mt-24 rounded-md py-2.5 pr-2',
+                'grid scroll-mt-24 items-start gap-x-5 gap-y-3 rounded-md py-2.5 xl:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_27rem]',
                 line.n === targetLine && 'bg-accent-soft/60',
                 newSpeaker && i > 0 && 'mt-5',
                 // Off-screen plain lines skip rendering (smooth on 1 MB transcripts).
@@ -119,15 +160,62 @@ export function MeetingDocument({
                       text={line.text}
                       marks={marksFor(line, notes)}
                       activeId={activeId}
-                      onActive={onActiveChange}
+                      onActive={setActiveId}
                     />
                   </p>
                 </div>
               </div>
+              {notes && notes.items.length > 0 && (
+                <div className="space-y-3 pl-[3rem] sm:pl-[3.5rem] xl:pl-0">
+                  {notes.items.map((item) => (
+                    <MeetingActionCard
+                      key={item.id}
+                      meeting={meeting}
+                      item={item}
+                      ownerSuggestions={ownerSuggestions}
+                      active={activeId === item.id}
+                      onActiveChange={(active) => setActiveId(active ? item.id : null)}
+                    />
+                  ))}
+                </div>
+              )}
             </li>
           );
         })}
       </ol>
+
+      {unlinked.length > 0 && (
+        <section
+          aria-label="Action items without a transcript line"
+          className="mt-8 grid gap-4 border-t border-line pt-6 xl:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_27rem]"
+        >
+          <div>
+            <h3 className="font-semibold">Other action items</h3>
+            <p className="mt-1 text-sm text-muted">
+              These actions have no verified transcript line.
+            </p>
+          </div>
+          <div className="space-y-3">
+            {unlinked.map((item) => (
+              <MeetingActionCard
+                key={item.id}
+                meeting={meeting}
+                item={item}
+                ownerSuggestions={ownerSuggestions}
+                active={activeId === item.id}
+                onActiveChange={(active) => setActiveId(active ? item.id : null)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <ActionItemDialog
+        open={adding}
+        onClose={() => setAdding(false)}
+        meetingId={meeting.id}
+        ownerSuggestions={ownerSuggestions}
+      />
     </section>
   );
 }
