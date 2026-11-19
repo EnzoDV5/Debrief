@@ -11,6 +11,15 @@ const envSchema = z.object({
   // Required: there is no sensible default, and guessing could point at the wrong database.
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/, error: 'must be a postgres:// URL' }),
 
+  // Optional: only `npm run db:migrate:supabase` uses it. Empty in .env counts as "not set".
+  SUPABASE_DATABASE_URL: z
+    .union([
+      z.literal(''),
+      z.url({ protocol: /^postgres(ql)?$/, error: 'must be a postgres:// URL' }),
+    ])
+    .optional()
+    .transform((value) => value || undefined),
+
   // The one browser origin allowed to make state-changing requests (CSRF Origin check).
   WEB_ORIGIN: z.url().default('http://localhost:5173'),
 

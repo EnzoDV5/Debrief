@@ -1,11 +1,30 @@
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
+import { Pool, type PoolConfig } from 'pg';
 import { env } from '../config/env';
 import * as schema from './schema';
 
+// Supabase signs its database certificates with its own root CA, which isn't in Node's trusted
+// list. We ship that public certificate (apps/api/certs) and verify against it, instead of the
+// common shortcut `rejectUnauthorized: false`, which would accept any server, including an impostor.
+const SUPABASE_CA_PATH = fileURLToPath(
+  new URL('../../certs/supabase-root-2021-ca.crt', import.meta.url),
+);
+
+/** SSL settings for a connection string: verified SSL for Supabase, none for local Postgres. */
+export function sslFor(connectionString: string): PoolConfig['ssl'] {
+  const { hostname } = new URL(connectionString);
+  if (!hostname.endsWith('.supabase.com')) return undefined;
+  return { ca: readFileSync(SUPABASE_CA_PATH, 'utf8'), rejectUnauthorized: true };
+}
+
+export function createPool(connectionString: string) {
+  return new Pool({ connectionString, ssl: sslFor(connectionString), max: 10 });
+}
+
 // One connection pool for the whole process. Repositories import `db`; nothing else talks SQL.
-export const pool = new Pool({ connectionString: env.DATABASE_URL, max: 10 });
+export const pool = createPool(env.DATABASE_URL);
 
 export const db = drizzle(pool, { schema });
 export type Db = typeof db;
