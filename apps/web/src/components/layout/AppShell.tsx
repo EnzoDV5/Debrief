@@ -75,7 +75,7 @@ export function AppShell() {
         className="relative min-w-0 outline-none lg:my-5 lg:mr-5 lg:flex-1 lg:overflow-hidden lg:rounded-panel lg:bg-bg"
       >
         <PanelBackdrop />
-        <div ref={scrollRef} className="relative lg:h-full lg:scrollbar-panel lg:overflow-y-auto">
+        <div ref={scrollRef} className="relative lg:scrollbar-panel lg:h-full lg:overflow-y-auto">
           <div className="mx-auto w-full px-4 py-7 sm:px-8 lg:px-8 lg:py-10">
             <Outlet />
           </div>
@@ -196,7 +196,7 @@ function SidebarContent({
             Recent meetings
           </h2>
           {meetings && (
-            <span className="text-xs tabular-nums text-sidebar-muted">{meetings.length}</span>
+            <span className="text-xs text-sidebar-muted tabular-nums">{meetings.length}</span>
           )}
         </div>
         <div className="mt-3 min-h-0 flex-1 overflow-y-auto px-2 pb-4">

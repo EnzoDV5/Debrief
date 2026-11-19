@@ -174,7 +174,7 @@ function Filters({
   onChange: (next: Partial<ActionItemFilters>) => void;
 }) {
   return (
-    <div className="flex flex-col gap-4 glass rounded-card border border-white/70 p-4 shadow-card lg:flex-row lg:items-center lg:justify-between">
+    <div className="flex flex-col gap-4 rounded-card border border-white/70 glass p-4 shadow-card lg:flex-row lg:items-center lg:justify-between">
       {/* Toggle buttons for a single choice: aria-pressed marks the active one. */}
       <div role="group" aria-label="Status" className="flex flex-wrap gap-2">
         {ACTION_ITEM_STATUS_FILTERS.map((status) => (

@@ -5,7 +5,7 @@ import { MeetingMenu } from './MeetingMenu';
 
 export function MeetingResults({ meetings }: { meetings: MeetingListItem[] }) {
   return (
-    <ul className="divide-y divide-line overflow-hidden glass rounded-card border border-white/70 shadow-card">
+    <ul className="divide-y divide-line overflow-hidden rounded-card border border-white/70 glass shadow-card">
       {meetings.map((meeting) => (
         <li key={meeting.id} className="flex items-center gap-2 px-4 py-3 hover:bg-surface-2">
           <Link to={`/meetings/${meeting.id}`} className="min-w-0 flex-1">

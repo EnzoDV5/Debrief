@@ -308,7 +308,7 @@ function ReviewStep({ draft, onBack }: { draft: Draft; onBack: () => void }) {
 
       {/* Always-visible action bar, so the decision is one click away however long the file is.
           Sticky (not fixed) so it stays inside the page panel instead of covering the frame. */}
-      <div className="sticky bottom-3 z-20 mt-6 glass-float rounded-card border border-white/70 px-4 py-3 shadow-raised">
+      <div className="sticky bottom-3 z-20 mt-6 rounded-card border border-white/70 glass-float px-4 py-3 shadow-raised">
         <div className="flex items-center justify-between gap-3">
           <p className="hidden items-center gap-1.5 text-sm text-muted sm:flex">
             <Info aria-hidden="true" className="size-4" />

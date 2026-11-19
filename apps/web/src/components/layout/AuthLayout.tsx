@@ -61,7 +61,7 @@ function ExampleActionItem() {
       <figcaption className="sr-only">Example of an action item Debrief extracts</figcaption>
       <div className="flex items-center justify-between gap-3">
         <p className="eyebrow text-muted">Action item</p>
-        <span className="eyebrow inline-flex items-center gap-1 text-accent">
+        <span className="inline-flex items-center gap-1 eyebrow text-accent">
           <Link2 aria-hidden="true" className="size-3.5" /> Line 42
         </span>
       </div>

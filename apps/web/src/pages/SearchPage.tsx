@@ -19,7 +19,7 @@ export function SearchPage() {
       <label className="relative mb-6 block">
         <Search
           aria-hidden="true"
-          className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted"
+          className="absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted"
         />
         <input
           type="search"
@@ -30,7 +30,7 @@ export function SearchPage() {
           onChange={(event) =>
             setParams(event.target.value ? { q: event.target.value } : {}, { replace: true })
           }
-          className="h-12 w-full rounded-md border border-line-strong bg-surface pl-12 pr-4 text-fg outline-none focus:border-accent"
+          className="h-12 w-full rounded-md border border-line-strong bg-surface pr-4 pl-12 text-fg outline-none focus:border-accent"
         />
       </label>
       {isPending ? (

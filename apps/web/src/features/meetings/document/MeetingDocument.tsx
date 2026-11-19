@@ -173,7 +173,7 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
                 </a>
                 <div className="min-w-0">
                   {newSpeaker && <p className="mb-1 text-base font-bold">{line.speaker}</p>}
-                  <p className="wrap-break-word text-lg leading-8 text-fg/90 sm:text-xl sm:leading-9">
+                  <p className="text-lg leading-8 wrap-break-word text-fg/90 sm:text-xl sm:leading-9">
                     <LineText
                       text={line.text}
                       marks={marksFor(line, notes)}

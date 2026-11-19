@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { cn } from './cn';
 
+// The order of classes inside cn() is what these tests check, so Prettier's Tailwind plugin
+// must not re-sort them.
+// prettier-ignore
 describe('cn', () => {
   it('skips falsy values', () => {
     expect(cn('a', false, null, undefined, 'b')).toBe('a b');

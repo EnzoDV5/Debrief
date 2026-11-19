@@ -36,7 +36,7 @@ export function DecisionBubble({
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className="eyebrow mt-1 inline-flex items-center gap-1.5 text-success">
+        <p className="mt-1 inline-flex items-center gap-1.5 eyebrow text-success">
           <Check aria-hidden="true" className="size-3.5" />
           Agreed decision
         </p>
