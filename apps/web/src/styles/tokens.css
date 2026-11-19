@@ -81,7 +81,7 @@
   --radius-sm: 6px;
   --radius-md: 10px; /* inputs, buttons */
   --radius-card: 16px;
-  --radius-panel: 20px; /* the framed page area beside the sidebar (desktop) */
+  --radius-panel: 24px; /* the framed page area beside the sidebar (desktop) */
   --radius-pill: 999px;
 
   /* Shadows: soft and low so cards lift without looking like a marketing site */
