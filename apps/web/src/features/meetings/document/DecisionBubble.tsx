@@ -6,15 +6,35 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { IconButton, LineLink } from '@/features/actionItems/ActionItemCard';
 import { useDeleteDecision, useUpdateDecision } from '@/features/actionItems/hooks';
+import { cn } from '@/lib/cn';
 
-/** A decision card in the overview, linked back to its source line. */
-export function DecisionBubble({ meetingId, decision }: { meetingId: string; decision: Decision }) {
+/** A decision card beside the transcript line where the choice was made. */
+export function DecisionBubble({
+  meetingId,
+  decision,
+  active = false,
+  onActiveChange,
+}: {
+  meetingId: string;
+  decision: Decision;
+  active?: boolean;
+  onActiveChange?: (active: boolean) => void;
+}) {
   const update = useUpdateDecision(meetingId);
   const remove = useDeleteDecision(meetingId);
   const [draft, setDraft] = useState<string | null>(null); // null = not editing
 
   return (
-    <article className="h-full rounded-md border border-l-4 border-line border-l-success bg-surface p-3 text-sm shadow-card">
+    <article
+      onMouseEnter={() => onActiveChange?.(true)}
+      onMouseLeave={() => onActiveChange?.(false)}
+      onFocus={() => onActiveChange?.(true)}
+      onBlur={() => onActiveChange?.(false)}
+      className={cn(
+        'rounded-md border border-l-4 border-line border-l-success bg-surface p-3 text-sm shadow-card transition-shadow',
+        active && 'ring-2 ring-success/40',
+      )}
+    >
       <div className="flex items-start justify-between gap-2">
         <p className="eyebrow mt-1 text-success">Decision</p>
         {draft === null && (

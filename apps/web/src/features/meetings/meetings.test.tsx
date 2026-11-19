@@ -248,7 +248,7 @@ describe('meeting detail', () => {
       analysisStatus: 'done' as const,
       summary: 'The team chose blue.',
       transcriptLines: [
-        meeting.transcriptLines[0],
+        { n: 1, speaker: 'Ann', text: 'We chose blue for the design.' },
         { n: 2, speaker: 'Ben', text: 'The draft is ready. Can you send the files to the team?' },
       ],
       decisions: [{ id: crypto.randomUUID(), text: 'Use blue', sourceLine: 1, position: 0 }],
@@ -276,7 +276,13 @@ describe('meeting detail', () => {
     renderApp(`/meetings/${meeting.id}`);
 
     expect(await screen.findByText('The team chose blue.')).toBeInTheDocument();
-    expect(screen.getByText('Use blue')).toBeInTheDocument();
+    const decisionLine = document.getElementById('L1')!;
+    expect(within(decisionLine).getByText('Use blue')).toBeInTheDocument();
+    expect(screen.getAllByText('Use blue')).toHaveLength(1);
+    const user = userEvent.setup();
+    await user.hover(within(decisionLine).getByText('Use blue'));
+    expect(within(decisionLine).getByText('We chose blue for the design.')).toHaveClass('ring-2');
+    await user.unhover(within(decisionLine).getByText('Use blue'));
     expect(screen.getByText('Send the files')).toBeInTheDocument();
     const sourceLine = document.getElementById('L2')!;
     expect(within(sourceLine).getByText('In brief:')).toBeInTheDocument();
@@ -286,7 +292,6 @@ describe('meeting detail', () => {
     ).toBeInTheDocument();
     expect(within(sourceLine).queryByText(/What was said:/)).not.toBeInTheDocument();
     expect(screen.getByText(/Check the due date/)).toHaveTextContent('Needs review:');
-    const user = userEvent.setup();
     await user.click(within(sourceLine).getByRole('link', { name: 'Line 2' }));
     expect(screen.getByRole('heading', { name: 'Transcript' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Line 2' })).toBeInTheDocument();

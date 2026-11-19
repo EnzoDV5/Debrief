@@ -7,6 +7,8 @@ import { ActionItemDialog } from '@/features/actionItems/ActionItemDialog';
 import { cn } from '@/lib/cn';
 import { plural } from '@/lib/format';
 import { MeetingActionCard } from './MeetingActionCard';
+import { DecisionBubble } from './DecisionBubble';
+import { NewDecisionDialog } from './NewDecisionDialog';
 import { findPhrase, segment, type Mark } from './highlight';
 
 type Annotations = { items: ActionItem[]; decisions: Decision[] };
@@ -43,19 +45,20 @@ function marksFor(line: TranscriptLine, notes: Annotations | undefined): Mark[] 
 }
 
 /**
- * Each action shares a document row with the transcript line that produced it. Both sides
- * therefore move together with the page, without an independent action-list scrollbar.
+ * Actions and decisions share a document row with their source line, so both sides scroll together.
  */
 export function MeetingDocument({ meeting }: { meeting: Meeting }) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [addingDecision, setAddingDecision] = useState(false);
   const { hash } = useLocation();
   const targetLine = lineFromHash(hash);
 
-  const { byLine, unlinked } = useMemo(() => {
+  const { byLine, unlinkedItems, unlinkedDecisions } = useMemo(() => {
     const lineNumbers = new Set(meeting.transcriptLines.map((l) => l.n));
     const map = new Map<number, Annotations>();
-    const loose: ActionItem[] = [];
+    const looseItems: ActionItem[] = [];
+    const looseDecisions: Decision[] = [];
     const bucket = (n: number) => {
       if (!map.has(n)) map.set(n, { items: [], decisions: [] });
       return map.get(n)!;
@@ -63,13 +66,14 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
     for (const item of meeting.actionItems) {
       if (item.sourceLine !== null && lineNumbers.has(item.sourceLine))
         bucket(item.sourceLine).items.push(item);
-      else loose.push(item);
+      else looseItems.push(item);
     }
     for (const decision of meeting.decisions) {
       if (decision.sourceLine !== null && lineNumbers.has(decision.sourceLine))
         bucket(decision.sourceLine).decisions.push(decision);
+      else looseDecisions.push(decision);
     }
-    return { byLine: map, unlinked: loose };
+    return { byLine: map, unlinkedItems: looseItems, unlinkedDecisions: looseDecisions };
   }, [meeting.transcriptLines, meeting.actionItems, meeting.decisions]);
 
   const ownerSuggestions = useMemo(
@@ -105,24 +109,35 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3">
           <div>
-            <h3 className="text-lg font-bold">Action items</h3>
+            <h3 className="text-lg font-bold">Actions & decisions</h3>
             <ul aria-label="Counts" className="mt-1 flex flex-wrap gap-x-3 text-xs text-muted">
               <li>{plural(meeting.actionItems.length, 'action item')}</li>
+              <li>{plural(meeting.decisions.length, 'decision')}</li>
               {meeting.actionItems.length > 0 && <li>{done} done</li>}
               {needsReview > 0 && <li className="text-warning">{needsReview} needs review</li>}
             </ul>
           </div>
-          <Button
-            size="sm"
-            variant="secondary"
-            icon={<Plus aria-hidden="true" className="size-4" />}
-            onClick={() => setAdding(true)}
-          >
-            Add action item
-          </Button>
-          {meeting.actionItems.length === 0 && (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<Plus aria-hidden="true" className="size-4" />}
+              onClick={() => setAdding(true)}
+            >
+              Add action item
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<Plus aria-hidden="true" className="size-4" />}
+              onClick={() => setAddingDecision(true)}
+            >
+              Add decision
+            </Button>
+          </div>
+          {meeting.actionItems.length === 0 && meeting.decisions.length === 0 && (
             <p className="w-full text-sm text-muted">
-              No action items yet. Add one, or wait for the analysis to finish.
+              No actions or decisions yet. Add one, or wait for the analysis to finish.
             </p>
           )}
         </div>
@@ -165,8 +180,17 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
                   </p>
                 </div>
               </div>
-              {notes && notes.items.length > 0 && (
+              {notes && (notes.items.length > 0 || notes.decisions.length > 0) && (
                 <div className="space-y-3 pl-[3rem] sm:pl-[3.5rem] xl:pl-0">
+                  {notes.decisions.map((decision) => (
+                    <DecisionBubble
+                      key={decision.id}
+                      meetingId={meeting.id}
+                      decision={decision}
+                      active={activeId === decision.id}
+                      onActiveChange={(active) => setActiveId(active ? decision.id : null)}
+                    />
+                  ))}
                   {notes.items.map((item) => (
                     <MeetingActionCard
                       key={item.id}
@@ -184,19 +208,22 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
         })}
       </ol>
 
-      {unlinked.length > 0 && (
+      {(unlinkedItems.length > 0 || unlinkedDecisions.length > 0) && (
         <section
-          aria-label="Action items without a transcript line"
+          aria-label="Notes without a transcript line"
           className="mt-8 grid gap-4 border-t border-line pt-6 xl:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_27rem]"
         >
           <div>
-            <h3 className="font-semibold">Other action items</h3>
+            <h3 className="font-semibold">Other notes</h3>
             <p className="mt-1 text-sm text-muted">
-              These actions have no verified transcript line.
+              These actions and decisions have no verified transcript line.
             </p>
           </div>
           <div className="space-y-3">
-            {unlinked.map((item) => (
+            {unlinkedDecisions.map((decision) => (
+              <DecisionBubble key={decision.id} meetingId={meeting.id} decision={decision} />
+            ))}
+            {unlinkedItems.map((item) => (
               <MeetingActionCard
                 key={item.id}
                 meeting={meeting}
@@ -216,6 +243,9 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
         meetingId={meeting.id}
         ownerSuggestions={ownerSuggestions}
       />
+      {addingDecision && (
+        <NewDecisionDialog meetingId={meeting.id} onClose={() => setAddingDecision(false)} />
+      )}
     </section>
   );
 }

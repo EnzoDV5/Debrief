@@ -1,23 +1,17 @@
 import type { Meeting } from '@debrief/shared';
-import { Pencil, Plus, RotateCcw } from 'lucide-react';
+import { Pencil, RotateCcw } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Dialog } from '@/components/ui/Dialog';
-import { Input, Textarea } from '@/components/ui/Input';
-import { useCreateDecision } from '@/features/actionItems/hooks';
+import { Textarea } from '@/components/ui/Input';
 import { AnalysisStatusBadge } from '../AnalysisStatusBadge';
 import { useAnalyzeMeeting, useUpdateMeeting } from '../hooks';
-import { DecisionBubble } from './DecisionBubble';
-
-/**
- * The summary spans the meeting page, with decisions arranged beneath it.
- */
+/** The meeting summary spans the page above the annotated transcript. */
 export function MeetingOverview({ meeting }: { meeting: Meeting }) {
   const analyze = useAnalyzeMeeting(meeting.id);
   const [confirmRerun, setConfirmRerun] = useState(false);
-  const [addingDecision, setAddingDecision] = useState(false);
 
   const running = meeting.analysisStatus === 'pending' || meeting.analysisStatus === 'processing';
   const analysed = meeting.summary !== null;
@@ -71,35 +65,6 @@ export function MeetingOverview({ meeting }: { meeting: Meeting }) {
             The summary appears here once the AI has read the transcript.
           </p>
         )
-      )}
-
-      <section className="mt-5 border-t border-line pt-4" aria-label="Decisions">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="eyebrow text-success">Decisions</h3>
-          <Button
-            size="sm"
-            variant="secondary"
-            icon={<Plus aria-hidden="true" className="size-4" />}
-            onClick={() => setAddingDecision(true)}
-          >
-            Add decision
-          </Button>
-        </div>
-        {meeting.decisions.length > 0 ? (
-          <ul className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-            {meeting.decisions.map((decision) => (
-              <li key={decision.id}>
-                <DecisionBubble meetingId={meeting.id} decision={decision} />
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-3 text-sm text-muted">No decisions recorded yet.</p>
-        )}
-      </section>
-
-      {addingDecision && (
-        <NewDecisionForm meetingId={meeting.id} onDone={() => setAddingDecision(false)} />
       )}
 
       <Dialog
@@ -176,36 +141,5 @@ function Summary({ meeting }: { meeting: Meeting }) {
         Edit
       </Button>
     </div>
-  );
-}
-
-function NewDecisionForm({ meetingId, onDone }: { meetingId: string; onDone: () => void }) {
-  const create = useCreateDecision(meetingId);
-  const [text, setText] = useState('');
-  return (
-    <form
-      className="mt-4 space-y-3 rounded-md border border-line p-4"
-      onSubmit={(event) => {
-        event.preventDefault();
-        create.mutate({ text }, { onSuccess: onDone });
-      }}
-    >
-      <Input
-        aria-label="New decision"
-        placeholder="e.g. Launch the three-tier pricing page"
-        value={text}
-        onChange={(event) => setText(event.target.value)}
-        autoFocus
-      />
-      {create.error && <Alert tone="danger">{create.error.message}</Alert>}
-      <div className="flex gap-2">
-        <Button type="submit" size="sm" loading={create.isPending}>
-          Add decision
-        </Button>
-        <Button size="sm" variant="secondary" onClick={onDone} disabled={create.isPending}>
-          Cancel
-        </Button>
-      </div>
-    </form>
   );
 }

@@ -214,6 +214,11 @@ describe('action items on the meeting page', () => {
     await user.type(screen.getByLabelText('New decision'), 'Ship Friday');
     await user.click(screen.getAllByRole('button', { name: 'Add decision' }).at(-1)!);
     expect((await screen.findAllByText('Ship Friday')).length).toBeGreaterThan(0);
+    expect(
+      within(screen.getByRole('region', { name: 'Notes without a transcript line' })).getByText(
+        'Ship Friday',
+      ),
+    ).toBeInTheDocument();
     expect(sent).toEqual({ summary: { summary: 'Corrected.' }, decision: { text: 'Ship Friday' } });
   });
 });
