@@ -1,5 +1,6 @@
 import type { Meeting } from '@debrief/shared';
 import { CalendarDays, FileSearch, Rows3 } from 'lucide-react';
+import { useState } from 'react';
 import { useParams } from 'react-router';
 import { ApiError } from '@/api/client';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -9,6 +10,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { MeetingDocument } from '@/features/meetings/document/MeetingDocument';
 import { MeetingOverview } from '@/features/meetings/document/MeetingOverview';
+import { MeetingActions } from '@/features/meetings/document/MeetingActions';
 import { useMeeting } from '@/features/meetings/hooks';
 import { formatCalendarDate, plural } from '@/lib/format';
 import { usePageTitle } from '@/lib/usePageTitle';
@@ -42,34 +44,55 @@ export function MeetingDetailPage() {
 }
 
 /**
- * The transcript is the primary document. The compact overview stays in reach while reading.
+ * Meeting details and summary sit above the reading area; actions stay beside the transcript.
  */
 function MeetingDetail({ meeting }: { meeting: Meeting }) {
+  const [activeItemId, setActiveItemId] = useState<string | null>(null);
   return (
     <div className="w-full">
-      <PageHeader
-        title={meeting.title}
-        description={
-          <span className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <span className="inline-flex items-center gap-1.5">
-              <CalendarDays aria-hidden="true" className="size-4" />
-              {formatCalendarDate(meeting.meetingDate)}
-            </span>
-            <span className="inline-flex items-center gap-1.5 numeric">
-              <Rows3 aria-hidden="true" className="size-4" />
-              {plural(meeting.transcriptLines.length, 'line')} · {sourceLabels[meeting.sourceType]}
-            </span>
-          </span>
-        }
-      />
-
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_19rem] 2xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <MeetingDocument meeting={meeting} />
-        <aside
-          aria-label="Meeting overview"
-          className="order-first xl:order-last xl:sticky xl:top-6"
-        >
+      <div className="grid items-start gap-6 border-b border-line pb-8 xl:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_27rem]">
+        <div>
+          <PageHeader
+            title={meeting.title}
+            description={
+              <span className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <span className="inline-flex items-center gap-1.5">
+                  <CalendarDays aria-hidden="true" className="size-4" />
+                  {formatCalendarDate(meeting.meetingDate)}
+                </span>
+                <span className="inline-flex items-center gap-1.5 numeric">
+                  <Rows3 aria-hidden="true" className="size-4" />
+                  {plural(meeting.transcriptLines.length, 'line')} ·{' '}
+                  {sourceLabels[meeting.sourceType]}
+                </span>
+              </span>
+            }
+          />
+          <p className="max-w-2xl text-sm leading-6 text-muted">
+            Read the original conversation below. Highlighted words connect to the actions on the
+            right.
+          </p>
+        </div>
+        <section aria-label="Meeting summary">
           <MeetingOverview meeting={meeting} />
+        </section>
+      </div>
+
+      <div className="grid items-start gap-8 pt-8 xl:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_27rem]">
+        <MeetingDocument
+          meeting={meeting}
+          activeId={activeItemId}
+          onActiveChange={setActiveItemId}
+        />
+        <aside
+          aria-label="Meeting actions"
+          className="xl:sticky xl:top-6 xl:max-h-[calc(100dvh-3rem)] xl:overflow-y-auto"
+        >
+          <MeetingActions
+            meeting={meeting}
+            activeId={activeItemId}
+            onActiveChange={setActiveItemId}
+          />
         </aside>
       </div>
     </div>

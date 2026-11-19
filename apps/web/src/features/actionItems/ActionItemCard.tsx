@@ -27,7 +27,6 @@ export function ActionItemCard({
   source,
   onEdit,
   onDelete,
-  bubble = false,
   active = false,
   onActiveChange,
 }: {
@@ -36,11 +35,9 @@ export function ActionItemCard({
   source?: ReactNode;
   onEdit: () => void;
   onDelete: () => void;
-  /** Compact comment-bubble style for the margin of the meeting document. */
-  bubble?: boolean;
   /** Its words are highlighted in the transcript right now. */
   active?: boolean;
-  /** Hovering or focusing the bubble lights up its words in the transcript. */
+  /** Hovering or focusing the card lights up its words in the transcript. */
   onActiveChange?: (active: boolean) => void;
 }) {
   const update = useUpdateActionItem();
@@ -54,28 +51,11 @@ export function ActionItemCard({
       onFocus={() => onActiveChange?.(true)}
       onBlur={() => onActiveChange?.(false)}
       className={cn(
-        'rounded-md border transition-shadow',
-        bubble
-          ? cn(
-              'border-l-4 bg-surface p-3 text-sm shadow-card',
-              item.needsReview
-                ? 'border-l-warning'
-                : done
-                  ? 'border-l-line-strong'
-                  : 'border-l-accent',
-            )
-          : 'p-4',
-        !bubble &&
-          (item.needsReview ? 'border-warning/40 bg-warning-soft/30' : 'border-line bg-surface'),
-        bubble && 'border-line',
+        'rounded-md border bg-surface p-4 shadow-card transition-shadow',
+        item.needsReview ? 'border-warning/40' : 'border-line',
         active && 'ring-2 ring-accent/40',
       )}
     >
-      {bubble && (
-        <p className={cn('eyebrow mb-2', item.needsReview ? 'text-warning' : 'text-accent')}>
-          {item.needsReview ? 'Action item · needs review' : 'Action item'}
-        </p>
-      )}
       <div className="flex items-start gap-3">
         {/* A real checkbox: Space toggles it, and screen readers announce its state. */}
         <input

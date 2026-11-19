@@ -1,49 +1,45 @@
 import type { Meeting } from '@debrief/shared';
 import { Pencil, Plus, RotateCcw } from 'lucide-react';
-import { useMemo, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Dialog } from '@/components/ui/Dialog';
 import { Input, Textarea } from '@/components/ui/Input';
-import { ActionItemDialog } from '@/features/actionItems/ActionItemDialog';
 import { useCreateDecision } from '@/features/actionItems/hooks';
-import { plural } from '@/lib/format';
 import { AnalysisStatusBadge } from '../AnalysisStatusBadge';
 import { useAnalyzeMeeting, useUpdateMeeting } from '../hooks';
 import { DecisionBubble } from './DecisionBubble';
 
 /**
- * The top of a meeting: where the analysis is up to, the (editable) summary, the counts, and
- * the actions that add to the document below.
+ * The summary and decisions sit beside the meeting title, above the transcript.
  */
 export function MeetingOverview({ meeting }: { meeting: Meeting }) {
   const analyze = useAnalyzeMeeting(meeting.id);
   const [confirmRerun, setConfirmRerun] = useState(false);
-  const [addingItem, setAddingItem] = useState(false);
   const [addingDecision, setAddingDecision] = useState(false);
 
   const running = meeting.analysisStatus === 'pending' || meeting.analysisStatus === 'processing';
   const analysed = meeting.summary !== null;
-  const items = meeting.actionItems;
-  const flagged = items.filter((i) => i.needsReview).length;
-  const done = items.filter((i) => i.status === 'done').length;
-
-  const ownerSuggestions = useMemo(
-    () =>
-      [
-        ...new Set(meeting.transcriptLines.map((l) => l.speaker).filter(Boolean) as string[]),
-      ].sort(),
-    [meeting.transcriptLines],
-  );
-
   const rerun = () => analyze.mutate(undefined, { onSuccess: () => setConfirmRerun(false) });
 
   return (
-    <Card className="p-5 sm:p-6 xl:max-h-[calc(100dvh-3rem)] xl:overflow-y-auto">
-      <div className="flex items-center justify-between gap-3">
+    <Card className="p-5 sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="eyebrow text-accent">Summary</h2>
-        <AnalysisStatusBadge status={meeting.analysisStatus} />
+        <div className="flex flex-wrap items-center gap-2">
+          <AnalysisStatusBadge status={meeting.analysisStatus} />
+          {analysed && !running && (
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={<RotateCcw aria-hidden="true" className="size-4" />}
+              onClick={() => setConfirmRerun(true)}
+            >
+              Re-analyse
+            </Button>
+          )}
+        </div>
       </div>
 
       {running && (
@@ -77,32 +73,9 @@ export function MeetingOverview({ meeting }: { meeting: Meeting }) {
         )
       )}
 
-      <div className="mt-5 flex flex-col gap-4 border-t border-line pt-4">
-        <ul aria-label="Counts" className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
-          <li>
-            <Dot className="bg-accent" /> <strong>{plural(items.length, 'action item')}</strong>
-            {items.length > 0 && <span className="text-muted"> · {done} done</span>}
-          </li>
-          {flagged > 0 && (
-            <li className="text-warning">
-              <Dot className="bg-warning" /> <strong>{flagged}</strong> need
-              {flagged === 1 ? 's' : ''} review
-            </li>
-          )}
-          <li>
-            <Dot className="bg-success" />{' '}
-            <strong>{plural(meeting.decisions.length, 'decision')}</strong>
-          </li>
-        </ul>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            icon={<Plus aria-hidden="true" className="size-4" />}
-            onClick={() => setAddingItem(true)}
-          >
-            Add action item
-          </Button>
+      <section className="mt-5 border-t border-line pt-4" aria-label="Decisions">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="eyebrow text-success">Decisions</h3>
           <Button
             size="sm"
             variant="secondary"
@@ -111,22 +84,8 @@ export function MeetingOverview({ meeting }: { meeting: Meeting }) {
           >
             Add decision
           </Button>
-          {analysed && !running && (
-            <Button
-              size="sm"
-              variant="ghost"
-              icon={<RotateCcw aria-hidden="true" className="size-4" />}
-              onClick={() => setConfirmRerun(true)}
-            >
-              Re-analyse
-            </Button>
-          )}
         </div>
-      </div>
-
-      {meeting.decisions.length > 0 && (
-        <section className="mt-5 border-t border-line pt-4" aria-label="Decisions">
-          <h3 className="eyebrow text-success">Decisions</h3>
+        {meeting.decisions.length > 0 ? (
           <ul className="mt-3 space-y-3 text-sm">
             {meeting.decisions.map((decision) => (
               <li key={decision.id}>
@@ -134,19 +93,15 @@ export function MeetingOverview({ meeting }: { meeting: Meeting }) {
               </li>
             ))}
           </ul>
-        </section>
-      )}
+        ) : (
+          <p className="mt-3 text-sm text-muted">No decisions recorded yet.</p>
+        )}
+      </section>
 
       {addingDecision && (
         <NewDecisionForm meetingId={meeting.id} onDone={() => setAddingDecision(false)} />
       )}
 
-      <ActionItemDialog
-        open={addingItem}
-        onClose={() => setAddingItem(false)}
-        meetingId={meeting.id}
-        ownerSuggestions={ownerSuggestions}
-      />
       <Dialog
         open={confirmRerun}
         onClose={() => !analyze.isPending && setConfirmRerun(false)}
@@ -167,15 +122,6 @@ export function MeetingOverview({ meeting }: { meeting: Meeting }) {
         </div>
       </Dialog>
     </Card>
-  );
-}
-
-function Dot({ className }: { className: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`inline-block size-2 rounded-pill align-middle ${className}`}
-    />
   );
 }
 

@@ -1,10 +1,6 @@
 import type { ActionItem, Decision, Meeting, TranscriptLine } from '@debrief/shared';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router';
-import { Card } from '@/components/ui/Card';
-import { ActionItemCard } from '@/features/actionItems/ActionItemCard';
-import { ActionItemDialog } from '@/features/actionItems/ActionItemDialog';
-import { DeleteActionItemDialog } from '@/features/actionItems/DeleteActionItemDialog';
 import { cn } from '@/lib/cn';
 import { findPhrase, segment, type Mark } from './highlight';
 
@@ -42,48 +38,38 @@ function marksFor(line: TranscriptLine, notes: Annotations | undefined): Mark[] 
 }
 
 /**
- * The meeting as an annotated document, like comments in Google Docs: the transcript on the left,
- * action items as bubbles in the right margin next to the line they came from,
- * with their quoted words highlighted (and date words in a second colour). Hovering a bubble lights
- * up its words, and hovering highlighted words lights up its bubble.
- *
- * Layout: every line and its bubbles share one CSS grid row, so bubbles line up with their text
- * without measuring positions. On narrow screens the grid becomes one column and bubbles sit
- * directly under their line.
+ * The original transcript stays on the page background. Source words are highlighted and linked
+ * to the action cards in the right rail.
  */
-export function MeetingDocument({ meeting }: { meeting: Meeting }) {
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [editing, setEditing] = useState<ActionItem | null>(null);
-  const [deleting, setDeleting] = useState<ActionItem | null>(null);
+export function MeetingDocument({
+  meeting,
+  activeId,
+  onActiveChange,
+}: {
+  meeting: Meeting;
+  activeId: string | null;
+  onActiveChange: (id: string | null) => void;
+}) {
   const { hash } = useLocation();
   const targetLine = lineFromHash(hash);
 
-  const { byLine, unlinked } = useMemo(() => {
+  const byLine = useMemo(() => {
     const lineNumbers = new Set(meeting.transcriptLines.map((l) => l.n));
     const map = new Map<number, Annotations>();
-    const loose: Annotations = { items: [], decisions: [] };
-    const bucket = (n: number | null) => {
-      if (n === null || !lineNumbers.has(n)) return loose;
+    const bucket = (n: number) => {
       if (!map.has(n)) map.set(n, { items: [], decisions: [] });
       return map.get(n)!;
     };
-    for (const item of meeting.actionItems) bucket(item.sourceLine).items.push(item);
-    for (const decision of meeting.decisions) bucket(decision.sourceLine).decisions.push(decision);
-    return { byLine: map, unlinked: loose };
+    for (const item of meeting.actionItems) {
+      if (item.sourceLine !== null && lineNumbers.has(item.sourceLine))
+        bucket(item.sourceLine).items.push(item);
+    }
+    for (const decision of meeting.decisions) {
+      if (decision.sourceLine !== null && lineNumbers.has(decision.sourceLine))
+        bucket(decision.sourceLine).decisions.push(decision);
+    }
+    return map;
   }, [meeting.transcriptLines, meeting.actionItems, meeting.decisions]);
-
-  const ownerSuggestions = useMemo(
-    () =>
-      [
-        ...new Set(
-          [
-            ...meeting.transcriptLines.map((l) => l.speaker),
-            ...meeting.actionItems.map((i) => i.owner),
-          ].filter((name): name is string => Boolean(name)),
-        ),
-      ].sort((a, b) => a.localeCompare(b)),
-    [meeting.transcriptLines, meeting.actionItems],
-  );
 
   // Bring a linked line into view once it exists (after a reload or from a shared link).
   useEffect(() => {
@@ -92,53 +78,17 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
     }
   }, [targetLine, meeting.transcriptLines]);
 
-  const bubbles = (notes: Annotations) => (
-    <>
-      {notes.items.map((item) => (
-        <ActionItemCard
-          key={item.id}
-          item={item}
-          bubble
-          active={activeId === item.id}
-          onActiveChange={(on) => setActiveId(on ? item.id : null)}
-          onEdit={() => setEditing(item)}
-          onDelete={() => setDeleting(item)}
-          source={
-            item.sourceLine === null && item.origin === 'manual' ? (
-              <p className="text-muted">Added by you</p>
-            ) : null
-          }
-        />
-      ))}
-    </>
-  );
-
-  const hasUnlinked = unlinked.items.length > 0;
-
   return (
-    <Card className="overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-6">
-        <h2 className="font-bold">Transcript</h2>
+    <section aria-labelledby="transcript-title" className="min-w-0">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3">
+        <h2 id="transcript-title" className="text-lg font-bold">
+          Transcript
+        </h2>
         <Legend />
       </div>
-
-      {hasUnlinked && (
-        <section
-          aria-label="Not linked to a transcript line"
-          className="grid gap-x-6 gap-y-3 border-b border-line bg-surface-2/60 px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_20rem]"
-        >
-          <p className="text-sm text-muted">
-            <span className="font-semibold text-fg">Not linked to a line.</span> Added by you, or
-            the AI’s quote couldn’t be matched to the transcript.
-          </p>
-          <div className="space-y-3">{bubbles(unlinked)}</div>
-        </section>
-      )}
-
-      <ol className="px-2 py-4 sm:px-4">
+      <ol className="py-5">
         {meeting.transcriptLines.map((line, i) => {
           const notes = byLine.get(line.n);
-          const hasNotes = Boolean(notes?.items.length);
           const newSpeaker =
             line.speaker && line.speaker !== meeting.transcriptLines[i - 1]?.speaker;
           return (
@@ -147,14 +97,14 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
               id={`L${line.n}`}
               aria-current={line.n === targetLine ? 'location' : undefined}
               className={cn(
-                'grid scroll-mt-24 gap-x-6 gap-y-2 rounded-sm px-2 py-1.5 lg:grid-cols-[minmax(0,1fr)_20rem]',
+                'scroll-mt-24 rounded-md py-2.5 pr-2',
                 line.n === targetLine && 'bg-accent-soft/60',
-                newSpeaker && i > 0 && 'mt-3',
+                newSpeaker && i > 0 && 'mt-5',
                 // Off-screen plain lines skip rendering (smooth on 1 MB transcripts).
-                !hasNotes && '[contain-intrinsic-size:auto_2rem] [content-visibility:auto]',
+                !notes && '[contain-intrinsic-size:auto_3rem] [content-visibility:auto]',
               )}
             >
-              <div className="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-2">
+              <div className="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-3 sm:grid-cols-[2.75rem_minmax(0,1fr)]">
                 <a
                   href={`#L${line.n}`}
                   aria-label={`Line ${line.n}`}
@@ -163,36 +113,22 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
                   {line.n}
                 </a>
                 <div className="min-w-0">
-                  {newSpeaker && <p className="text-sm font-semibold">{line.speaker}</p>}
-                  <p className="wrap-break-word text-[0.9375rem] leading-relaxed text-fg/90">
+                  {newSpeaker && <p className="mb-1 text-base font-bold">{line.speaker}</p>}
+                  <p className="wrap-break-word text-lg leading-8 text-fg/90 sm:text-xl sm:leading-9">
                     <LineText
                       text={line.text}
                       marks={marksFor(line, notes)}
                       activeId={activeId}
-                      onActive={setActiveId}
+                      onActive={onActiveChange}
                     />
                   </p>
                 </div>
               </div>
-              {hasNotes && notes && (
-                <div className="space-y-3 pb-2 pl-11 lg:pl-0">{bubbles(notes)}</div>
-              )}
             </li>
           );
         })}
       </ol>
-
-      {editing && (
-        <ActionItemDialog
-          open
-          onClose={() => setEditing(null)}
-          meetingId={meeting.id}
-          item={editing}
-          ownerSuggestions={ownerSuggestions}
-        />
-      )}
-      <DeleteActionItemDialog item={deleting} onClose={() => setDeleting(null)} />
-    </Card>
+    </section>
   );
 }
 
