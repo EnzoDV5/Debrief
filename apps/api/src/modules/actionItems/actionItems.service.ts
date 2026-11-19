@@ -37,6 +37,8 @@ export const actionItemsService = {
   },
 
   async update(userId: string, id: string, patch: UpdateInput): Promise<ActionItem> {
+    const current = await actionItemsRepository.findForUser(userId, id);
+    if (!current) throw notFound('Action item');
     const changes: Parameters<typeof actionItemsRepository.updateForUser>[2] = { ...patch };
 
     // Once a person has edited what the item says, who owns it or when it's due, they've reviewed
@@ -45,8 +47,11 @@ export const actionItemsService = {
       changes.needsReview = false;
       changes.reviewReason = null;
     }
-    // A date picked by hand replaces the transcript's words for it, so drop those words.
-    if ('dueDate' in patch) changes.dueDateText = null;
+    // A *different* date picked by hand replaces the transcript's words for it, so drop those
+    // words. An edit form re-sends the unchanged date too; that must keep "next Friday".
+    if (patch.dueDate !== undefined && patch.dueDate !== current.dueDate) {
+      changes.dueDateText = null;
+    }
 
     const row = await actionItemsRepository.updateForUser(userId, id, changes);
     if (!row) throw notFound('Action item');

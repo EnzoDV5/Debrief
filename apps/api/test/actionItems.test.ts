@@ -137,6 +137,18 @@ describe('adding, editing and deleting action items', () => {
     expect(res.body.actionItem).toMatchObject({ dueDate: '2026-12-05', dueDateText: null });
   });
 
+  it('keeps the transcript’s date words when an edit re-sends the same date', async () => {
+    const { ids } = await meetingWithItems(alice, 'Plan', [{ text: 'Send', due: '2026-11-27' }]);
+    // What the edit dialog sends: every field, with only the owner actually changed.
+    const res = await send('patch', `/api/action-items/${ids[0]}`, alice, {
+      text: 'Send',
+      owner: 'Ann',
+      dueDate: '2026-11-27',
+      status: 'todo',
+    });
+    expect(res.body.actionItem).toMatchObject({ owner: 'Ann', dueDateText: 'the words' });
+  });
+
   it('rejects an empty or invalid patch', async () => {
     const { ids } = await meetingWithItems(alice, 'Plan', [{ text: 'Send' }]);
     expect((await send('patch', `/api/action-items/${ids[0]}`, alice, {})).status).toBe(400);
