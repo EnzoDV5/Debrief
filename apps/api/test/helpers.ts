@@ -1,4 +1,5 @@
-import type { Response } from 'supertest';
+import type { Express } from 'express';
+import request, { type Response } from 'supertest';
 import { pool } from '../src/db/client';
 
 export const PASSWORD = 'correct-horse-battery';
@@ -6,7 +7,7 @@ export const WEB_ORIGIN = 'http://localhost:5173'; // the default in env.ts
 
 /** Empties every table so each test starts from a clean database. */
 export async function resetDatabase() {
-  await pool.query('TRUNCATE TABLE sessions, users RESTART IDENTITY CASCADE');
+  await pool.query('TRUNCATE TABLE meetings, sessions, users RESTART IDENTITY CASCADE');
 }
 
 export async function closeDatabase() {
@@ -25,4 +26,14 @@ export function sessionCookiePair(res: Response): string {
   const header = sessionCookieHeader(res);
   if (!header) throw new Error('Response did not set a session cookie');
   return header.split(';')[0] ?? '';
+}
+
+/** Registers a user and returns their session cookie, ready for `.set('Cookie', ...)`. */
+export async function signUp(app: Express, name: string): Promise<string> {
+  const res = await request(app)
+    .post('/api/auth/register')
+    .set('Origin', WEB_ORIGIN)
+    .send({ name, email: `${name.toLowerCase()}@debrief.test`, password: PASSWORD });
+  if (res.status !== 201) throw new Error(`signUp failed: ${res.status}`);
+  return sessionCookiePair(res);
 }
