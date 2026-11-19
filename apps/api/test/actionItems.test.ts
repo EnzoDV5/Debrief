@@ -116,6 +116,22 @@ describe('adding, editing and deleting action items', () => {
     expect(res.body.actionItem).toMatchObject({ status: 'done', needsReview: true });
   });
 
+  it('keeps the context summary when ticking off, then clears it when the task changes', async () => {
+    const { ids } = await meetingWithItems(alice, 'Plan', [{ text: 'Send files' }]);
+    await pool.query('UPDATE action_items SET context_summary = $1 WHERE id = $2', [
+      'Ann offered to send the final files.',
+      ids[0],
+    ]);
+
+    const done = await send('patch', `/api/action-items/${ids[0]}`, alice, { status: 'done' });
+    expect(done.body.actionItem.contextSummary).toBe('Ann offered to send the final files.');
+
+    const edited = await send('patch', `/api/action-items/${ids[0]}`, alice, {
+      text: 'Send updated files',
+    });
+    expect(edited.body.actionItem.contextSummary).toBeNull();
+  });
+
   it('clears the review flag once the user edits the item', async () => {
     const { ids } = await meetingWithItems(alice, 'Plan', [
       { text: 'Send files', review: 'Owner “X” isn’t mentioned' },

@@ -5,7 +5,7 @@ import { z } from 'zod';
  * Bump whenever a prompt or output schema changes. Stored on every analysis_runs row, so results
  * can always be traced back to the exact prompt that produced them.
  */
-export const PROMPT_VERSION = '2026-11-19.1';
+export const PROMPT_VERSION = '2026-11-20.1';
 
 // ---------------------------------------------------------------------------------------------
 // The transcript, as the model sees it
@@ -67,6 +67,7 @@ export const actionItemsOutput = z.object({
     .array(
       z.object({
         text: z.string().trim().min(1).max(500),
+        context_summary: z.string().trim().max(240).optional(),
         owner: nullableText(100),
         due_date_text: nullableText(100),
         ...sourceFields,
@@ -146,9 +147,21 @@ Write each decision as one short statement. If no decisions were made, return an
           items: {
             type: 'object',
             additionalProperties: false,
-            required: ['text', 'owner', 'due_date_text', 'source_line', 'source_quote'],
+            required: [
+              'text',
+              'context_summary',
+              'owner',
+              'due_date_text',
+              'source_line',
+              'source_quote',
+            ],
             properties: {
               text: { type: 'string', description: 'The task, short and starting with a verb' },
+              context_summary: {
+                type: 'string',
+                description:
+                  'One short sentence paraphrasing the conversation around this task, not a quote or a repeat of the task title',
+              },
               owner: stringOrNull('The named person responsible, exactly as written, or null'),
               due_date_text: stringOrNull('The exact deadline words from the transcript, or null'),
               ...sourceJsonSchema,
@@ -161,6 +174,10 @@ Write each decision as one short statement. If no decisions were made, return an
 
 Task: list the action items: tasks someone committed to or was asked to do.
 - text: the task, short (max ~12 words), starting with a verb. Don't copy the whole sentence.
+- context_summary: explain in one short sentence what the speaker said or asked that led to this
+  task. Include useful context beyond the task title when the source line provides it. Paraphrase;
+  never paste the transcript or repeat the task title. Use only the cited line and its immediate
+  conversational context. Keep it under 30 words.
 - owner: the person's name exactly as it appears in the transcript. Use null when nobody is
   named ("someone", "we", "the team") or you're not sure. Never guess an owner.
 - due_date_text: the exact words used for the deadline (e.g. "by Friday 27 November",

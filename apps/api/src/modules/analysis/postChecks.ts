@@ -17,6 +17,7 @@ export type ActionItemDraft = {
   reviewReason: string | null;
   sourceLine: number | null;
   sourceQuote: string | null;
+  contextSummary: string | null;
 };
 
 /** Lowercase, straight quotes, punctuation → spaces, single spaces. For fair text comparison. */
@@ -134,6 +135,7 @@ export function checkActionItems(
         reviewReason: reasons.length > 0 ? reasons.join('. ') : null,
         sourceLine: source.sourceLine,
         sourceQuote: item.source_quote || null,
+        contextSummary: source.problem ? null : item.context_summary?.trim() || null,
       },
     ];
   });

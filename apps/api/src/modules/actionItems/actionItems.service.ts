@@ -47,6 +47,14 @@ export const actionItemsService = {
       changes.needsReview = false;
       changes.reviewReason = null;
     }
+    // The explanation describes the original task and owner; a real edit can make it stale.
+    if (
+      (patch.text !== undefined && patch.text !== current.text) ||
+      (patch.owner !== undefined && patch.owner !== current.owner) ||
+      (patch.dueDate !== undefined && patch.dueDate !== current.dueDate)
+    ) {
+      changes.contextSummary = null;
+    }
     // A *different* date picked by hand replaces the transcript's words for it, so drop those
     // words. An edit form re-sends the unchanged date too; that must keep "next Friday".
     if (patch.dueDate !== undefined && patch.dueDate !== current.dueDate) {

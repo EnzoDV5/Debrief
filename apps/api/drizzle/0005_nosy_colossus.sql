@@ -1,0 +1,1 @@
+ALTER TABLE "action_items" ADD COLUMN "context_summary" text;

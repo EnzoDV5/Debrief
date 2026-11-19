@@ -184,6 +184,8 @@ export const actionItems = pgTable(
     reviewReason: text('review_reason'),
     sourceLine: integer('source_line'),
     sourceQuote: text('source_quote'),
+    // A brief paraphrase of why the task came up, separate from the exact source quote.
+    contextSummary: text('context_summary'),
     // Set once the item is added to Google Calendar, so adding again updates that same event
     // instead of creating a duplicate.
     calendarEventId: text('calendar_event_id'),

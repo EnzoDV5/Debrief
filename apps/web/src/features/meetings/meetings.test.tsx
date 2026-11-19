@@ -247,20 +247,25 @@ describe('meeting detail', () => {
       ...meeting,
       analysisStatus: 'done' as const,
       summary: 'The team chose blue.',
+      transcriptLines: [
+        meeting.transcriptLines[0],
+        { n: 2, speaker: 'Ben', text: 'The draft is ready. Can you send the files to the team?' },
+      ],
       decisions: [{ id: crypto.randomUUID(), text: 'Use blue', sourceLine: 1, position: 0 }],
       actionItems: [
         {
           id: crypto.randomUUID(),
           meetingId: meeting.id,
           text: 'Send the files',
-          owner: null,
+          owner: 'Ann',
           dueDate: null,
           dueDateText: 'soon',
           status: 'todo',
           needsReview: true,
           reviewReason: 'Check the due date',
           sourceLine: 2,
-          sourceQuote: 'Hi there',
+          sourceQuote: 'send the files',
+          contextSummary: 'Ben wants the ready draft circulated to the team.',
           inCalendar: false,
           origin: 'ai',
           position: 0,
@@ -274,15 +279,62 @@ describe('meeting detail', () => {
     expect(screen.getByText('Use blue')).toBeInTheDocument();
     expect(screen.getByText('Send the files')).toBeInTheDocument();
     const sourceLine = document.getElementById('L2')!;
-    expect(within(sourceLine).getByText('What was said:')).toBeInTheDocument();
+    expect(within(sourceLine).getByText('In brief:')).toBeInTheDocument();
     expect(within(sourceLine).getByText('Send the files')).toBeInTheDocument();
-    expect(within(sourceLine).getByText(/Ben:.*Hi there/)).toBeInTheDocument();
+    expect(
+      within(sourceLine).getByText('Ben wants the ready draft circulated to the team.'),
+    ).toBeInTheDocument();
+    expect(within(sourceLine).queryByText(/What was said:/)).not.toBeInTheDocument();
     expect(screen.getByText(/Check the due date/)).toHaveTextContent('Needs review:');
     const user = userEvent.setup();
     await user.click(within(sourceLine).getByRole('link', { name: 'Line 2' }));
     expect(screen.getByRole('heading', { name: 'Transcript' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Line 2' })).toBeInTheDocument();
     expect(document.getElementById('L2')).toBeInTheDocument();
+  });
+
+  it('paraphrases an older action beside its source without repeating the transcript', async () => {
+    const analysed = {
+      ...meeting,
+      analysisStatus: 'done' as const,
+      transcriptLines: [
+        { n: 1, speaker: 'Sarah', text: 'Where are we with the homepage design?' },
+        {
+          n: 2,
+          speaker: 'Lerato',
+          text: "The homepage is done. I'm finishing the pricing page now and I'll have it ready for review by Wednesday the 18th.",
+        },
+      ],
+      actionItems: [
+        {
+          id: crypto.randomUUID(),
+          meetingId: meeting.id,
+          text: 'Finish pricing page for review',
+          owner: 'Lerato',
+          dueDate: null,
+          dueDateText: 'by Wednesday the 18th',
+          status: 'todo',
+          needsReview: false,
+          reviewReason: null,
+          sourceLine: 2,
+          sourceQuote: "I'm finishing the pricing page now",
+          inCalendar: false,
+          origin: 'ai',
+          position: 0,
+        },
+      ],
+    };
+    mockApi({ ...me, [`GET ${detailUrl}`]: { status: 200, body: { meeting: analysed } } });
+    renderApp(`/meetings/${meeting.id}`);
+
+    await screen.findByRole('heading', { name: 'Weekly sync', level: 1 });
+    const sourceLine = document.getElementById('L2')!;
+    expect(
+      await within(sourceLine).findByText(
+        /With the homepage complete, Lerato plans to finish the pricing page for review\./,
+      ),
+    ).toBeInTheDocument();
+    expect(within(sourceLine).queryByText(/What was said:/)).not.toBeInTheDocument();
   });
 
   it('confirms a re-analysis and keeps existing results visible while it runs', async () => {

@@ -37,6 +37,7 @@ export function toActionItem(row: ActionItemRow): ActionItem {
     reviewReason: row.reviewReason,
     sourceLine: row.sourceLine,
     sourceQuote: row.sourceQuote,
+    contextSummary: row.contextSummary,
     inCalendar: row.calendarEventId !== null,
     origin: row.origin,
     position: row.position,

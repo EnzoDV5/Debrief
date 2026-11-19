@@ -36,6 +36,13 @@
       "when": 1795119422307,
       "tag": "0004_projects_pin_archive",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795127054281,
+      "tag": "0005_nosy_colossus",
+      "breakpoints": true
     }
   ]
 }

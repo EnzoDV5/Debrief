@@ -45,6 +45,7 @@ describe('action item post-checks', () => {
       reviewReason: null,
       sourceLine: 2,
       sourceQuote: 'deploy the release',
+      contextSummary: null,
     });
   });
 

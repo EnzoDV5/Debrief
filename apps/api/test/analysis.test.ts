@@ -55,6 +55,7 @@ const valid = {
     action_items: [
       {
         text: 'Send the files',
+        context_summary: 'Ann agreed to share the files after the team chose blue.',
         owner: 'Ann',
         due_date_text: 'by Friday 27 November',
         source_line: 2,
@@ -77,6 +78,7 @@ describe('analysis worker', () => {
       actionItems: [
         {
           text: 'Send the files',
+          contextSummary: 'Ann agreed to share the files after the team chose blue.',
           owner: 'Ann',
           dueDate: '2026-11-27',
           sourceLine: 2,
