@@ -55,6 +55,19 @@ const envSchema = z.object({
   AI_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
   // Sent to OpenRouter as HTTP-Referer, identifying the app.
   APP_URL: z.url().default('http://localhost:5173'),
+
+  // ---- Google Calendar (Phase 5) ----
+  // Optional: without them the integration reports "not available" and the rest of the app works.
+  GOOGLE_CLIENT_ID: optionalString,
+  GOOGLE_CLIENT_SECRET: optionalString,
+  // Where Google sends the user back. Goes through the web origin (Vite proxy / Vercel rewrite)
+  // so the session cookie is first-party. Must match the client's "Authorized redirect URIs".
+  GOOGLE_REDIRECT_URI: stringWithDefault('http://localhost:5173/api/integrations/google/callback'),
+  // 32 random bytes, base64: the AES-256-GCM key for stored Google tokens.
+  ENCRYPTION_KEY: optionalString.refine(
+    (value) => value === undefined || Buffer.from(value, 'base64').length === 32,
+    'must be 32 bytes, base64-encoded',
+  ),
 });
 
 /** The models to try, in order, without blanks or duplicates. */

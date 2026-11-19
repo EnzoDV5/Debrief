@@ -38,6 +38,8 @@ services:
       WEB_ORIGIN: http://localhost:8080
       # nginx sits in front of the api; trust its X-Forwarded-For for the real client IP.
       TRUST_PROXY: 1
+      # Google sends users back to the site they started on (register this URI in Google too).
+      GOOGLE_REDIRECT_URI: http://localhost:8080/api/integrations/google/callback
     # No published port: like production, the api is only reachable through the web proxy.
     # (This also keeps port 3000 free for `npm run dev:api`.)
     depends_on:

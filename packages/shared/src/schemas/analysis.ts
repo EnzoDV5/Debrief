@@ -92,6 +92,24 @@ export const updateDecisionSchema = z.object({ text: decisionText });
 export type DecisionInput = z.infer<typeof createDecisionSchema>;
 
 export const actionItemResponseSchema = z.object({ actionItem: actionItemSchema });
+
+// ---------------------------------------------------------------------------------------------
+// Google Calendar (Phase 5)
+// ---------------------------------------------------------------------------------------------
+
+export const calendarStatusSchema = z.object({
+  /** The server has Google credentials set up at all. */
+  available: z.boolean(),
+  connected: z.boolean(),
+  connectedAt: z.iso.datetime().nullable(),
+});
+export type CalendarStatus = z.infer<typeof calendarStatusSchema>;
+
+export const addToCalendarResponseSchema = z.object({
+  actionItem: actionItemSchema,
+  /** Link that opens the event in Google Calendar. */
+  eventUrl: z.url(),
+});
 export const decisionResponseSchema = z.object({ decision: decisionSchema });
 
 // ---------------------------------------------------------------------------------------------

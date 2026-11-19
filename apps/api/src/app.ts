@@ -12,12 +12,28 @@ import { createActionItemsRouter } from './modules/actionItems/actionItems.route
 import { createAuthRouter } from './modules/auth/auth.routes';
 import { createDecisionsRouter } from './modules/decisions/decisions.routes';
 import type { AnalysisQueue } from './modules/analysis/queue';
+import { createGoogleClient } from './modules/integrations/googleClient';
+import { createIntegrationsController } from './modules/integrations/integrations.controller';
+import { createIntegrationsRouter } from './modules/integrations/integrations.routes';
+import {
+  createIntegrationsService,
+  type IntegrationsService,
+} from './modules/integrations/integrations.service';
 import { createMeetingsRouter } from './modules/meetings/meetings.routes';
 
 export type AppDeps = {
   /** Where "analyse this meeting" jobs go: pg-boss in the server, a recording fake in tests. */
   analysisQueue: AnalysisQueue;
+  /** Google Calendar. Left out (tests, or a server without Google keys) = feature switched off. */
+  integrations?: IntegrationsService;
 };
+
+const disabledIntegrations = () =>
+  createIntegrationsService({
+    google: createGoogleClient({ clientId: undefined, clientSecret: undefined, redirectUri: '' }),
+    encryptionKey: undefined,
+    webOrigin: env.WEB_ORIGIN,
+  });
 
 // Builds the app without starting a server, so tests can call it directly with Supertest.
 // Dependencies are passed in (not imported), so tests can swap them without touching real services.
@@ -66,7 +82,12 @@ export function createApp(deps: AppDeps) {
   });
   api.use('/auth', createAuthRouter());
   api.use('/meetings', createMeetingsRouter(deps));
-  api.use('/action-items', createActionItemsRouter());
+  const integrations = createIntegrationsController(
+    deps.integrations ?? disabledIntegrations(),
+    env.WEB_ORIGIN,
+  );
+  api.use('/action-items', createActionItemsRouter(integrations));
+  api.use('/integrations', createIntegrationsRouter(integrations));
   api.use('/decisions', createDecisionsRouter());
   app.use('/api', api);
 
