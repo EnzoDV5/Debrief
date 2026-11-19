@@ -81,8 +81,16 @@ export const meetingsService = {
     return withResults(userId, row);
   },
 
-  async list(userId: string): Promise<MeetingListItem[]> {
-    return (await meetingsRepository.listForUser(userId)).map(toListItem);
+  async list(
+    userId: string,
+    filter: { archived?: boolean; q?: string; projectId?: string } = {},
+  ): Promise<MeetingListItem[]> {
+    if (
+      filter.projectId &&
+      !(await meetingsRepository.projectBelongsToUser(userId, filter.projectId))
+    )
+      throw notFound('Project');
+    return (await meetingsRepository.listForUser(userId, filter)).map(toListItem);
   },
 
   async get(userId: string, meetingId: string): Promise<Meeting> {
@@ -92,7 +100,17 @@ export const meetingsService = {
   },
 
   async update(userId: string, meetingId: string, patch: UpdateMeetingInput): Promise<Meeting> {
-    const row = await meetingsRepository.updateForUser(userId, meetingId, patch);
+    if (
+      patch.projectId &&
+      !(await meetingsRepository.projectBelongsToUser(userId, patch.projectId))
+    )
+      throw notFound('Project');
+    const { pinned, archived, ...fields } = patch;
+    const row = await meetingsRepository.updateForUser(userId, meetingId, {
+      ...fields,
+      ...(pinned !== undefined ? { pinnedAt: pinned ? new Date() : null } : {}),
+      ...(archived !== undefined ? { archivedAt: archived ? new Date() : null } : {}),
+    });
     if (!row) throw notFound('Meeting');
     return withResults(userId, row);
   },

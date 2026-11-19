@@ -1,10 +1,13 @@
 import {
   meetingListResponseSchema,
   meetingResponseSchema,
+  projectResponseSchema,
+  projectsResponseSchema,
   type Meeting,
   type MeetingListItem,
   type MeetingDetailsInput,
   type UpdateMeetingInput,
+  type Project,
 } from '@debrief/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { request, requestNoContent } from '@/api/client';
@@ -12,14 +15,32 @@ import { request, requestNoContent } from '@/api/client';
 // Query keys: the list and each meeting are cached separately.
 export const meetingKeys = {
   list: ['meetings'] as const,
+  filtered: (filter: MeetingFilter) => ['meetings', 'filter', filter] as const,
   detail: (id: string) => ['meetings', id] as const,
 };
 
-export function useMeetings() {
-  return useQuery({
+function invalidateMeetingLists(client: ReturnType<typeof useQueryClient>) {
+  return client.invalidateQueries({
     queryKey: meetingKeys.list,
+    predicate: (query) => query.queryKey.length === 1 || query.queryKey[1] === 'filter',
+  });
+}
+
+export type MeetingFilter = { archived?: boolean; q?: string; projectId?: string };
+
+export function useMeetings(filter: MeetingFilter = {}) {
+  const params = new URLSearchParams();
+  if (filter.archived) params.set('archived', 'true');
+  if (filter.q) params.set('q', filter.q);
+  if (filter.projectId) params.set('projectId', filter.projectId);
+  return useQuery({
+    queryKey: Object.keys(filter).length ? meetingKeys.filtered(filter) : meetingKeys.list,
     queryFn: async () =>
-      (await request('/meetings', { schema: meetingListResponseSchema })).meetings,
+      (
+        await request(`/meetings${params.size ? `?${params}` : ''}`, {
+          schema: meetingListResponseSchema,
+        })
+      ).meetings,
   });
 }
 
@@ -62,7 +83,7 @@ export function useAnalyzeMeeting(id: string) {
       ).meeting,
     onSuccess: (meeting) => {
       queryClient.setQueryData(meetingKeys.detail(id), meeting);
-      void queryClient.invalidateQueries({ queryKey: meetingKeys.list, exact: true });
+      void invalidateMeetingLists(queryClient);
     },
   });
 }
@@ -93,7 +114,7 @@ export function useCreateMeeting() {
     onSuccess: (meeting) => {
       // The detail page opens instantly from cache; the list refetches when next shown.
       queryClient.setQueryData(meetingKeys.detail(meeting.id), meeting);
-      void queryClient.invalidateQueries({ queryKey: meetingKeys.list, exact: true });
+      void invalidateMeetingLists(queryClient);
     },
   });
 }
@@ -111,7 +132,7 @@ export function useUpdateMeeting(id: string) {
       ).meeting,
     onSuccess: (meeting) => {
       queryClient.setQueryData(meetingKeys.detail(id), meeting);
-      void queryClient.invalidateQueries({ queryKey: meetingKeys.list, exact: true });
+      void invalidateMeetingLists(queryClient);
     },
   });
 }
@@ -122,7 +143,57 @@ export function useDeleteMeeting(id: string) {
     mutationFn: () => requestNoContent(`/meetings/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: meetingKeys.detail(id) });
-      void queryClient.invalidateQueries({ queryKey: meetingKeys.list, exact: true });
+      void invalidateMeetingLists(queryClient);
+    },
+  });
+}
+
+const projectKeys = ['projects'] as const;
+
+export function useProjects() {
+  return useQuery({
+    queryKey: projectKeys,
+    queryFn: async () => (await request('/projects', { schema: projectsResponseSchema })).projects,
+  });
+}
+
+export function useCreateProject() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (name: string): Promise<Project> =>
+      (
+        await request('/projects', {
+          method: 'POST',
+          body: { name },
+          schema: projectResponseSchema,
+        })
+      ).project,
+    onSuccess: () => void client.invalidateQueries({ queryKey: projectKeys }),
+  });
+}
+
+export function useUpdateProject() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }): Promise<Project> =>
+      (
+        await request(`/projects/${id}`, {
+          method: 'PATCH',
+          body: { name },
+          schema: projectResponseSchema,
+        })
+      ).project,
+    onSuccess: () => void client.invalidateQueries({ queryKey: projectKeys }),
+  });
+}
+
+export function useDeleteProject() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => requestNoContent(`/projects/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: projectKeys });
+      void invalidateMeetingLists(client);
     },
   });
 }

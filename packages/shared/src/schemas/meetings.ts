@@ -75,6 +75,9 @@ export const updateMeetingSchema = z
       .trim()
       .min(1, 'The summary can’t be empty')
       .max(5000, 'Use 5000 characters or fewer'),
+    pinned: z.boolean(),
+    archived: z.boolean(),
+    projectId: z.uuid().nullable(),
   })
   .partial()
   .refine((patch) => Object.keys(patch).length > 0, 'Nothing to update');
@@ -91,6 +94,9 @@ export const meetingListItemSchema = z.object({
   analysisStatus: z.enum(ANALYSIS_STATUSES),
   lineCount: z.number().int().nonnegative(),
   createdAt: z.iso.datetime(),
+  pinnedAt: z.iso.datetime().nullable(),
+  archivedAt: z.iso.datetime().nullable(),
+  projectId: z.uuid().nullable(),
 });
 export type MeetingListItem = z.infer<typeof meetingListItemSchema>;
 
@@ -107,3 +113,16 @@ export const meetingSchema = meetingListItemSchema.extend({
 export type Meeting = z.infer<typeof meetingSchema>;
 
 export const meetingResponseSchema = z.object({ meeting: meetingSchema });
+
+export const projectSchema = z.object({
+  id: z.uuid(),
+  name: z.string(),
+  createdAt: z.iso.datetime(),
+});
+export type Project = z.infer<typeof projectSchema>;
+export const projectsResponseSchema = z.object({ projects: z.array(projectSchema) });
+export const createProjectSchema = z.object({
+  name: z.string().trim().min(1, 'Give the project a name').max(80, 'Use 80 characters or fewer'),
+});
+export const updateProjectSchema = createProjectSchema;
+export const projectResponseSchema = z.object({ project: projectSchema });

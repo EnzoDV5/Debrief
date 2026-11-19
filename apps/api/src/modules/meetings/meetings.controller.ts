@@ -48,7 +48,18 @@ export function createMeetingsController(queue: AnalysisQueue) {
     },
 
     async list(req: Request, res: Response) {
-      const meetings = await meetingsService.list(getAuthUser(req).id);
+      const query = z
+        .object({
+          archived: z.enum(['true', 'false']).optional(),
+          q: z.string().trim().max(200).optional(),
+          projectId: z.uuid().optional(),
+        })
+        .parse(req.query);
+      const meetings = await meetingsService.list(getAuthUser(req).id, {
+        archived: query.archived === 'true',
+        q: query.q,
+        projectId: query.projectId,
+      });
       res.json({ meetings } satisfies { meetings: MeetingListItem[] });
     },
 

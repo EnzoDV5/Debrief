@@ -36,6 +36,9 @@ function meetingWith(actionItems: ActionItem[]) {
     analysisStatus: 'done',
     lineCount: 2,
     createdAt: '2026-11-24T08:00:00.000Z',
+    pinnedAt: null,
+    archivedAt: null,
+    projectId: null,
     updatedAt: '2026-11-24T08:00:00.000Z',
     transcriptLines: [
       { n: 1, speaker: 'Ben', text: 'We chose blue.' },
@@ -77,7 +80,9 @@ describe('action items on the meeting page', () => {
     ).toBeChecked();
     expect(sent).toEqual({ status: 'done' });
     answer({ status: 200, body: { actionItem: item({ status: 'done' }) } });
-    expect(await screen.findByText('1 of 1 done')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole('list', { name: 'Counts' })).toHaveTextContent('1 done'),
+    );
   });
 
   it('undoes the tick and says why when saving fails', async () => {
@@ -116,7 +121,7 @@ describe('action items on the meeting page', () => {
     renderApp(`/meetings/${MEETING_ID}`);
 
     expect(await screen.findByText(/Owner “Zed” isn’t mentioned/)).toBeInTheDocument();
-    expect(screen.getByText('1 needs review', { exact: false })).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Counts' })).toHaveTextContent('1 needs review');
 
     await user.click(screen.getByRole('button', { name: 'Edit “Send the files”' }));
     const dialog = screen.getByRole('dialog', { name: 'Edit action item' });
@@ -207,8 +212,8 @@ describe('action items on the meeting page', () => {
 
     await user.click(screen.getByRole('button', { name: 'Add decision' }));
     await user.type(screen.getByLabelText('New decision'), 'Ship Friday');
-    await user.click(screen.getByRole('button', { name: 'Add decision' }));
-    expect(await screen.findByText('Ship Friday')).toBeInTheDocument();
+    await user.click(screen.getAllByRole('button', { name: 'Add decision' }).at(-1)!);
+    expect((await screen.findAllByText('Ship Friday')).length).toBeGreaterThan(0);
     expect(sent).toEqual({ summary: { summary: 'Corrected.' }, decision: { text: 'Ship Friday' } });
   });
 });

@@ -11,7 +11,7 @@ export function DeleteMeetingDialog({
   onClose,
   onDeleted,
 }: {
-  meeting: Meeting;
+  meeting: Pick<Meeting, 'id' | 'title'>;
   open: boolean;
   onClose: () => void;
   onDeleted: () => void;

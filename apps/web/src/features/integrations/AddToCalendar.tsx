@@ -12,7 +12,19 @@ export function AddToCalendar({ item }: { item: ActionItem }) {
   const { data: status } = useCalendarStatus();
   const add = useAddToCalendar();
 
-  if (!item.dueDate || !status?.connected) return null;
+  if (!item.dueDate || !status?.available) return null;
+  // Has a date, calendar not linked yet: show the way to it instead of hiding the feature.
+  if (!status.connected) {
+    return (
+      <Link
+        to="/account"
+        className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:underline"
+      >
+        <CalendarPlus aria-hidden="true" className="size-4" />
+        Connect Google Calendar to add this
+      </Link>
+    );
+  }
 
   return (
     <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">

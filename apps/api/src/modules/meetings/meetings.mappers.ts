@@ -14,6 +14,9 @@ export function toListItem(row: MeetingListRow): MeetingListItem {
     analysisStatus: row.analysisStatus,
     lineCount: row.lineCount,
     createdAt: row.createdAt.toISOString(),
+    pinnedAt: row.pinnedAt?.toISOString() ?? null,
+    archivedAt: row.archivedAt?.toISOString() ?? null,
+    projectId: row.projectId,
   };
 }
 

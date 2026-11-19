@@ -15,6 +15,9 @@ const meeting = {
   analysisStatus: 'pending' as const,
   lineCount: 2,
   createdAt: '2026-11-24T08:00:00.000Z',
+  pinnedAt: null,
+  archivedAt: null,
+  projectId: null,
   updatedAt: '2026-11-24T08:00:00.000Z',
   transcriptLines: [
     { n: 1, speaker: 'Ann', text: 'Hello' },
@@ -48,7 +51,6 @@ describe('workspace history', () => {
       ...me,
       'GET /api/meetings': { status: 200, body: { meetings: [sprint, listItem] } },
     });
-    const user = userEvent.setup();
     renderApp('/meetings');
 
     await screen.findByRole('heading', { name: 'What would you like to debrief?', level: 1 });
@@ -57,8 +59,10 @@ describe('workspace history', () => {
       'href',
       `/meetings/${sprint.id}`,
     );
-    await user.type(within(sidebar).getByRole('searchbox', { name: 'Search meetings' }), 'sprint');
-    expect(within(sidebar).queryByRole('link', { name: 'Weekly sync' })).not.toBeInTheDocument();
+    expect(within(sidebar).getByRole('link', { name: 'Search' })).toHaveAttribute(
+      'href',
+      '/search',
+    );
     expect(within(sidebar).queryByRole('link', { name: 'All meetings' })).not.toBeInTheDocument();
     expect(within(sidebar).getByRole('link', { name: 'Workspace home' })).toHaveAttribute(
       'href',
@@ -272,12 +276,9 @@ describe('meeting detail', () => {
     expect(screen.getByText(/Check the due date/)).toHaveTextContent('Needs review:');
     const user = userEvent.setup();
     await user.click(screen.getByRole('link', { name: 'Line 2' }));
-    expect(screen.getByRole('button', { name: /Transcript/ })).toHaveAttribute(
-      'aria-expanded',
-      'true',
-    );
-    expect(screen.getAllByRole('link', { name: 'Line 2' })).toHaveLength(2);
-    expect(document.getElementById('L2')).toHaveAttribute('aria-current', 'location');
+    expect(screen.getByRole('heading', { name: 'Transcript' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Line 2' })).toHaveAttribute('href', '#L2');
+    expect(document.getElementById('L2')).toBeInTheDocument();
   });
 
   it('confirms a re-analysis and keeps existing results visible while it runs', async () => {
@@ -294,11 +295,13 @@ describe('meeting detail', () => {
     renderApp(`/meetings/${meeting.id}`);
     await user.click(await screen.findByRole('button', { name: 'Re-analyse' }));
     const dialog = screen.getByRole('dialog', { name: 'Re-analyse this meeting?' });
-    expect(dialog).toHaveTextContent('Items you added yourself will stay');
+    expect(dialog).toHaveTextContent('Items you added yourself stay');
     expect(fetchMock.mock.calls.filter(([url]) => url === `${detailUrl}/analyze`)).toHaveLength(0);
     await user.click(within(dialog).getByRole('button', { name: 'Re-analyse' }));
     expect(
-      await screen.findByText('Your transcript is saved. Analysis will start shortly.'),
+      await screen.findByText(
+        'Your transcript is saved. The AI will start reading it in a moment.',
+      ),
     ).toBeInTheDocument();
     expect(screen.getByText('Original summary')).toBeInTheDocument();
     expect(fetchMock.mock.calls.filter(([url]) => url === `${detailUrl}/analyze`)).toHaveLength(1);
@@ -323,23 +326,20 @@ describe('meeting detail', () => {
     expect(await screen.findByText('AI quota used up')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Retry analysis' }));
     expect(
-      await screen.findByText('Your transcript is saved. Analysis will start shortly.'),
+      await screen.findByText(
+        'Your transcript is saved. The AI will start reading it in a moment.',
+      ),
     ).toBeInTheDocument();
   });
 
   it('shows the numbered transcript with linkable line numbers', async () => {
     mockApi({ ...me, [`GET ${detailUrl}`]: { status: 200, body: { meeting } } });
-    const user = userEvent.setup();
     renderApp(`/meetings/${meeting.id}`);
 
     expect(
       await screen.findByRole('heading', { name: 'Weekly sync', level: 1 }),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /Transcript/ }));
-    expect(screen.getByRole('link', { name: 'Line 2' })).toHaveAttribute(
-      'href',
-      `/meetings/${meeting.id}#L2`,
-    );
+    expect(screen.getByRole('link', { name: 'Line 2' })).toHaveAttribute('href', '#L2');
     expect(screen.getByText('Hi there')).toBeInTheDocument();
     expect(screen.getAllByText('Not analysed yet').length).toBeGreaterThan(0);
   });
@@ -360,6 +360,7 @@ describe('meeting detail', () => {
   it('renames a meeting', async () => {
     mockApi({
       ...me,
+      'GET /api/meetings': { status: 200, body: { meetings: [listItem] } },
       [`GET ${detailUrl}`]: { status: 200, body: { meeting } },
       [`PATCH ${detailUrl}`]: (body) => ({
         status: 200,
@@ -369,7 +370,13 @@ describe('meeting detail', () => {
     const user = userEvent.setup();
     renderApp(`/meetings/${meeting.id}`);
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await screen.findByRole('heading', { name: 'Weekly sync', level: 1 });
+    await user.click(
+      await within(
+        screen.getByRole('complementary', { name: 'Workspace sidebar' }),
+      ).findByLabelText('More options for Weekly sync'),
+    );
+    await user.click(screen.getByRole('button', { name: 'Rename' }));
     const dialog = screen.getByRole('dialog', { name: 'Edit meeting' });
     const title = within(dialog).getByLabelText('Title');
     await user.clear(title);
@@ -384,13 +391,20 @@ describe('meeting detail', () => {
   it('deletes after confirming and returns to the list with a message', async () => {
     mockApi({
       ...me,
+      'GET /api/meetings': { status: 200, body: { meetings: [listItem] } },
       [`GET ${detailUrl}`]: { status: 200, body: { meeting } },
       [`DELETE ${detailUrl}`]: { status: 204 },
     });
     const user = userEvent.setup();
     const { router } = renderApp(`/meetings/${meeting.id}`);
 
-    await user.click(await screen.findByRole('button', { name: 'Delete' }));
+    await screen.findByRole('heading', { name: 'Weekly sync', level: 1 });
+    await user.click(
+      await within(
+        screen.getByRole('complementary', { name: 'Workspace sidebar' }),
+      ).findByLabelText('More options for Weekly sync'),
+    );
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
     const dialog = screen.getByRole('dialog', { name: 'Delete this meeting?' });
     await user.click(within(dialog).getByRole('button', { name: 'Delete meeting' }));
 

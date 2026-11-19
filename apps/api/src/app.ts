@@ -20,6 +20,7 @@ import {
   type IntegrationsService,
 } from './modules/integrations/integrations.service';
 import { createMeetingsRouter } from './modules/meetings/meetings.routes';
+import { createProjectsRouter } from './modules/projects/projects.routes';
 
 export type AppDeps = {
   /** Where "analyse this meeting" jobs go: pg-boss in the server, a recording fake in tests. */
@@ -82,6 +83,7 @@ export function createApp(deps: AppDeps) {
   });
   api.use('/auth', createAuthRouter());
   api.use('/meetings', createMeetingsRouter(deps));
+  api.use('/projects', createProjectsRouter());
   const integrations = createIntegrationsController(
     deps.integrations ?? disabledIntegrations(),
     env.WEB_ORIGIN,

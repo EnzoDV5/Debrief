@@ -1,7 +1,7 @@
-import type { TranscriptLine, UpdateMeetingInput } from '@debrief/shared';
-import { and, asc, desc, eq, sql } from 'drizzle-orm';
+import type { TranscriptLine } from '@debrief/shared';
+import { and, asc, desc, eq, ilike, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
-import { actionItems, decisions, meetings, type MeetingRow } from '../../db/schema';
+import { actionItems, decisions, meetings, projects, type MeetingRow } from '../../db/schema';
 
 // The only file in the meetings module that talks to the database.
 // Every query filters by userId. That single rule is what stops one user reaching another user's
@@ -15,12 +15,23 @@ const listColumns = {
   sourceType: meetings.sourceType,
   analysisStatus: meetings.analysisStatus,
   createdAt: meetings.createdAt,
+  pinnedAt: meetings.pinnedAt,
+  archivedAt: meetings.archivedAt,
+  projectId: meetings.projectId,
   // Postgres counts the lines, so the list never loads the transcripts themselves.
   lineCount: sql<number>`jsonb_array_length(${meetings.transcriptLines})`.mapWith(Number),
 };
 export type MeetingListRow = Pick<
   MeetingRow,
-  'id' | 'title' | 'meetingDate' | 'sourceType' | 'analysisStatus' | 'createdAt'
+  | 'id'
+  | 'title'
+  | 'meetingDate'
+  | 'sourceType'
+  | 'analysisStatus'
+  | 'createdAt'
+  | 'pinnedAt'
+  | 'archivedAt'
+  | 'projectId'
 > & { lineCount: number };
 
 const LIST_LIMIT = 200;
@@ -40,13 +51,38 @@ export const meetingsRepository = {
   },
 
   /** Newest first. Capped so one request can't return an unbounded list. */
-  async listForUser(userId: string): Promise<MeetingListRow[]> {
+  async listForUser(
+    userId: string,
+    filter: { archived?: boolean; q?: string; projectId?: string } = {},
+  ): Promise<MeetingListRow[]> {
+    const term = filter.q?.trim().replace(/[\\%_]/g, '\\$&');
     return db
       .select(listColumns)
       .from(meetings)
-      .where(eq(meetings.userId, userId))
-      .orderBy(desc(meetings.createdAt))
+      .where(
+        and(
+          eq(meetings.userId, userId),
+          filter.archived ? isNotNull(meetings.archivedAt) : isNull(meetings.archivedAt),
+          filter.projectId ? eq(meetings.projectId, filter.projectId) : undefined,
+          term
+            ? or(
+                ilike(meetings.title, `%${term}%`),
+                ilike(meetings.transcriptOriginal, `%${term}%`),
+              )
+            : undefined,
+        ),
+      )
+      .orderBy(sql`${meetings.pinnedAt} desc nulls last`, desc(meetings.createdAt))
       .limit(LIST_LIMIT);
+  },
+
+  async projectBelongsToUser(userId: string, projectId: string): Promise<boolean> {
+    const rows = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(and(eq(projects.id, projectId), eq(projects.userId, userId)))
+      .limit(1);
+    return rows.length > 0;
   },
 
   async findForUser(userId: string, meetingId: string): Promise<MeetingRow | null> {
@@ -78,7 +114,12 @@ export const meetingsRepository = {
   async updateForUser(
     userId: string,
     meetingId: string,
-    patch: UpdateMeetingInput,
+    patch: Partial<
+      Pick<
+        MeetingRow,
+        'title' | 'meetingDate' | 'summary' | 'pinnedAt' | 'archivedAt' | 'projectId'
+      >
+    >,
   ): Promise<MeetingRow | null> {
     const [meeting] = await db
       .update(meetings)

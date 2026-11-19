@@ -70,6 +70,28 @@ export const routes: RouteObject[] = [
                 }),
               },
               {
+                path: 'search',
+                lazy: async () => ({ Component: (await import('@/pages/SearchPage')).SearchPage }),
+              },
+              {
+                path: 'archived',
+                lazy: async () => ({
+                  Component: (await import('@/pages/ArchivedPage')).ArchivedPage,
+                }),
+              },
+              {
+                path: 'projects',
+                lazy: async () => ({
+                  Component: (await import('@/pages/ProjectsPage')).ProjectsPage,
+                }),
+              },
+              {
+                path: 'projects/:projectId',
+                lazy: async () => ({
+                  Component: (await import('@/pages/ProjectsPage')).ProjectsPage,
+                }),
+              },
+              {
                 path: 'account',
                 lazy: async () => ({
                   Component: (await import('@/pages/AccountPage')).AccountPage,

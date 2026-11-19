@@ -15,7 +15,7 @@ export function EditMeetingDialog({
   open,
   onClose,
 }: {
-  meeting: Meeting;
+  meeting: Pick<Meeting, 'id' | 'title' | 'meetingDate'>;
   open: boolean;
   onClose: () => void;
 }) {

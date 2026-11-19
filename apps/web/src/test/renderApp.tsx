@@ -12,6 +12,7 @@ type Handler =
 // Answers every test gets unless it overrides them.
 const defaultHandlers: Record<string, Handler> = {
   'GET /api/meetings': { status: 200, body: { meetings: [] } },
+  'GET /api/projects': { status: 200, body: { projects: [] } },
   'GET /api/integrations/google': {
     status: 200,
     body: { available: false, connected: false, connectedAt: null },

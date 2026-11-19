@@ -71,6 +71,28 @@ export const sessions = pgTable(
 export const sourceTypeEnum = pgEnum('meeting_source_type', SOURCE_TYPES);
 export const analysisStatusEnum = pgEnum('analysis_status', ANALYSIS_STATUSES);
 
+/**
+ * A simple folder for meetings (like projects in Claude). A meeting is in at most one project.
+ * Deleting a project keeps its meetings: they just stop belonging to it.
+ */
+export const projects = pgTable(
+  'projects',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    ...timestamps,
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  // One project per name per user, ignoring case ("Q1" and "q1" are the same project).
+  (t) => [uniqueIndex('projects_user_id_name_unique').on(t.userId, sql`lower(${t.name})`)],
+).enableRLS();
+
 export const meetings = pgTable(
   'meetings',
   {
@@ -87,6 +109,10 @@ export const meetings = pgTable(
     // The parsed, numbered lines that the UI shows and the AI cites.
     transcriptLines: jsonb('transcript_lines').$type<TranscriptLine[]>().notNull(),
     sourceType: sourceTypeEnum('source_type').notNull(),
+    // Organising (sidebar ⋮ menu). Timestamps rather than booleans: also records *when*.
+    pinnedAt: timestamp('pinned_at', { withTimezone: true }),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'set null' }),
     summary: text('summary'),
     analysisStatus: analysisStatusEnum('analysis_status').notNull().default('pending'),
     // A user-friendly message when analysis fails (never a stack trace).
@@ -98,7 +124,10 @@ export const meetings = pgTable(
       .$onUpdate(() => new Date()),
   },
   // Matches the list query: "this user's meetings, newest first".
-  (t) => [index('meetings_user_id_created_at_idx').on(t.userId, t.createdAt)],
+  (t) => [
+    index('meetings_user_id_created_at_idx').on(t.userId, t.createdAt),
+    index('meetings_user_id_project_id_idx').on(t.userId, t.projectId),
+  ],
 ).enableRLS();
 
 // ---------------------------------------------------------------------------------------------
@@ -204,6 +233,7 @@ export const analysisRuns = pgTable(
 export type UserRow = typeof users.$inferSelect;
 export type SessionRow = typeof sessions.$inferSelect;
 export type MeetingRow = typeof meetings.$inferSelect;
+export type ProjectRow = typeof projects.$inferSelect;
 export type DecisionRow = typeof decisions.$inferSelect;
 export type ActionItemRow = typeof actionItems.$inferSelect;
 

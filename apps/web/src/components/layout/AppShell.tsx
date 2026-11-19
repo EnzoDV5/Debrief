@@ -1,11 +1,22 @@
 import type { AnalysisStatus } from '@debrief/shared';
-import { ListChecks, LogOut, Menu, Plus, Search, UserRound, X } from 'lucide-react';
+import {
+  Archive,
+  Folder,
+  ListChecks,
+  LogOut,
+  Menu,
+  Plus,
+  Search,
+  UserRound,
+  X,
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { Button } from '@/components/ui/Button';
 import { Logo } from '@/components/ui/Logo';
 import { useCurrentUser, useLogout } from '@/features/auth/hooks';
 import { useMeetings } from '@/features/meetings/hooks';
+import { MeetingMenu } from '@/features/meetings/MeetingMenu';
 import { cn } from '@/lib/cn';
 import { SkipLink } from './SkipLink';
 
@@ -17,7 +28,10 @@ export function AppShell() {
   return (
     <div className="min-h-dvh bg-bg">
       <SkipLink />
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-sidebar flex-col bg-sidebar text-sidebar-fg lg:flex">
+      <aside
+        aria-label="Workspace sidebar"
+        className="fixed inset-y-0 left-0 z-30 hidden w-sidebar flex-col bg-sidebar text-sidebar-fg lg:flex"
+      >
         <SidebarContent />
       </aside>
       <MobileSidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
@@ -48,7 +62,7 @@ export function AppShell() {
       </header>
 
       <main id="main" ref={mainRef} tabIndex={-1} className="min-w-0 outline-none lg:pl-sidebar">
-        <div className="mx-auto w-full max-w-content px-4 py-7 sm:px-8 lg:px-10 lg:py-10">
+        <div className="mx-auto w-full px-4 py-7 sm:px-8 lg:px-8 lg:py-10">
           <Outlet />
         </div>
       </main>
@@ -105,12 +119,9 @@ function SidebarContent({
   onNavigate?: () => void;
   onClose?: () => void;
 }) {
-  const [search, setSearch] = useState('');
   const { data: meetings, isPending, error, refetch } = useMeetings();
-  const query = search.trim().toLocaleLowerCase();
-  const visibleMeetings = meetings?.filter((meeting) =>
-    meeting.title.toLocaleLowerCase().includes(query),
-  );
+  const pinned = meetings?.filter((meeting) => meeting.pinnedAt) ?? [];
+  const recent = meetings?.filter((meeting) => !meeting.pinnedAt) ?? [];
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -142,35 +153,33 @@ function SidebarContent({
       </div>
 
       <nav aria-label="Workspace" className="space-y-1 px-3">
+        <NavLink to="/search" onClick={onNavigate} className={navClass}>
+          <Search aria-hidden="true" className="size-5" />
+          Search
+        </NavLink>
         <NavLink to="/items" onClick={onNavigate} className={navClass}>
           <ListChecks aria-hidden="true" className="size-5" />
           Action items
+        </NavLink>
+        <NavLink to="/projects" onClick={onNavigate} className={navClass}>
+          <Folder aria-hidden="true" className="size-5" />
+          Projects
+        </NavLink>
+        <NavLink to="/archived" onClick={onNavigate} className={navClass}>
+          <Archive aria-hidden="true" className="size-5" />
+          Archived
         </NavLink>
       </nav>
 
       <div className="mt-6 flex min-h-0 flex-1 flex-col border-t border-sidebar-line pt-5">
         <div className="flex items-center justify-between px-5">
           <h2 className="text-xs font-bold tracking-[0.12em] text-sidebar-muted uppercase">
-            Meeting history
+            Recent meetings
           </h2>
           {meetings && (
             <span className="text-xs tabular-nums text-sidebar-muted">{meetings.length}</span>
           )}
         </div>
-        <label className="relative mx-3 mt-3 block">
-          <Search
-            aria-hidden="true"
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-sidebar-muted"
-          />
-          <input
-            type="search"
-            aria-label="Search meetings"
-            placeholder="Search meetings"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            className="h-10 w-full rounded-md border border-sidebar-line bg-sidebar-hover pr-3 pl-9 text-sm text-white placeholder:text-sidebar-muted focus:border-sidebar-muted focus:outline-none"
-          />
-        </label>
         <div className="mt-3 min-h-0 flex-1 overflow-y-auto px-2 pb-4">
           {isPending ? (
             <p className="px-3 py-2 text-sm text-sidebar-muted">Loading meetings…</p>
@@ -185,39 +194,50 @@ function SidebarContent({
                 Try again
               </button>
             </div>
-          ) : visibleMeetings?.length ? (
-            <ul className="space-y-0.5">
-              {visibleMeetings.map((meeting) => (
-                <li key={meeting.id}>
-                  <NavLink
-                    to={`/meetings/${meeting.id}`}
-                    onClick={onNavigate}
-                    title={meeting.title}
-                    className={({ isActive }) =>
-                      cn(
-                        'flex min-h-10 items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
-                        isActive
-                          ? 'bg-sidebar-active text-white'
-                          : 'text-sidebar-fg hover:bg-sidebar-hover',
-                      )
-                    }
-                  >
-                    <span
-                      className={cn(
-                        'size-1.5 shrink-0 rounded-pill',
-                        statusDot(meeting.analysisStatus),
-                      )}
-                      aria-hidden="true"
-                    />
-                    <span className="min-w-0 flex-1 truncate">{meeting.title}</span>
-                  </NavLink>
-                </li>
+          ) : meetings?.length ? (
+            <>
+              {pinned.length > 0 && (
+                <p className="px-3 pb-1 text-xs font-bold tracking-wide text-sidebar-muted uppercase">
+                  Pinned
+                </p>
+              )}
+              {[pinned, recent].map((group, index) => (
+                <ul key={index} className="mb-3 space-y-0.5">
+                  {group.map((meeting) => (
+                    <li
+                      key={meeting.id}
+                      className="flex items-center rounded-md hover:bg-sidebar-hover"
+                    >
+                      <NavLink
+                        to={`/meetings/${meeting.id}`}
+                        onClick={onNavigate}
+                        title={meeting.title}
+                        className={({ isActive }) =>
+                          cn(
+                            'flex min-h-10 min-w-0 flex-1 items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
+                            isActive
+                              ? 'bg-sidebar-active text-white'
+                              : 'text-sidebar-fg hover:bg-sidebar-hover',
+                          )
+                        }
+                      >
+                        <span
+                          className={cn(
+                            'size-1.5 shrink-0 rounded-pill',
+                            statusDot(meeting.analysisStatus),
+                          )}
+                          aria-hidden="true"
+                        />
+                        <span className="min-w-0 flex-1 truncate">{meeting.title}</span>
+                      </NavLink>
+                      <MeetingMenu meeting={meeting} />
+                    </li>
+                  ))}
+                </ul>
               ))}
-            </ul>
+            </>
           ) : (
-            <p className="px-3 py-2 text-sm text-sidebar-muted">
-              {query ? 'No meetings match your search.' : 'Your meetings will appear here.'}
-            </p>
+            <p className="px-3 py-2 text-sm text-sidebar-muted">Your meetings will appear here.</p>
           )}
         </div>
       </div>
