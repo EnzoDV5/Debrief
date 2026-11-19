@@ -55,12 +55,8 @@ export const routes: RouteObject[] = [
                   Component: (await import('@/pages/MeetingsPage')).MeetingsPage,
                 }),
               },
-              {
-                path: 'meetings/new',
-                lazy: async () => ({
-                  Component: (await import('@/pages/NewMeetingPage')).NewMeetingPage,
-                }),
-              },
+              // The old separate page: home (/meetings) is now where meetings start.
+              { path: 'meetings/new', element: <Navigate to="/meetings" replace /> },
               {
                 path: 'meetings/:meetingId',
                 lazy: async () => ({

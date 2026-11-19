@@ -67,9 +67,8 @@ describe('workspace history', () => {
     expect(
       within(screen.getByRole('main')).queryByRole('link', { name: /Sprint review/ }),
     ).not.toBeInTheDocument();
-    expect(
-      within(screen.getByRole('main')).getByRole('link', { name: 'New meeting' }),
-    ).toBeInTheDocument();
+    // Home IS the drop zone: the one obvious thing to do.
+    expect(within(screen.getByRole('main')).getByLabelText('Transcript file')).toBeInTheDocument();
   });
 
   it('opens the meeting history as a mobile drawer', async () => {
@@ -116,8 +115,48 @@ describe('workspace history', () => {
   });
 });
 
-describe('new meeting: paste', () => {
-  it('previews the parsed lines, saves, and opens the meeting', async () => {
+describe('new meeting: drop, review, then analyse', () => {
+  const vtt = 'WEBVTT\n\n00:00:01.000 --> 00:00:02.000\n<v Ann>Hello</v>\n';
+  const posts = (fetchMock: ReturnType<typeof mockApi>) =>
+    fetchMock.mock.calls.filter(([, init]) => init?.method === 'POST');
+
+  it('reads a dropped file, shows it for checking, and only saves on confirm', async () => {
+    let posted: unknown;
+    const fetchMock = mockApi({
+      ...me,
+      'POST /api/meetings': (body) => {
+        posted = body;
+        return { status: 201, body: { meeting } };
+      },
+    });
+    const user = userEvent.setup();
+    const { router } = renderApp('/meetings');
+
+    await user.upload(
+      await screen.findByLabelText('Transcript file'),
+      new File([vtt], 'q1-planning_call.vtt', { type: 'text/vtt' }),
+    );
+
+    // Review step: the parsed transcript, a suggested title, and nothing sent yet.
+    expect(
+      await screen.findByRole('heading', { name: 'Check your transcript' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('q1-planning_call.vtt')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('1 line · 1 speaker');
+    expect(screen.getByLabelText('Title')).toHaveValue('Q1 planning call');
+    expect(screen.getByText('Hello')).toBeInTheDocument();
+    expect(posts(fetchMock)).toHaveLength(0);
+
+    await user.click(screen.getByRole('button', { name: 'Save & analyse' }));
+    await screen.findByRole('heading', { name: 'Weekly sync', level: 1 });
+
+    expect(router.state.location.pathname).toBe(`/meetings/${meeting.id}`);
+    expect(posted).toBeInstanceOf(FormData);
+    expect((posted as FormData).get('title')).toBe('Q1 planning call');
+    expect(((posted as FormData).get('file') as File).name).toBe('q1-planning_call.vtt');
+  });
+
+  it('accepts pasted text through the same review step', async () => {
     let posted: unknown;
     mockApi({
       ...me,
@@ -127,22 +166,21 @@ describe('new meeting: paste', () => {
       },
     });
     const user = userEvent.setup();
-    const { router } = renderApp('/meetings/new');
+    renderApp('/meetings');
 
-    await user.type(await screen.findByLabelText('Title'), 'Weekly sync');
+    await user.click(await screen.findByRole('button', { name: 'Paste text instead' }));
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
     await user.click(screen.getByLabelText('Transcript text'));
     await user.paste('Ann: Hello\nBen: Hi there');
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
 
-    const preview = screen.getByRole('region', { name: 'Transcript preview' });
-    expect(within(preview).getByRole('status')).toHaveTextContent('2 lines · 2 speakers');
+    expect(await screen.findByRole('status')).toHaveTextContent('2 lines · 2 speakers');
+    const title = screen.getByLabelText('Title');
+    await user.clear(title);
+    await user.type(title, 'Weekly sync');
+    await user.click(screen.getByRole('button', { name: 'Save & analyse' }));
 
-    await user.click(screen.getByRole('button', { name: 'Save meeting' }));
-
-    expect(
-      await screen.findByRole('heading', { name: 'Weekly sync', level: 1 }),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/Meeting saved/)).toBeInTheDocument();
-    expect(router.state.location.pathname).toBe(`/meetings/${meeting.id}`);
+    await screen.findByRole('heading', { name: 'Weekly sync', level: 1 });
     expect(posted).toEqual({
       title: 'Weekly sync',
       meetingDate: todayDate(),
@@ -150,81 +188,52 @@ describe('new meeting: paste', () => {
     });
   });
 
-  it('shows inline errors and sends nothing when required fields are empty', async () => {
+  it('checks the details on the review step and sends nothing until they are valid', async () => {
     const fetchMock = mockApi(me);
     const user = userEvent.setup();
-    renderApp('/meetings/new');
+    renderApp('/meetings');
 
-    await user.click(await screen.findByRole('button', { name: 'Save meeting' }));
+    await user.click(await screen.findByRole('button', { name: 'Paste text instead' }));
+    await user.click(screen.getByLabelText('Transcript text'));
+    await user.paste('Ann: Hello');
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.clear(await screen.findByLabelText('Title'));
+    await user.click(screen.getByRole('button', { name: 'Save & analyse' }));
 
     expect(await screen.findByText('Give the meeting a title')).toBeInTheDocument();
-    expect(screen.getByText('Paste the transcript text')).toBeInTheDocument();
-    expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
-  });
-});
-
-describe('new meeting: upload', () => {
-  const vtt = 'WEBVTT\n\n00:00:01.000 --> 00:00:02.000\n<v Ann>Hello</v>\n';
-
-  it('reads the file, suggests a title, previews it and uploads it as a form', async () => {
-    let posted: unknown;
-    mockApi({
-      ...me,
-      'POST /api/meetings': (body) => {
-        posted = body;
-        return { status: 201, body: { meeting } };
-      },
-    });
-    const user = userEvent.setup();
-    renderApp('/meetings/new');
-
-    await user.click(await screen.findByLabelText('Upload a file'));
-    await user.upload(
-      screen.getByLabelText('Transcript file'),
-      new File([vtt], 'q1-planning_call.vtt', { type: 'text/vtt' }),
-    );
-
-    expect(await screen.findByText('q1-planning_call.vtt')).toBeInTheDocument();
-    expect(screen.getByLabelText('Title')).toHaveValue('Q1 planning call');
-    expect(screen.getByRole('region', { name: 'Transcript preview' })).toHaveTextContent(
-      '1 line · 1 speaker',
-    );
-
-    await user.click(screen.getByRole('button', { name: 'Save meeting' }));
-    await screen.findByRole('heading', { name: 'Weekly sync', level: 1 });
-
-    expect(posted).toBeInstanceOf(FormData);
-    const form = posted as FormData;
-    expect(form.get('title')).toBe('Q1 planning call');
-    expect((form.get('file') as File).name).toBe('q1-planning_call.vtt');
+    expect(posts(fetchMock)).toHaveLength(0);
   });
 
-  it('rejects a file type the app does not accept, before uploading', async () => {
+  it('rejects a file type the app does not accept, without leaving the drop zone', async () => {
     mockApi(me);
     // applyAccept: false lets the test pick a file the picker would normally hide.
     const user = userEvent.setup({ applyAccept: false });
-    renderApp('/meetings/new');
+    renderApp('/meetings');
 
-    await user.click(await screen.findByLabelText('Upload a file'));
-    await user.upload(
-      screen.getByLabelText('Transcript file'),
-      new File(['%PDF'], 'notes.pdf', { type: 'application/pdf' }),
-    );
+    const input = await screen.findByLabelText('Transcript file');
+    await user.upload(input, new File(['%PDF'], 'notes.pdf', { type: 'application/pdf' }));
 
-    expect(await screen.findByText('Upload a .txt, .vtt or .md file')).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Upload a .txt, .vtt or .md file');
     expect(screen.getByLabelText('Transcript file')).toHaveAttribute('aria-invalid', 'true');
+    expect(
+      screen.queryByRole('heading', { name: 'Check your transcript' }),
+    ).not.toBeInTheDocument();
   });
 
-  it('asks for a file when none was chosen', async () => {
+  it('goes back to the drop zone to pick a different file', async () => {
     mockApi(me);
     const user = userEvent.setup();
-    renderApp('/meetings/new');
+    renderApp('/meetings');
 
-    await user.type(await screen.findByLabelText('Title'), 'Retro');
-    await user.click(screen.getByLabelText('Upload a file'));
-    await user.click(screen.getByRole('button', { name: 'Save meeting' }));
+    await user.upload(
+      await screen.findByLabelText('Transcript file'),
+      new File(['Ann: hi'], 'wrong.txt', { type: 'text/plain' }),
+    );
+    await user.click(await screen.findByRole('button', { name: 'Choose a different transcript' }));
 
-    expect(await screen.findByText('Choose a transcript file to upload')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'What would you like to debrief?' }),
+    ).toBeInTheDocument();
   });
 });
 

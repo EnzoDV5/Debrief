@@ -37,7 +37,7 @@ export function AppShell() {
           </Link>
         </div>
         <Button
-          to="/meetings/new"
+          to="/meetings"
           size="sm"
           icon={<Plus aria-hidden="true" className="size-4" />}
           // Explicit label: a hidden " meeting" span can lose its space ("Newmeeting").
@@ -132,7 +132,7 @@ function SidebarContent({
 
       <div className="px-3 pb-4">
         <NavLink
-          to="/meetings/new"
+          to="/meetings"
           onClick={onNavigate}
           className="flex min-h-11 items-center gap-3 rounded-md bg-sidebar-hover px-3 text-sm font-semibold text-white transition-colors hover:bg-sidebar-active"
         >
@@ -144,7 +144,7 @@ function SidebarContent({
       <nav aria-label="Workspace" className="space-y-1 px-3">
         <NavLink to="/items" onClick={onNavigate} className={navClass}>
           <ListChecks aria-hidden="true" className="size-5" />
-          Open items
+          Action items
         </NavLink>
       </nav>
 

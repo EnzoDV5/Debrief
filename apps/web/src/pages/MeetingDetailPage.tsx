@@ -17,7 +17,7 @@ import { useMeeting } from '@/features/meetings/hooks';
 import { TranscriptView } from '@/features/meetings/TranscriptView';
 import { formatCalendarDate, plural } from '@/lib/format';
 import { usePageTitle } from '@/lib/usePageTitle';
-import { BackLink } from './NewMeetingPage';
+import { BackLink } from '@/components/layout/BackLink';
 
 const sourceLabels: Record<Meeting['sourceType'], string> = {
   paste: 'Pasted text',

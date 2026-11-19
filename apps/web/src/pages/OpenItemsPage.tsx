@@ -72,7 +72,7 @@ export function OpenItemsPage() {
   return (
     <>
       <PageHeader
-        title="Open items"
+        title="Action items"
         description="Every action item from all your meetings, in one list."
       />
 
