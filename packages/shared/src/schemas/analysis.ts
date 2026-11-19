@@ -32,6 +32,8 @@ export const actionItemSchema = z.object({
   reviewReason: z.string().nullable(),
   sourceLine: z.number().int().positive().nullable(),
   sourceQuote: z.string().nullable(),
+  /** Already added to the user's Google Calendar (adding again updates that event). */
+  inCalendar: z.boolean(),
   origin: z.enum(ITEM_ORIGINS),
   position: z.number().int().nonnegative(),
 });

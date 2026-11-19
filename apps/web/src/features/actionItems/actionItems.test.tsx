@@ -20,6 +20,7 @@ function item(overrides: Partial<ActionItem> = {}): ActionItem {
     reviewReason: null,
     sourceLine: 2,
     sourceQuote: 'Ann will send the files',
+    inCalendar: false,
     origin: 'ai',
     position: 0,
     ...overrides,

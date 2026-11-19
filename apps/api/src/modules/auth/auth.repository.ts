@@ -1,6 +1,6 @@
 import { and, eq, gt, isNull } from 'drizzle-orm';
 import { db } from '../../db/client';
-import { sessions, users, type UserRow } from '../../db/schema';
+import { calendarConnections, sessions, users, type UserRow } from '../../db/schema';
 
 // The only file in the auth module that talks to the database.
 // "Active" user = not soft-deleted. Deleted users are invisible to every query here.
@@ -74,7 +74,7 @@ export const authRepository = {
     await db.delete(sessions).where(eq(sessions.id, tokenHash));
   },
 
-  /** Soft delete + sign out everywhere, in one transaction so it can't half-happen. */
+  /** Soft delete + sign out everywhere + forget the calendar link, in one transaction. */
   async softDeleteUser(userId: string): Promise<void> {
     await db.transaction(async (tx) => {
       await tx
@@ -82,6 +82,8 @@ export const authRepository = {
         .set({ deletedAt: new Date() })
         .where(and(eq(users.id, userId), isNull(users.deletedAt)));
       await tx.delete(sessions).where(eq(sessions.userId, userId));
+      // The stored Google token is useless to a deleted account and must not linger.
+      await tx.delete(calendarConnections).where(eq(calendarConnections.userId, userId));
     });
   },
 };

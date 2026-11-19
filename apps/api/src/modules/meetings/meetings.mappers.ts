@@ -34,6 +34,7 @@ export function toActionItem(row: ActionItemRow): ActionItem {
     reviewReason: row.reviewReason,
     sourceLine: row.sourceLine,
     sourceQuote: row.sourceQuote,
+    inCalendar: row.calendarEventId !== null,
     origin: row.origin,
     position: row.position,
   };

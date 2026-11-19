@@ -248,6 +248,7 @@ describe('meeting detail', () => {
           reviewReason: 'Check the due date',
           sourceLine: 2,
           sourceQuote: 'Hi there',
+          inCalendar: false,
           origin: 'ai',
           position: 0,
         },

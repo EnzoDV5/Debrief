@@ -11,7 +11,7 @@ export const testAppDeps: AppDeps = { analysisQueue: { enqueue: async () => {} }
 /** Empties every table so each test starts from a clean database. */
 export async function resetDatabase() {
   await pool.query(
-    'TRUNCATE TABLE analysis_runs, action_items, decisions, meetings, sessions, users RESTART IDENTITY CASCADE',
+    'TRUNCATE TABLE calendar_connections, analysis_runs, action_items, decisions, meetings, sessions, users RESTART IDENTITY CASCADE',
   );
 }
 

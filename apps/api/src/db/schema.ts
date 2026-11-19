@@ -155,6 +155,9 @@ export const actionItems = pgTable(
     reviewReason: text('review_reason'),
     sourceLine: integer('source_line'),
     sourceQuote: text('source_quote'),
+    // Set once the item is added to Google Calendar, so adding again updates that same event
+    // instead of creating a duplicate.
+    calendarEventId: text('calendar_event_id'),
     origin: itemOriginEnum('origin').notNull(),
     position: integer('position').notNull(),
     ...timestamps,
@@ -203,3 +206,24 @@ export type SessionRow = typeof sessions.$inferSelect;
 export type MeetingRow = typeof meetings.$inferSelect;
 export type DecisionRow = typeof decisions.$inferSelect;
 export type ActionItemRow = typeof actionItems.$inferSelect;
+
+// ---------------------------------------------------------------------------------------------
+// Integrations (Phase 5)
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A user's link to their Google Calendar: one row per user. The refresh token lets the server
+ * create events later without asking again. It's a powerful credential, so it's stored
+ * encrypted (AES-256-GCM, key from ENCRYPTION_KEY), never in plain text, and never sent to the
+ * browser.
+ */
+export const calendarConnections = pgTable('calendar_connections', {
+  userId: uuid('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  provider: text('provider').notNull().default('google'),
+  refreshTokenEncrypted: text('refresh_token_encrypted').notNull(),
+  // What Google actually granted (proof we only hold calendar.events).
+  scope: text('scope').notNull(),
+  ...timestamps,
+}).enableRLS();
