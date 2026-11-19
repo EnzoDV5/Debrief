@@ -278,6 +278,12 @@ describe('meeting detail', () => {
     expect(await screen.findByText('The team chose blue.')).toBeInTheDocument();
     const decisionLine = document.getElementById('L1')!;
     expect(within(decisionLine).getByText('Use blue')).toBeInTheDocument();
+    expect(within(decisionLine).getByText('Agreed decision')).toBeInTheDocument();
+    expect(
+      within(decisionLine).getByText(
+        'Keep this as a record of what the team agreed. Edit it if it is incorrect.',
+      ),
+    ).toBeInTheDocument();
     expect(screen.getAllByText('Use blue')).toHaveLength(1);
     const user = userEvent.setup();
     await user.hover(within(decisionLine).getByText('Use blue'));

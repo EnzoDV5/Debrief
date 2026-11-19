@@ -1,5 +1,5 @@
 import type { Decision } from '@debrief/shared';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Check, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
@@ -36,7 +36,10 @@ export function DecisionBubble({
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className="eyebrow mt-1 text-success">Decision</p>
+        <p className="eyebrow mt-1 inline-flex items-center gap-1.5 text-success">
+          <Check aria-hidden="true" className="size-3.5" />
+          Agreed decision
+        </p>
         {draft === null && (
           <div className="-mt-1 -mr-1 flex shrink-0">
             <IconButton
@@ -56,7 +59,12 @@ export function DecisionBubble({
       </div>
 
       {draft === null ? (
-        <p className="mt-1 font-semibold">{decision.text}</p>
+        <div className="mt-1">
+          <p className="font-semibold">{decision.text}</p>
+          <p className="mt-1 text-xs text-muted">
+            Keep this as a record of what the team agreed. Edit it if it is incorrect.
+          </p>
+        </div>
       ) : (
         <form
           className="mt-2 space-y-2"

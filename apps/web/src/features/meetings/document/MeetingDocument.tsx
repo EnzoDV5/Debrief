@@ -116,6 +116,9 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
               {meeting.actionItems.length > 0 && <li>{done} done</li>}
               {needsReview > 0 && <li className="text-warning">{needsReview} needs review</li>}
             </ul>
+            <p className="mt-1.5 text-xs text-muted">
+              Decisions record agreements. Action items are tasks to complete.
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button
