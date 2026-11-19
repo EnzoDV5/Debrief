@@ -69,7 +69,7 @@ export function AppShell() {
         id="main"
         ref={mainRef}
         tabIndex={-1}
-        className="min-w-0 outline-none lg:my-5 lg:mr-5 lg:flex-1 lg:scrollbar-panel lg:overflow-y-auto lg:rounded-panel lg:bg-bg"
+        className="min-w-0 outline-none lg:my-5 lg:mr-5 lg:flex-1 lg:scrollbar-panel lg:overflow-y-auto lg:rounded-panel lg:panel-glow"
       >
         <div className="mx-auto w-full px-4 py-7 sm:px-8 lg:px-8 lg:py-10">
           <Outlet />

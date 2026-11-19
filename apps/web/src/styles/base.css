@@ -98,3 +98,28 @@
     scrollbar-color: color-mix(in srgb, var(--color-fg) 22%, transparent) transparent;
   }
 }
+
+/*
+ * Soft colour glow behind the page panel (desktop): a few large, faint radial gradients in the
+ * brand colours instead of blurred elements, so it costs nothing to render. On a scrolling
+ * element the background stays put while the content moves over it.
+ */
+@utility panel-glow {
+  background-color: var(--color-bg);
+  background-image:
+    radial-gradient(
+      38rem 26rem at 100% 0%,
+      color-mix(in srgb, var(--color-spark) 24%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      42rem 34rem at 100% 80%,
+      color-mix(in srgb, var(--color-accent) 11%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      46rem 32rem at 35% 40%,
+      color-mix(in srgb, var(--color-accent) 6%, transparent),
+      transparent 70%
+    );
+}
