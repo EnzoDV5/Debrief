@@ -14,7 +14,7 @@ export function DecisionBubble({ meetingId, decision }: { meetingId: string; dec
   const [draft, setDraft] = useState<string | null>(null); // null = not editing
 
   return (
-    <article className="rounded-md border border-l-4 border-line border-l-success bg-surface p-3 text-sm shadow-card">
+    <article className="h-full rounded-md border border-l-4 border-line border-l-success bg-surface p-3 text-sm shadow-card">
       <div className="flex items-start justify-between gap-2">
         <p className="eyebrow mt-1 text-success">Decision</p>
         {draft === null && (

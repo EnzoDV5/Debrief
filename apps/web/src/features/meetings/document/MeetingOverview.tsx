@@ -12,7 +12,7 @@ import { useAnalyzeMeeting, useUpdateMeeting } from '../hooks';
 import { DecisionBubble } from './DecisionBubble';
 
 /**
- * The summary and decisions sit beside the meeting title, above the transcript.
+ * The summary spans the meeting page, with decisions arranged beneath it.
  */
 export function MeetingOverview({ meeting }: { meeting: Meeting }) {
   const analyze = useAnalyzeMeeting(meeting.id);
@@ -86,7 +86,7 @@ export function MeetingOverview({ meeting }: { meeting: Meeting }) {
           </Button>
         </div>
         {meeting.decisions.length > 0 ? (
-          <ul className="mt-3 space-y-3 text-sm">
+          <ul className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
             {meeting.decisions.map((decision) => (
               <li key={decision.id}>
                 <DecisionBubble meetingId={meeting.id} decision={decision} />

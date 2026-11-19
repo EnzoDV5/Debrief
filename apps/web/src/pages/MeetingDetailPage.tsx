@@ -50,29 +50,23 @@ function MeetingDetail({ meeting }: { meeting: Meeting }) {
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   return (
     <div className="w-full">
-      <div className="grid items-start gap-6 border-b border-line pb-8 xl:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_27rem]">
-        <div>
-          <PageHeader
-            title={meeting.title}
-            description={
-              <span className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                <span className="inline-flex items-center gap-1.5">
-                  <CalendarDays aria-hidden="true" className="size-4" />
-                  {formatCalendarDate(meeting.meetingDate)}
-                </span>
-                <span className="inline-flex items-center gap-1.5 numeric">
-                  <Rows3 aria-hidden="true" className="size-4" />
-                  {plural(meeting.transcriptLines.length, 'line')} ·{' '}
-                  {sourceLabels[meeting.sourceType]}
-                </span>
+      <div className="border-b border-line pb-8">
+        <PageHeader
+          title={meeting.title}
+          description={
+            <span className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <span className="inline-flex items-center gap-1.5">
+                <CalendarDays aria-hidden="true" className="size-4" />
+                {formatCalendarDate(meeting.meetingDate)}
               </span>
-            }
-          />
-          <p className="max-w-2xl text-sm leading-6 text-muted">
-            Read the original conversation below. Highlighted words connect to the actions on the
-            right.
-          </p>
-        </div>
+              <span className="inline-flex items-center gap-1.5 numeric">
+                <Rows3 aria-hidden="true" className="size-4" />
+                {plural(meeting.transcriptLines.length, 'line')} ·{' '}
+                {sourceLabels[meeting.sourceType]}
+              </span>
+            </span>
+          }
+        />
         <section aria-label="Meeting summary">
           <MeetingOverview meeting={meeting} />
         </section>
