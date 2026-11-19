@@ -9,6 +9,7 @@ import { logger } from './lib/logger';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { originCheck } from './middleware/originCheck';
 import { createAuthRouter } from './modules/auth/auth.routes';
+import { createMeetingsRouter } from './modules/meetings/meetings.routes';
 
 // Builds the app without starting a server, so tests can call it directly with Supertest.
 export function createApp() {
@@ -34,7 +35,10 @@ export function createApp() {
     }),
   );
 
-  // Small default body limit. Transcript upload (Phase 2) will set its own 1 MB limit on that route.
+  // JSON body limits: pasting a transcript (up to 1 MB of text, plus JSON escaping) needs room;
+  // everything else gets a small limit. The paste parser runs first; express.json() then skips
+  // requests whose body has already been read. (File uploads are multipart, handled by multer.)
+  app.post('/api/meetings', express.json({ limit: '2mb' }));
   app.use(express.json({ limit: '100kb' }));
   app.use(cookieParser());
 
@@ -52,6 +56,7 @@ export function createApp() {
     res.json(body);
   });
   api.use('/auth', createAuthRouter());
+  api.use('/meetings', createMeetingsRouter());
   app.use('/api', api);
 
   app.use(notFoundHandler);
