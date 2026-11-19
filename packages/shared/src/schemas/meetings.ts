@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { actionItemSchema, decisionSchema } from './analysis';
 
 // ---------- Transcript ----------
 
@@ -90,6 +91,8 @@ export const meetingSchema = meetingListItemSchema.extend({
   transcriptLines: z.array(transcriptLineSchema),
   summary: z.string().nullable(),
   analysisError: z.string().nullable(),
+  decisions: z.array(decisionSchema),
+  actionItems: z.array(actionItemSchema),
   updatedAt: z.iso.datetime(),
 });
 export type Meeting = z.infer<typeof meetingSchema>;

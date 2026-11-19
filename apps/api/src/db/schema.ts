@@ -1,8 +1,16 @@
-import { ANALYSIS_STATUSES, SOURCE_TYPES, type TranscriptLine } from '@debrief/shared';
+import {
+  ACTION_ITEM_STATUSES,
+  ANALYSIS_STATUSES,
+  ITEM_ORIGINS,
+  SOURCE_TYPES,
+  type TranscriptLine,
+} from '@debrief/shared';
 import { sql } from 'drizzle-orm';
 import {
+  boolean,
   date,
   index,
+  integer,
   jsonb,
   pgEnum,
   pgTable,
@@ -93,6 +101,105 @@ export const meetings = pgTable(
   (t) => [index('meetings_user_id_created_at_idx').on(t.userId, t.createdAt)],
 ).enableRLS();
 
+// ---------------------------------------------------------------------------------------------
+// Analysis results (Phase 3). Each row repeats user_id so every query can filter by owner
+// directly, the same isolation rule as meetings.
+// ---------------------------------------------------------------------------------------------
+
+const updatedAt = timestamp('updated_at', { withTimezone: true })
+  .notNull()
+  .defaultNow()
+  .$onUpdate(() => new Date());
+
+const ownedByMeeting = {
+  meetingId: uuid('meeting_id')
+    .notNull()
+    .references(() => meetings.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+};
+
+export const itemOriginEnum = pgEnum('item_origin', ITEM_ORIGINS);
+export const actionItemStatusEnum = pgEnum('action_item_status', ACTION_ITEM_STATUSES);
+
+export const decisions = pgTable(
+  'decisions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ...ownedByMeeting,
+    text: text('text').notNull(),
+    sourceLine: integer('source_line'),
+    // Order shown in the UI (the order the AI listed them).
+    position: integer('position').notNull(),
+    origin: itemOriginEnum('origin').notNull().default('ai'),
+    ...timestamps,
+    updatedAt,
+  },
+  (t) => [index('decisions_meeting_id_idx').on(t.meetingId)],
+).enableRLS();
+
+export const actionItems = pgTable(
+  'action_items',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ...ownedByMeeting,
+    text: text('text').notNull(),
+    // A person named in the meeting, not a user account.
+    owner: text('owner'),
+    // Resolved by our code from due_date_text + the meeting date, never invented by the AI.
+    dueDate: date('due_date', { mode: 'string' }),
+    dueDateText: text('due_date_text'),
+    status: actionItemStatusEnum('status').notNull().default('todo'),
+    needsReview: boolean('needs_review').notNull().default(false),
+    reviewReason: text('review_reason'),
+    sourceLine: integer('source_line'),
+    sourceQuote: text('source_quote'),
+    origin: itemOriginEnum('origin').notNull(),
+    position: integer('position').notNull(),
+    ...timestamps,
+    updatedAt,
+  },
+  (t) => [
+    index('action_items_meeting_id_idx').on(t.meetingId),
+    // "My open items" (Phase 4) filters by user + status and user + due date.
+    index('action_items_user_id_status_idx').on(t.userId, t.status),
+    index('action_items_user_id_due_date_idx').on(t.userId, t.dueDate),
+  ],
+).enableRLS();
+
+export const ANALYSIS_STEPS = ['summary', 'decisions', 'action_items'] as const;
+export const analysisStepEnum = pgEnum('analysis_step', ANALYSIS_STEPS);
+export const analysisRunStatusEnum = pgEnum('analysis_run_status', [
+  'success',
+  'invalid_output',
+  'failed',
+]);
+
+/**
+ * One row per AI call attempt: which model, which prompt version, and what happened. This is
+ * the audit trail for "why does this meeting show what it shows?" and for comparing models.
+ */
+export const analysisRuns = pgTable(
+  'analysis_runs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ...ownedByMeeting,
+    step: analysisStepEnum('step').notNull(),
+    model: text('model').notNull(),
+    promptVersion: text('prompt_version').notNull(),
+    status: analysisRunStatusEnum('status').notNull(),
+    // What the model returned (parsed JSON, or { raw: "..." } when it wasn't JSON).
+    rawOutput: jsonb('raw_output'),
+    error: text('error'),
+    startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
+    finishedAt: timestamp('finished_at', { withTimezone: true }).notNull(),
+  },
+  (t) => [index('analysis_runs_meeting_id_idx').on(t.meetingId)],
+).enableRLS();
+
 export type UserRow = typeof users.$inferSelect;
 export type SessionRow = typeof sessions.$inferSelect;
 export type MeetingRow = typeof meetings.$inferSelect;
+export type DecisionRow = typeof decisions.$inferSelect;
+export type ActionItemRow = typeof actionItems.$inferSelect;

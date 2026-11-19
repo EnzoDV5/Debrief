@@ -21,8 +21,18 @@ const meeting = {
   ],
   summary: null,
   analysisError: null,
+  decisions: [],
+  actionItems: [],
 };
-const { transcriptLines: _l, summary: _s, analysisError: _e, updatedAt: _u, ...listItem } = meeting;
+const {
+  transcriptLines: _l,
+  summary: _s,
+  analysisError: _e,
+  updatedAt: _u,
+  decisions: _d,
+  actionItems: _a,
+  ...listItem
+} = meeting;
 const detailUrl = `/api/meetings/${meeting.id}`;
 
 describe('meetings list', () => {

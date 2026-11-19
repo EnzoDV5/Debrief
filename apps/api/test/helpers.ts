@@ -7,7 +7,9 @@ export const WEB_ORIGIN = 'http://localhost:5173'; // the default in env.ts
 
 /** Empties every table so each test starts from a clean database. */
 export async function resetDatabase() {
-  await pool.query('TRUNCATE TABLE meetings, sessions, users RESTART IDENTITY CASCADE');
+  await pool.query(
+    'TRUNCATE TABLE analysis_runs, action_items, decisions, meetings, sessions, users RESTART IDENTITY CASCADE',
+  );
 }
 
 export async function closeDatabase() {

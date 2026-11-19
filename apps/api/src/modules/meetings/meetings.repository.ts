@@ -1,7 +1,7 @@
 import type { TranscriptLine, UpdateMeetingInput } from '@debrief/shared';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
-import { meetings, type MeetingRow } from '../../db/schema';
+import { actionItems, decisions, meetings, type MeetingRow } from '../../db/schema';
 
 // The only file in the meetings module that talks to the database.
 // Every query filters by userId. That single rule is what stops one user reaching another user's
@@ -56,6 +56,23 @@ export const meetingsRepository = {
       .where(and(eq(meetings.id, meetingId), eq(meetings.userId, userId)))
       .limit(1);
     return meeting ?? null;
+  },
+
+  /** The analysis results shown on the meeting page, in display order. */
+  async findResultsForUser(userId: string, meetingId: string) {
+    const [decisionRows, actionItemRows] = await Promise.all([
+      db
+        .select()
+        .from(decisions)
+        .where(and(eq(decisions.meetingId, meetingId), eq(decisions.userId, userId)))
+        .orderBy(asc(decisions.position)),
+      db
+        .select()
+        .from(actionItems)
+        .where(and(eq(actionItems.meetingId, meetingId), eq(actionItems.userId, userId)))
+        .orderBy(asc(actionItems.position)),
+    ]);
+    return { decisions: decisionRows, actionItems: actionItemRows };
   },
 
   async updateForUser(
