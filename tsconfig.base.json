@@ -9,6 +9,8 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "noEmit": true,
+    // Lets config files import local .ts files with their extension (needed by Vite's native config loader).
+    "allowImportingTsExtensions": true,
 
     "strict": true,
     // Makes `array[i]` possibly undefined, which catches off-by-one bugs (e.g. transcript lines).

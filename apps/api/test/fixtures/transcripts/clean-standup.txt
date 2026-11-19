@@ -1,0 +1,18 @@
+Weekly product sync, Tuesday 24 November 2026
+Attendees: Thandi Nkosi, Pieter van Wyk, Aisha Patel
+
+Thandi Nkosi: Morning everyone. Three things today: the onboarding release, the pricing page, and the support backlog.
+Pieter van Wyk: Onboarding is code complete. QA found two small bugs in the email verification step, both fixed yesterday.
+Thandi Nkosi: Great. Are we still good to release on Thursday?
+Pieter van Wyk: Yes. I'll deploy the onboarding release to production on Thursday 26 November, after the 10am check.
+Aisha Patel: On pricing, the legal team approved the new wording this morning.
+Thandi Nkosi: So we go with the three-tier layout we tested last week?
+Aisha Patel: Yes, the three tiers tested best. Let's lock that in.
+Thandi Nkosi: Agreed, decision made: we launch the three-tier pricing page.
+Aisha Patel: I'll update the pricing page copy and send it to Thandi for review by Friday 27 November.
+Thandi Nkosi: Perfect. Support backlog is at 46 tickets, mostly password resets.
+Pieter van Wyk: Most of those are the reset email landing in spam. I can switch us to the new email provider.
+Thandi Nkosi: Let's do that. Pieter, please move password reset emails to the new provider by Wednesday 2 December.
+Pieter van Wyk: Will do.
+Thandi Nkosi: And I'll write a help article on resetting passwords by the end of this week.
+Thandi Nkosi: That's everything. Thanks all.

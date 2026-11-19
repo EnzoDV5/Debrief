@@ -1,0 +1,73 @@
+WEBVTT
+Kind: captions
+Language: en
+
+NOTE
+Exported from the meeting tool. Speaker
+attribution is automatic and may be wrong.
+
+STYLE
+::cue { color: white; }
+
+1
+00:00:01.200 --> 00:00:04.900
+<v Lerato Dlamini>Okay, can everyone hear me? Sipho, you're on mute I think.</v>
+
+2
+00:00:05.100 --> 00:00:06.000
+<v Sipho Mthembu>Sorry, sorry. Yes.</v>
+
+3
+00:00:06.400 --> 00:00:13.750
+<v Lerato Dlamini>Right, so the Q1 planning. Um, the big one is the mobile app,
+we keep pushing it and the board is asking.</v>
+
+NOTE speaker overlap below, transcription is rough
+
+4
+00:00:14.000 --> 00:00:16.100
+<v.loud Sipho Mthembu>Yeah so I think we, we can't do mobile and the API rewrite both.</v>
+
+5
+00:00:16.200 --> 00:00:17.000
+<v Lerato Dlamini>Mm.</v>
+
+6
+00:00:17.500 --> 00:00:24.300
+<v Sipho Mthembu>Like realistically. <i>If</i> we pause the rewrite, mobile could be in beta by, I dunno, March?</v>
+
+7
+00:00:24.900 --> 00:00:31.000
+<v Grace Okafor>I'd rather we decide that properly. Can someone put together the effort estimates for both, side by side?</v>
+
+8
+00:00:31.200 --> 00:00:35.800
+<v Sipho Mthembu>I can do the estimates. Give me till next Friday.</v>
+
+9
+00:00:36.000 --> 00:00:41.500
+<v Lerato Dlamini>Fine. So, for now we pause the API rewrite until the estimates are in. Everyone okay with that?</v>
+
+10
+00:00:41.700 --> 00:00:42.900
+<v Grace Okafor>Yes.</v>
+
+11
+00:00:43.000 --> 00:00:43.900
+<v Sipho Mthembu>Yep.</v>
+
+12
+00:00:44.500 --> 00:00:52.000
+<v Grace Okafor>Also, uh, someone should probably tell the board about the delay before the next board meeting.</v>
+
+13
+00:00:52.400 --> 00:00:58.200
+<v Lerato Dlamini>Yeah. Um. And the design team needs the brand assets &amp; icons for the app at some point.</v>
+
+14
+00:00:58.600 --> 00:01:03.000
+<v Grace Okafor>I'll chase design for the assets, end of month should be fine.</v>
+
+15
+00:01:03.500 --> 00:01:06.000
+<v Lerato Dlamini>Cool. Let's wrap there, I've got another call.</v>
