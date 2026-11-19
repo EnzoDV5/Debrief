@@ -21,5 +21,46 @@ services:
       timeout: 3s
       retries: 10
 
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    # Secrets (e.g. OPENROUTER_API_KEY) come from .env at runtime; they are never in the image.
+    env_file:
+      - path: .env
+        required: false
+    # These override .env: inside Docker the database is the `db` service, not localhost.
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgres://debrief:debrief@db:5432/debrief
+    # No published port: like production, the api is only reachable through the web proxy.
+    # (This also keeps port 3000 free for `npm run dev:api`.)
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - '8080:80'
+    depends_on:
+      api:
+        condition: service_healthy
+
 volumes:
   db-data:
