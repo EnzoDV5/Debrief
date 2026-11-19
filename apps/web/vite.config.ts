@@ -5,6 +5,10 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // `@/components/ui/Button` instead of `../../../components/ui/Button`. Mirrored in tsconfig.json.
+  resolve: {
+    alias: { '@': '/src' },
+  },
   server: {
     port: 5173,
     // The browser only ever talks to its own origin; Vite forwards /api to the Express server.

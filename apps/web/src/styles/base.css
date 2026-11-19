@@ -1,0 +1,70 @@
+@layer base {
+  html {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    /* Stops iOS enlarging text in landscape. */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    min-height: 100dvh;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+    font-weight: 700;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* One visible, consistent keyboard focus style everywhere (mouse clicks don't show it). */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  /* Native <dialog> backdrop. */
+  dialog::backdrop {
+    background: rgb(12 14 22 / 0.45);
+    backdrop-filter: blur(2px);
+  }
+
+  ::selection {
+    background-color: var(--color-accent-soft);
+  }
+}
+
+/* Respect the OS "reduce motion" setting: no transitions or spinner rotation easing tricks. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Mono uppercase label, e.g. "LINE 12" or "DUE 28 NOV". From the Stack Studio type system. */
+@utility eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+/* Tabular numerals so counts and dates line up in lists. */
+@utility numeric {
+  font-variant-numeric: tabular-nums;
+}
