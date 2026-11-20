@@ -64,9 +64,9 @@ const sheetCell = 'px-4 sm:px-8';
 const PANEL_INSET = 'xl:right-[calc(24rem+1.5rem+14px)] 2xl:right-[calc(27rem+1.5rem+14px)]';
 const notesCell = 'px-4 sm:px-8 xl:px-0';
 // Under their line (narrow): indented to the text. Beside it (xl): solid cards, since see-through
-// glass turns grey on the dark frame.
+// glass turns grey on the dark frame, each in the scroll spotlight (base.css).
 const cardsCell =
-  'space-y-3 pb-3 pl-16 sm:pl-22 xl:py-2.5 xl:pl-0 xl:[&_.glass]:bg-surface xl:[&_.glass]:bg-none';
+  'space-y-3 pb-3 pl-16 sm:pl-22 xl:py-2.5 xl:pl-0 xl:[&_.glass]:bg-surface xl:[&_.glass]:bg-none xl:[&>*]:scroll-spotlight';
 
 /**
  * The transcript: a sheet with each line, and beside it the notes column with Ask at the top
@@ -166,15 +166,26 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
         <div
           className={cn(
             notesCell,
-            'pt-4 pb-3 xl:pointer-events-none xl:absolute xl:inset-y-0 xl:right-0 xl:z-20 xl:w-(--notes) xl:p-0',
+            'pt-4 pb-3 xl:pointer-events-none xl:absolute xl:inset-y-0 xl:right-0 xl:z-20 xl:flex xl:w-(--notes) xl:flex-col xl:p-0',
           )}
         >
           {/* The track ignores the mouse (the cards below it stay clickable); the card doesn't.
-              The dark backing (frame colour) hides cards cleanly as they slide under it, including
-              behind its rounded corners. */}
-          <div className="xl:pointer-events-auto xl:sticky xl:top-0 xl:bg-sidebar xl:pb-3">
-            <AskMeetingPanel meetingId={meeting.id} />
+              Its frame-coloured backing hides cards sliding under it (behind the rounded corners
+              too), then fades out below it, so cards dissolve rather than being cut off. */}
+          <div className="xl:sticky xl:top-0 xl:z-10">
+            <div className="xl:pointer-events-auto xl:bg-sidebar xl:pb-2">
+              <AskMeetingPanel meetingId={meeting.id} />
+            </div>
+            <div
+              aria-hidden="true"
+              className="pointer-events-none hidden h-10 bg-linear-to-b from-sidebar to-transparent xl:block"
+            />
           </div>
+          {/* The same soft fade along the bottom edge of the column. */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none sticky bottom-0 mt-auto hidden h-20 bg-linear-to-t from-sidebar to-transparent xl:block"
+          />
         </div>
       </div>
 

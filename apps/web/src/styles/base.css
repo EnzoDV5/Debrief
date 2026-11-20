@@ -148,3 +148,35 @@
     transparent 68%
   );
 }
+
+/*
+ * Spotlight for the cards in the meeting's notes column: each card comes fully into focus as it
+ * passes the middle of the panel and softens (smaller, faded, slightly blurred) towards the top
+ * and bottom edges, so every card gets its moment. Driven by scrolling itself (CSS scroll-driven
+ * animation, no JavaScript): the timeline is the card's journey through the scrolling panel.
+ * Browsers without support, and anyone who prefers reduced motion, see the cards as normal.
+ */
+@keyframes spotlight {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.93);
+    filter: blur(3px);
+  }
+  35%,
+  65% {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+@utility scroll-spotlight {
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      animation: spotlight linear both;
+      animation-timeline: view();
+      animation-range: cover;
+    }
+  }
+}
