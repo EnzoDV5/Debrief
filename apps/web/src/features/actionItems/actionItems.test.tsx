@@ -48,7 +48,13 @@ function meetingWith(actionItems: ActionItem[]) {
     summary: 'The team chose blue.',
     analysisError: null,
     decisions: [
-      { id: '22222222-2222-4222-8222-222222222222', text: 'Use blue', sourceLine: 1, position: 0, editedAt: null },
+      {
+        id: '22222222-2222-4222-8222-222222222222',
+        text: 'Use blue',
+        sourceLine: 1,
+        position: 0,
+        editedAt: null,
+      },
     ],
     actionItems,
   };
