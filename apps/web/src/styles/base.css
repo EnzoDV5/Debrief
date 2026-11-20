@@ -313,3 +313,86 @@
     filter: blur(4px);
   }
 }
+
+/*
+ * "The AI is working" look (AnalysisNotesLoader). One turning angle drives everything: the
+ * orb's gradient and the card's border both rotate with it, so they move together.
+ * @property makes the angle animatable; browsers without it just show the gradients still.
+ */
+@property --ai-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes ai-angle {
+  to {
+    --ai-angle: 360deg;
+  }
+}
+
+/* The brand's AI gradient (cobalt, violet, lime), turning. */
+@utility ai-gradient {
+  background-image: conic-gradient(
+    from var(--ai-angle),
+    #2b36f5,
+    #8f7bff,
+    #d4ff3c,
+    #5560ff,
+    #2b36f5
+  );
+  animation: ai-angle 3.2s linear infinite;
+}
+
+/*
+ * A card whose 1px border is that gradient, slowly travelling round. Set --ai-card to the card's
+ * own background: the inside is painted in it, only the border shows the gradient.
+ */
+@utility ai-border {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--ai-card), var(--ai-card)) padding-box,
+    conic-gradient(from var(--ai-angle), #2b36f5, #8f7bff, #d4ff3c, #5560ff, #2b36f5) border-box;
+  animation: ai-angle 4.5s linear infinite;
+}
+
+/*
+ * Text with a highlight sweeping across it. --shimmer-base / --shimmer-hi are the text colour and
+ * the highlight (set per background).
+ */
+@keyframes ai-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+@utility ai-shimmer-text {
+  background-image: linear-gradient(
+    90deg,
+    var(--shimmer-base) 0%,
+    var(--shimmer-base) 40%,
+    var(--shimmer-hi) 50%,
+    var(--shimmer-base) 60%,
+    var(--shimmer-base) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: ai-shimmer 2.2s linear infinite;
+}
+
+/* A placeholder block with a soft light sweeping across (the ghost note cards). */
+@utility ai-skeleton {
+  background-image: linear-gradient(
+    90deg,
+    var(--skeleton-base) 0%,
+    var(--skeleton-base) 35%,
+    var(--skeleton-hi) 50%,
+    var(--skeleton-base) 65%,
+    var(--skeleton-base) 100%
+  );
+  background-size: 200% 100%;
+  animation: ai-shimmer 1.8s ease-in-out infinite;
+}

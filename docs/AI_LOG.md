@@ -78,3 +78,4 @@ One line per step: `- YYYY-MM-DD: <what AI helped with> | <what I decided/change
 - 2026-11-20: Claude added the welcome template ID to .env and restarted dev and Docker so welcome emails are on | I created the EmailJS welcome template
 - 2026-11-20: Claude put the live Netlify URL straight into the welcome email button and documented what {{reset_link}} becomes in the reset email | I asked for links that work when people click them
 - 2026-11-20: Claude kept the forgot-password answer private (no account enumeration) and added clear next steps when no email arrives (spam, spelling, create an account) | I chose to keep it private after weighing the trade-off
+- 2026-11-20: Claude diagnosed Google sign-in with direct requests to Google (client valid; the sign-in redirect URIs were missing), and cleaned up stale Vite dev servers left by its own restarts so the app runs on :5173 again | I registered the redirect URIs in Google Cloud

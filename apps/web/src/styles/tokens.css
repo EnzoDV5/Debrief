@@ -171,6 +171,60 @@
     }
   }
 
+  /* The center star slows briefly before the fast part of each turn; the others twinkle in place. */
+  --animate-ai-spark-spin: ai-spark-spin 2.6s linear infinite;
+  --animate-ai-spark-flicker: ai-spark-flicker 2.1s ease-in-out infinite;
+
+  @keyframes ai-spark-spin {
+    0% {
+      transform: rotate(0deg);
+      animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    40% {
+      transform: rotate(150deg);
+      animation-timing-function: ease-in-out;
+    }
+    52% {
+      transform: rotate(165deg);
+      animation-timing-function: cubic-bezier(0.7, 0, 0.95, 0.6);
+    }
+    78% {
+      transform: rotate(330deg);
+      animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes ai-spark-flicker {
+    0%,
+    100% {
+      opacity: 0.25;
+      transform: scale(0.75);
+    }
+    14% {
+      opacity: 1;
+      transform: scale(1.15);
+    }
+    22% {
+      opacity: 0.4;
+      transform: scale(0.85);
+    }
+    35% {
+      opacity: 0.9;
+      transform: scale(1);
+    }
+    52% {
+      opacity: 0.2;
+      transform: scale(0.75);
+    }
+    72% {
+      opacity: 0.85;
+      transform: scale(1.05);
+    }
+  }
+
   /* Background blobs (PanelBackdrop): slow, out of step with each other, never looping visibly. */
   --animate-blob-1: blob-1 26s ease-in-out infinite alternate;
   --animate-blob-2: blob-2 32s ease-in-out infinite alternate;

@@ -654,6 +654,7 @@ describe('meeting detail', () => {
     const user = userEvent.setup();
     renderApp(`/meetings/${meeting.id}`);
     await user.click(await screen.findByRole('button', { name: 'Re-analyse' }));
+    expect(screen.queryByRole('status', { name: /AI is finding notes/ })).not.toBeInTheDocument();
     const dialog = screen.getByRole('dialog', { name: 'Re-analyse this meeting?' });
     expect(dialog).toHaveTextContent('Items you added yourself stay');
     expect(fetchMock.mock.calls.filter(([url]) => url === `${detailUrl}/analyze`)).toHaveLength(0);
@@ -663,8 +664,24 @@ describe('meeting detail', () => {
         'Your transcript is saved. The AI will start reading it in a moment.',
       ),
     ).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: /AI is finding notes/ })).toBeInTheDocument();
     expect(screen.getByText('Original summary')).toBeInTheDocument();
     expect(fetchMock.mock.calls.filter(([url]) => url === `${detailUrl}/analyze`)).toHaveLength(1);
+  });
+
+  it('shows the notes loader while analysis is processing', async () => {
+    mockApi({
+      ...me,
+      [`GET ${detailUrl}`]: {
+        status: 200,
+        body: { meeting: { ...meeting, analysisStatus: 'processing' } },
+      },
+    });
+    renderApp(`/meetings/${meeting.id}`);
+
+    expect(await screen.findByRole('status', { name: /AI is finding notes/ })).toHaveTextContent(
+      'Decisions and action items will appear beside the transcript.',
+    );
   });
 
   it('shows the failure reason and lets the user retry', async () => {

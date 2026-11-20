@@ -1,5 +1,5 @@
 import type { ActionItem, Decision, Meeting, TranscriptLine } from '@debrief/shared';
-import { Plus, TextSelect } from 'lucide-react';
+import { Plus, Sparkle, TextSelect } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router';
 import { useShellPanelInset } from '@/components/layout/shellFrame';
@@ -87,6 +87,8 @@ const cardsCell =
  */
 export function MeetingDocument({ meeting }: { meeting: Meeting }) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const analysisRunning =
+    meeting.analysisStatus === 'pending' || meeting.analysisStatus === 'processing';
   const { hash } = useLocation();
   const targetLine = lineFromHash(hash);
 
@@ -218,6 +220,11 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
               className="pointer-events-none hidden h-10 bg-linear-to-b from-sidebar to-transparent xl:block"
             />
           </div>
+          {analysisRunning && (
+            <div className="mt-12 px-4 pb-8 xl:mt-28 xl:px-0 xl:pb-0">
+              <AnalysisNotesLoader />
+            </div>
+          )}
           {/* The same soft fade along the bottom edge of the column. */}
           <div
             aria-hidden="true"
@@ -370,6 +377,40 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
         />
       )}
     </section>
+  );
+}
+
+/** A quiet progress cue below Ask while the AI reads the transcript. */
+function AnalysisNotesLoader() {
+  return (
+    <div
+      role="status"
+      aria-label="AI is finding notes"
+      className="flex flex-col items-center text-center xl:text-sidebar-fg"
+    >
+      <div aria-hidden="true" className="relative grid size-20 place-items-center text-accent">
+        <Sparkle className="size-11 motion-safe:animate-ai-spark-spin" fill="currentColor" />
+        <span className="absolute top-0 left-1/2 -translate-x-1/2">
+          <Sparkle className="size-3 motion-safe:animate-ai-spark-flicker" fill="currentColor" />
+        </span>
+        <span className="absolute top-4 right-0">
+          <Sparkle
+            className="size-3.5 [animation-delay:-0.7s] motion-safe:animate-ai-spark-flicker"
+            fill="currentColor"
+          />
+        </span>
+        <span className="absolute bottom-1 left-1">
+          <Sparkle
+            className="size-2.5 [animation-delay:-1.3s] motion-safe:animate-ai-spark-flicker"
+            fill="currentColor"
+          />
+        </span>
+      </div>
+      <p className="mt-3 font-semibold">AI is finding notes</p>
+      <p className="mt-2 max-w-64 text-sm text-muted xl:text-sidebar-muted">
+        Decisions and action items will appear beside the transcript.
+      </p>
+    </div>
   );
 }
 
