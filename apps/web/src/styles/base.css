@@ -180,3 +180,67 @@
     }
   }
 }
+
+/*
+ * The same spotlight for the transcript's lines, gentler because this is the text people read:
+ * a wider sharp zone in the middle, less shrinking and blur. Scales from the left edge so lines
+ * don't drift sideways.
+ */
+@keyframes spotlight-soft {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.98);
+    filter: blur(1.5px);
+  }
+  30%,
+  70% {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+@utility scroll-spotlight-soft {
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      transform-origin: left center;
+      animation: spotlight-soft linear both;
+      animation-timeline: view();
+      animation-range: cover;
+    }
+  }
+}
+
+/*
+ * On the meeting page's scrolling panel (desktop): the transcript fades out at the top and bottom
+ * edges of the frame, into whatever is behind it (panel, blobs), instead of being cut off. A
+ * mask, not a coloured overlay, so there's no visible band. From xl the notes column on the right
+ * (notes width + gap + scrollbar, as in MeetingDocument) stays fully visible: it has its own fades.
+ */
+@utility transcript-edge-fade {
+  @media (width >= 64rem) {
+    --edge-fade: linear-gradient(
+      to bottom,
+      transparent,
+      #000 2rem,
+      #000 calc(100% - 4rem),
+      transparent
+    );
+    mask-image: var(--edge-fade);
+  }
+  @media (width >= 80rem) {
+    --notes-area: calc(24rem + 1.5rem + 14px);
+    mask-image: var(--edge-fade), linear-gradient(#000, #000);
+    mask-size:
+      calc(100% - var(--notes-area)) 100%,
+      var(--notes-area) 100%;
+    mask-position:
+      left top,
+      right top;
+    mask-repeat: no-repeat;
+  }
+  @media (width >= 96rem) {
+    --notes-area: calc(27rem + 1.5rem + 14px);
+  }
+}

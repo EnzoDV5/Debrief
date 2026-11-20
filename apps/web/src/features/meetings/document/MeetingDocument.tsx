@@ -78,8 +78,9 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
   const { hash } = useLocation();
   const targetLine = lineFromHash(hash);
 
-  // Pull the shell's rounded panel in from the right, making room for the notes column.
-  useShellPanelInset(PANEL_INSET);
+  // Pull the shell's rounded panel in from the right, making room for the notes column, and fade
+  // the transcript out at the frame's top and bottom edges (base.css).
+  useShellPanelInset(PANEL_INSET, 'transcript-edge-fade');
 
   // Click a sentence / select words / Enter on a line → toolbar → a pre-filled item.
   const transcriptRef = useRef<HTMLOListElement>(null);
@@ -210,7 +211,8 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
               <div className={cn(sheetCell, 'py-2.5', newSpeaker && i > 0 && 'pt-7')}>
                 <div
                   className={cn(
-                    '-mx-3 grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-3 rounded-md px-3 sm:grid-cols-[2.75rem_minmax(0,1fr)]',
+                    // lg:scroll-spotlight-soft: sharp mid-frame, softer towards the edges (base.css).
+                    '-mx-3 grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-3 rounded-md px-3 sm:grid-cols-[2.75rem_minmax(0,1fr)] lg:scroll-spotlight-soft',
                     line.n === targetLine && 'bg-accent-soft/60',
                   )}
                 >

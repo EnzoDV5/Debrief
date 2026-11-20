@@ -21,7 +21,7 @@ import { MeetingMenu } from '@/features/meetings/MeetingMenu';
 import { cn } from '@/lib/cn';
 import { PageBarSlot } from './PageBar';
 import { PanelBackdrop } from './PanelBackdrop';
-import { ShellFrameContext } from './shellFrame';
+import { ShellFrameContext, type ShellFrameClasses } from './shellFrame';
 import { SkipLink } from './SkipLink';
 
 const COLLAPSED_KEY = 'debrief.sidebarCollapsed';
@@ -61,7 +61,8 @@ export function AppShell() {
   // State (not a ref) so pages re-render with the element once it exists.
   const [pageBarSlot, setPageBarSlot] = useState<HTMLDivElement | null>(null);
   // Classes from a page that narrows the panel (the meeting page), or null for full width.
-  const [panelInset, setPanelInset] = useState<string | null>(null);
+  const [frame, setFrame] = useState<ShellFrameClasses | null>(null);
+  const panelInset = frame?.panel ?? null;
 
   return (
     <div className="min-h-dvh bg-bg lg:flex lg:h-dvh lg:bg-sidebar">
@@ -143,12 +144,13 @@ export function AppShell() {
               // Beside a narrowed panel the scrollbar is on the dark frame: tint it light, and
               // always reserve its width so the page can line up with the panel's edge.
               panelInset && 'lg:[scrollbar-gutter:stable] lg:text-sidebar-muted',
+              frame?.scroller,
             )}
           >
             <div
               className={cn('w-full', !panelInset && 'mx-auto px-4 py-7 sm:px-8 lg:px-8 lg:py-10')}
             >
-              <ShellFrameContext.Provider value={setPanelInset}>
+              <ShellFrameContext.Provider value={setFrame}>
                 <PageBarSlot.Provider value={pageBarSlot}>
                   <Outlet />
                 </PageBarSlot.Provider>

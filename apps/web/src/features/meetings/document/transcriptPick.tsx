@@ -1,5 +1,6 @@
 import { Gavel, ListChecks } from 'lucide-react';
 import { useEffect, useRef, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 
 // "Click a sentence, or select words → create an action item or decision". Turns what the user
 // picked in the transcript into a pick, and shows a small floating toolbar for it.
@@ -177,7 +178,9 @@ export function PickToolbar({
 
   const button =
     'inline-flex min-h-9 items-center gap-1.5 rounded-pill px-3 text-sm font-semibold text-fg transition-colors hover:bg-surface-2';
-  return (
+  // Rendered into <body>: fixed to the screen and outside the transcript panel, so the panel's
+  // edge fade (a mask) can never fade it.
+  return createPortal(
     <div
       ref={ref}
       role="toolbar"
@@ -206,6 +209,7 @@ export function PickToolbar({
         <Gavel aria-hidden="true" className="size-4 text-success" />
         Decision
       </button>
-    </div>
+    </div>,
+    document.body,
   );
 }
