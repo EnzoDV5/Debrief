@@ -19,10 +19,22 @@ export const decisionsRepository = {
     return row;
   },
 
-  async updateForUser(userId: string, id: string, text: string): Promise<DecisionRow | null> {
+  async findForUser(userId: string, id: string): Promise<DecisionRow | null> {
+    const [row] = await db
+      .select()
+      .from(decisions)
+      .where(and(eq(decisions.id, id), eq(decisions.userId, userId)));
+    return row ?? null;
+  },
+
+  async updateForUser(
+    userId: string,
+    id: string,
+    patch: Pick<typeof decisions.$inferInsert, 'text' | 'editedAt'>,
+  ): Promise<DecisionRow | null> {
     const [row] = await db
       .update(decisions)
-      .set({ text })
+      .set(patch)
       .where(and(eq(decisions.id, id), eq(decisions.userId, userId)))
       .returning();
     return row ?? null;

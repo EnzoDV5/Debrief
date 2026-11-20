@@ -23,6 +23,7 @@ function item(overrides: Partial<ActionItem> = {}): ActionItem {
     inCalendar: false,
     origin: 'ai',
     position: 0,
+    editedAt: null,
     ...overrides,
   };
 }
@@ -47,7 +48,7 @@ function meetingWith(actionItems: ActionItem[]) {
     summary: 'The team chose blue.',
     analysisError: null,
     decisions: [
-      { id: '22222222-2222-4222-8222-222222222222', text: 'Use blue', sourceLine: 1, position: 0 },
+      { id: '22222222-2222-4222-8222-222222222222', text: 'Use blue', sourceLine: 1, position: 0, editedAt: null },
     ],
     actionItems,
   };
@@ -214,6 +215,7 @@ describe('action items on the meeting page', () => {
               text: 'Ship Friday',
               sourceLine: 1,
               position: 1,
+              editedAt: null,
             },
           },
         };

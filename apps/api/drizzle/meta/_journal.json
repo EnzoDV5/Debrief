@@ -43,6 +43,13 @@
       "when": 1795127054281,
       "tag": "0005_nosy_colossus",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795168363533,
+      "tag": "0006_item_edited_at",
+      "breakpoints": true
     }
   ]
 }

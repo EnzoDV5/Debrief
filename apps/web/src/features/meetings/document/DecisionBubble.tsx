@@ -59,12 +59,7 @@ export function DecisionBubble({
       </div>
 
       {draft === null ? (
-        <div className="mt-1">
-          <p className="font-semibold">{decision.text}</p>
-          <p className="mt-1 text-sm text-muted">
-            Keep this as a record of what the team agreed. Edit it if it is incorrect.
-          </p>
-        </div>
+        <p className="mt-1 font-semibold">{decision.text}</p>
       ) : (
         <form
           className="mt-2 space-y-2"
@@ -90,9 +85,16 @@ export function DecisionBubble({
           </div>
         </form>
       )}
-      {decision.sourceLine !== null && (
+      {(decision.sourceLine !== null || decision.editedAt !== null) && (
         <p className="mt-2 text-sm text-muted">
-          Source: <LineLink line={decision.sourceLine} meetingId={meetingId} />
+          {decision.sourceLine !== null && (
+            <>
+              Source: <LineLink line={decision.sourceLine} meetingId={meetingId} />
+            </>
+          )}
+          {decision.sourceLine !== null && decision.editedAt !== null && ' · '}
+          {/* The transcript stays as it was said; this tells the reader the card was reworded. */}
+          {decision.editedAt !== null && <EditedLabel />}
         </p>
       )}
       {remove.error && (
@@ -101,5 +103,14 @@ export function DecisionBubble({
         </p>
       )}
     </article>
+  );
+}
+
+/** "Edited by you", with a tooltip saying the transcript line keeps the original words. */
+export function EditedLabel() {
+  return (
+    <span title="You changed this card. The transcript still shows what was originally said.">
+      Edited by you
+    </span>
   );
 }

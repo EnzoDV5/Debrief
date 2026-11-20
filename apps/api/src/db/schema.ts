@@ -162,6 +162,9 @@ export const decisions = pgTable(
     // Order shown in the UI (the order the AI listed them).
     position: integer('position').notNull(),
     origin: itemOriginEnum('origin').notNull().default('ai'),
+    // When the user last changed what the decision says. Not updated_at, because that changes on
+    // every write. The UI uses it to show the transcript line is the original source, not a quote.
+    editedAt: timestamp('edited_at', { withTimezone: true }),
     ...timestamps,
     updatedAt,
   },
@@ -191,6 +194,9 @@ export const actionItems = pgTable(
     calendarEventId: text('calendar_event_id'),
     origin: itemOriginEnum('origin').notNull(),
     position: integer('position').notNull(),
+    // When the user last changed the text, owner or due date. Ticking it off doesn't count, which
+    // is why this isn't updated_at.
+    editedAt: timestamp('edited_at', { withTimezone: true }),
     ...timestamps,
     updatedAt,
   },

@@ -21,7 +21,13 @@ export function toListItem(row: MeetingListRow): MeetingListItem {
 }
 
 export function toDecision(row: DecisionRow): Decision {
-  return { id: row.id, text: row.text, sourceLine: row.sourceLine, position: row.position };
+  return {
+    id: row.id,
+    text: row.text,
+    sourceLine: row.sourceLine,
+    position: row.position,
+    editedAt: row.editedAt?.toISOString() ?? null,
+  };
 }
 
 export function toActionItem(row: ActionItemRow): ActionItem {
@@ -41,6 +47,7 @@ export function toActionItem(row: ActionItemRow): ActionItem {
     inCalendar: row.calendarEventId !== null,
     origin: row.origin,
     position: row.position,
+    editedAt: row.editedAt?.toISOString() ?? null,
   };
 }
 

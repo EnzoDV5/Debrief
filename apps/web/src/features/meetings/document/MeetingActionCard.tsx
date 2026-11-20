@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ActionItemCard } from '@/features/actionItems/ActionItemCard';
 import { ActionItemDialog } from '@/features/actionItems/ActionItemDialog';
 import { DeleteActionItemDialog } from '@/features/actionItems/DeleteActionItemDialog';
+import { EditedLabel } from './DecisionBubble';
 
 /** An action and its source context, rendered beside its transcript line. */
 export function MeetingActionCard({
@@ -55,12 +56,19 @@ function ActionContext({ meeting, item }: { meeting: Meeting; item: ActionItem }
     );
   const summary = contextSummary(item, line);
   return (
-    <div className="rounded-md bg-surface-2/70 px-3 py-2 text-sm leading-6 text-muted">
-      <p>
-        <span className="font-semibold text-fg">In brief: </span>
-        {summary}
-      </p>
-    </div>
+    <>
+      <div className="rounded-md bg-surface-2/70 px-3 py-2 text-sm leading-6 text-muted">
+        <p>
+          <span className="font-semibold text-fg">In brief: </span>
+          {summary}
+        </p>
+      </div>
+      {item.editedAt !== null && (
+        <p className="mt-1.5 text-sm text-muted">
+          <EditedLabel />
+        </p>
+      )}
+    </>
   );
 }
 

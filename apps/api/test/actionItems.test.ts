@@ -165,6 +165,26 @@ describe('adding, editing and deleting action items', () => {
     expect(res.body.actionItem).toMatchObject({ owner: 'Ann', dueDateText: 'the words' });
   });
 
+  it('marks an item as edited only when what it says really changes', async () => {
+    const { ids } = await meetingWithItems(alice, 'Plan', [
+      { text: 'Send', owner: 'Ann', due: '2026-11-27' },
+    ]);
+    const url = `/api/action-items/${ids[0]}`;
+
+    // Ticking off and re-saving the same values aren't edits.
+    const ticked = await send('patch', url, alice, { status: 'done' });
+    expect(ticked.body.actionItem.editedAt).toBeNull();
+    const same = await send('patch', url, alice, {
+      text: 'Send',
+      owner: 'Ann',
+      dueDate: '2026-11-27',
+    });
+    expect(same.body.actionItem.editedAt).toBeNull();
+
+    const edited = await send('patch', url, alice, { owner: 'Ben' });
+    expect(edited.body.actionItem.editedAt).toEqual(expect.any(String));
+  });
+
   it('rejects an empty or invalid patch', async () => {
     const { ids } = await meetingWithItems(alice, 'Plan', [{ text: 'Send' }]);
     expect((await send('patch', `/api/action-items/${ids[0]}`, alice, {})).status).toBe(400);
@@ -327,9 +347,17 @@ describe('decisions and summary', () => {
     expect(created.status).toBe(201);
     expect(created.body.decision).toMatchObject({ text: 'Use blue', sourceLine: null });
 
+    expect(created.body.decision.editedAt).toBeNull();
+
     const id = created.body.decision.id;
+    // Saving the same text isn't an edit; changing it is.
+    const same = await send('patch', `/api/decisions/${id}`, alice, { text: 'Use blue' });
+    expect(same.body.decision.editedAt).toBeNull();
     const edited = await send('patch', `/api/decisions/${id}`, alice, { text: 'Use green' });
-    expect(edited.body.decision.text).toBe('Use green');
+    expect(edited.body.decision).toMatchObject({
+      text: 'Use green',
+      editedAt: expect.any(String),
+    });
     expect((await send('patch', `/api/decisions/${id}`, alice, { text: '' })).status).toBe(400);
 
     expect((await send('delete', `/api/decisions/${id}`, alice)).status).toBe(204);

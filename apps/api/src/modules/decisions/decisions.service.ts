@@ -30,7 +30,15 @@ export const decisionsService = {
   },
 
   async update(userId: string, id: string, input: DecisionInput): Promise<Decision> {
-    const row = await decisionsRepository.updateForUser(userId, id, input.text);
+    const current = await decisionsRepository.findForUser(userId, id);
+    if (!current) throw notFound('Decision');
+    // Only a real change counts as an edit. Saving the form unchanged mustn't mark the card as
+    // edited, or its transcript highlight would wrongly stop looking like a direct quote.
+    const changed = input.text !== current.text;
+    const row = await decisionsRepository.updateForUser(userId, id, {
+      text: input.text,
+      editedAt: changed ? new Date() : current.editedAt,
+    });
     if (!row) throw notFound('Decision');
     return toDecision(row);
   },

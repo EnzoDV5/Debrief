@@ -9,6 +9,8 @@ export type Mark = {
   kind: MarkKind;
   /** Which item this mark belongs to, so hovering the bubble can light up its words. */
   itemId: string;
+  /** The user has reworded the card since, so these words are its original source, not a quote. */
+  edited?: boolean;
 };
 
 export type Segment = { text: string; marks: Mark[] };

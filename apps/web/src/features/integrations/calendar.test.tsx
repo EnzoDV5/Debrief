@@ -32,6 +32,7 @@ const item = {
   inCalendar: false,
   origin: 'manual',
   position: 0,
+  editedAt: null,
 };
 
 describe('Google Calendar on the Account page', () => {

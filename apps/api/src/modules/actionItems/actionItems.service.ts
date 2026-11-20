@@ -48,13 +48,16 @@ export const actionItemsService = {
       changes.needsReview = false;
       changes.reviewReason = null;
     }
-    // The explanation describes the original task and owner; a real edit can make it stale.
+    // A real change to what the item claims. The explanation describes the original task and
+    // owner, so it may now be stale; and the card no longer matches its source quote word for
+    // word, which editedAt tells the UI.
     if (
       (patch.text !== undefined && patch.text !== current.text) ||
       (patch.owner !== undefined && patch.owner !== current.owner) ||
       (patch.dueDate !== undefined && patch.dueDate !== current.dueDate)
     ) {
       changes.contextSummary = null;
+      changes.editedAt = new Date();
     }
     // A *different* date picked by hand replaces the transcript's words for it, so drop those
     // words. An edit form re-sends the unchanged date too; that must keep "next Friday".

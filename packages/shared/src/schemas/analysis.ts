@@ -13,6 +13,8 @@ export const decisionSchema = z.object({
   /** Transcript line it came from, or null if the AI's citation couldn't be verified. */
   sourceLine: z.number().int().positive().nullable(),
   position: z.number().int().nonnegative(),
+  /** When the user last changed the text, or null if it's still as created. */
+  editedAt: z.iso.datetime().nullable(),
 });
 export type Decision = z.infer<typeof decisionSchema>;
 
@@ -38,6 +40,8 @@ export const actionItemSchema = z.object({
   inCalendar: z.boolean(),
   origin: z.enum(ITEM_ORIGINS),
   position: z.number().int().nonnegative(),
+  /** When the user last changed the text, owner or due date, or null if never. */
+  editedAt: z.iso.datetime().nullable(),
 });
 export type ActionItem = z.infer<typeof actionItemSchema>;
 

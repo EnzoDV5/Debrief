@@ -42,14 +42,21 @@ function marksFor(line: TranscriptLine, notes: Annotations | undefined): Mark[] 
   if (!notes) return [];
   const marks: Mark[] = [];
   for (const item of notes.items) {
+    const edited = item.editedAt !== null;
     const quote = findQuote(line, item.sourceQuote);
-    if (quote) marks.push({ ...quote, kind: 'action', itemId: item.id });
+    if (quote) marks.push({ ...quote, kind: 'action', itemId: item.id, edited });
     const date = item.dueDateText ? findPhrase(line.text, item.dueDateText) : null;
-    if (date) marks.push({ ...date, kind: 'date', itemId: item.id });
+    if (date) marks.push({ ...date, kind: 'date', itemId: item.id, edited });
   }
   for (const decision of notes.decisions) {
     // Decisions are stored with their line, not a quote, so the whole line is the anchor.
-    marks.push({ start: 0, end: line.text.length, kind: 'decision', itemId: decision.id });
+    marks.push({
+      start: 0,
+      end: line.text.length,
+      kind: 'decision',
+      itemId: decision.id,
+      edited: decision.editedAt !== null,
+    });
   }
   return marks;
 }
@@ -368,6 +375,15 @@ const MARK_STYLES: Record<Mark['kind'], string> = {
   date: 'bg-spark/70 font-semibold',
 };
 
+// The card was reworded by the user: a dashed underline instead of a fill, so the words read as
+// "this is where it came from", not "the card quotes this". The transcript itself never changes.
+const EDITED_MARK_STYLES: Record<Mark['kind'], string> = {
+  decision: 'decoration-success',
+  action: 'decoration-accent',
+  // Lime is too faint as a thin line on the white sheet; the date belongs to its action anyway.
+  date: 'decoration-accent font-semibold',
+};
+
 // Where marks overlap, the first kind here wins the colour.
 const MARK_PRIORITY: Mark['kind'][] = ['date', 'action', 'decision'];
 
@@ -424,11 +440,20 @@ function LineText({
                 <mark
                   key={i}
                   data-kind={kind}
+                  data-edited={owner.edited ? 'true' : undefined}
+                  title={
+                    owner.edited ? 'Card edited since. This is the original source.' : undefined
+                  }
                   onMouseEnter={() => onActive(owner.itemId)}
                   onMouseLeave={() => onActive(null)}
                   className={cn(
                     'rounded-mark px-0.5 text-fg transition-shadow',
-                    MARK_STYLES[kind],
+                    owner.edited
+                      ? cn(
+                          'bg-transparent underline decoration-dashed decoration-2 underline-offset-4',
+                          EDITED_MARK_STYLES[kind],
+                        )
+                      : MARK_STYLES[kind],
                     active && 'ring-2 ring-accent/50',
                   )}
                 >

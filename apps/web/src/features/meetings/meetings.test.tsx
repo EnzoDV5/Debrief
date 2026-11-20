@@ -309,6 +309,68 @@ describe('meeting detail', () => {
     expect(screen.getByRole('button', { name: 'Ask' })).toBeEnabled();
   });
 
+  it('marks edited cards and keeps the transcript as it was said', async () => {
+    const said = 'Okay, we will use Resend for the contact form.';
+    const analysed = {
+      ...meeting,
+      analysisStatus: 'done' as const,
+      summary: 'The team chose Resend.',
+      lineCount: 2,
+      transcriptLines: [
+        { n: 1, speaker: 'Sarah', text: said },
+        { n: 2, speaker: 'Tom', text: 'I will set up Resend by Friday.' },
+      ],
+      decisions: [
+        {
+          id: crypto.randomUUID(),
+          text: 'Use Resend for all transactional email',
+          sourceLine: 1,
+          position: 0,
+          editedAt: '2026-11-20T09:00:00.000Z',
+        },
+      ],
+      actionItems: [
+        {
+          id: crypto.randomUUID(),
+          meetingId: meeting.id,
+          text: 'Set up Resend and the DNS records',
+          owner: 'Tom',
+          dueDate: null,
+          dueDateText: null,
+          status: 'todo',
+          needsReview: false,
+          reviewReason: null,
+          sourceLine: 2,
+          sourceQuote: 'I will set up Resend',
+          contextSummary: null,
+          inCalendar: false,
+          origin: 'ai',
+          position: 0,
+          editedAt: '2026-11-20T09:05:00.000Z',
+        },
+      ],
+    };
+    mockApi({ ...me, [`GET ${detailUrl}`]: { status: 200, body: { meeting: analysed } } });
+    renderApp(`/meetings/${meeting.id}`);
+
+    // Wait for the meeting to load before looking up its transcript lines.
+    expect(await screen.findByText('The team chose Resend.')).toBeInTheDocument();
+    const decisionLine = document.getElementById('L1')!;
+    expect(
+      within(decisionLine).getByText('Use Resend for all transactional email'),
+    ).toBeInTheDocument();
+    expect(within(decisionLine).getByText('Edited by you')).toBeInTheDocument();
+    expect(within(document.getElementById('L2')!).getByText('Edited by you')).toBeInTheDocument();
+
+    // The transcript keeps the original words, now marked as the source rather than a quote.
+    const decisionMark = within(decisionLine).getByText(said);
+    expect(decisionMark).toHaveAttribute('data-edited', 'true');
+    expect(decisionMark).toHaveClass('decoration-dashed');
+    expect(
+      within(document.getElementById('L2')!).getByText('I will set up Resend'),
+    ).toHaveAttribute('data-edited', 'true');
+  });
+
   it('shows analysis results, review flags, and transcript links', async () => {
     const analysed = {
       ...meeting,
@@ -320,7 +382,9 @@ describe('meeting detail', () => {
         { n: 2, speaker: 'Ben', text: 'The draft is ready. Can you send the files to the team?' },
         { n: 3, speaker: 'Ann', text: 'Thanks everyone.' },
       ],
-      decisions: [{ id: crypto.randomUUID(), text: 'Use blue', sourceLine: 1, position: 0 }],
+      decisions: [
+        { id: crypto.randomUUID(), text: 'Use blue', sourceLine: 1, position: 0, editedAt: null },
+      ],
       actionItems: [
         {
           id: crypto.randomUUID(),
@@ -338,6 +402,7 @@ describe('meeting detail', () => {
           inCalendar: false,
           origin: 'ai',
           position: 0,
+          editedAt: null,
         },
       ],
     };
@@ -348,11 +413,9 @@ describe('meeting detail', () => {
     const decisionLine = document.getElementById('L1')!;
     expect(within(decisionLine).getByText('Use blue')).toBeInTheDocument();
     expect(within(decisionLine).getByText('Agreed decision')).toBeInTheDocument();
-    expect(
-      within(decisionLine).getByText(
-        'Keep this as a record of what the team agreed. Edit it if it is incorrect.',
-      ),
-    ).toBeInTheDocument();
+    // Nothing edited yet: no label, and the highlights are solid fills (the card quotes them).
+    expect(screen.queryByText('Edited by you')).not.toBeInTheDocument();
+    expect(document.querySelector('mark[data-edited]')).toBeNull();
     expect(screen.getAllByText('Use blue')).toHaveLength(1);
     const user = userEvent.setup();
     await user.hover(within(decisionLine).getByText('Use blue'));
@@ -422,6 +485,7 @@ describe('meeting detail', () => {
           inCalendar: false,
           origin: 'ai',
           position: 0,
+          editedAt: null,
         },
       ],
     };
@@ -497,6 +561,7 @@ describe('meeting detail', () => {
               inCalendar: false,
               origin: 'manual',
               position: 0,
+              editedAt: null,
             },
           },
         };
