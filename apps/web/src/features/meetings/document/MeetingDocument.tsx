@@ -1,5 +1,5 @@
 import type { ActionItem, Decision, Meeting, TranscriptLine } from '@debrief/shared';
-import { TextSelect } from 'lucide-react';
+import { Plus, TextSelect } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router';
 import { useShellPanelInset } from '@/components/layout/shellFrame';
@@ -161,7 +161,8 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
     // --notes / --gap: the notes column's width and the gap beside the sheet (wide screens).
     <section
       aria-labelledby="transcript-title"
-      className="relative min-w-0 pb-10 text-fg [--gap:1.5rem] [--notes:24rem] 2xl:[--notes:27rem]"
+      // lg:pb-[45dvh]: room after the last line, so it can scroll up to the middle of the frame.
+      className="relative min-w-0 pb-10 text-fg [--gap:1.5rem] [--notes:24rem] lg:pb-[45dvh] 2xl:[--notes:27rem]"
     >
       {/* Header row: the transcript heading (on the panel) and Ask this meeting (top of the notes
           column, level with the panel's top edge). On wide screens the Ask cell becomes a
@@ -408,7 +409,7 @@ function LineText({
                 source: 'click',
               });
             }}
-            className="cursor-pointer rounded-mark transition-colors hover:bg-accent-soft/60"
+            className="group/sentence cursor-pointer rounded-mark transition-colors hover:bg-accent-soft/60"
           >
             {segment(text, local).map((piece, i) => {
               if (piece.marks.length === 0) return <span key={i}>{piece.text}</span>;
@@ -431,6 +432,15 @@ function LineText({
                 </mark>
               );
             })}
+            {/* A "+" at the end of the hovered sentence says "make something from this". It sits
+                in a zero-width box, so the text never moves; it only takes clicks while shown (a
+                click on it is a click on the sentence), so it can't catch one meant for the next
+                sentence. No text inside, so selections and offsets ignore it. */}
+            <span aria-hidden="true" className="relative inline-block w-0 align-middle">
+              <span className="pointer-events-none absolute top-1/2 left-0.5 grid size-5 -translate-y-1/2 place-items-center rounded-pill bg-accent text-accent-fg opacity-0 shadow-card ring-2 ring-bg transition-opacity group-hover/sentence:pointer-events-auto group-hover/sentence:opacity-100">
+                <Plus className="size-3.5" strokeWidth={3} />
+              </span>
+            </span>
           </span>
         );
       })}
