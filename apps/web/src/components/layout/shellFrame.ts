@@ -1,17 +1,20 @@
 import { createContext, useContext, useEffect } from 'react';
 
 /**
- * Lets a page switch off the shell's rounded page panel (desktop) and draw its own. The meeting
- * page does this: its transcript is a narrower "sheet" with the notes column beside it, on the
- * dark frame colour, like comments beside a Google Docs page.
+ * Lets a page pull the shell's rounded page panel in from the right (desktop), to make room for
+ * something beside it on the dark frame. The meeting page does this for its notes column (Ask,
+ * action items, decisions), like comments beside a Google Docs page.
  */
-export const ShellFrameContext = createContext<(bare: boolean) => void>(() => {});
+export const ShellFrameContext = createContext<(panelClassName: string | null) => void>(() => {});
 
-/** Call in a page that draws its own panel. The shell's panel comes back when the page unmounts. */
-export function useBareShellFrame() {
-  const setBare = useContext(ShellFrameContext);
+/**
+ * Narrows the panel while the calling page is shown, e.g. 'xl:right-[calc(24rem+1.5rem)]'.
+ * The panel slides back to full width when the page unmounts (another page is opened).
+ */
+export function useShellPanelInset(panelClassName: string) {
+  const setPanelInset = useContext(ShellFrameContext);
   useEffect(() => {
-    setBare(true);
-    return () => setBare(false);
-  }, [setBare]);
+    setPanelInset(panelClassName);
+    return () => setPanelInset(null);
+  }, [setPanelInset, panelClassName]);
 }

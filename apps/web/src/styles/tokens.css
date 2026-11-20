@@ -144,6 +144,7 @@
 
   /* Layout */
   --spacing-sidebar: 17.5rem;
+  --spacing-rail: 4.5rem; /* the sidebar collapsed to icons */
   --spacing-topbar: 3.5rem;
   --spacing-tabbar: 4rem;
   --container-content: 72rem;

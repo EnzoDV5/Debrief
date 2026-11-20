@@ -10,8 +10,7 @@ import {
   type KeyboardEvent,
 } from 'react';
 import { useLocation } from 'react-router';
-import { PanelBackdrop } from '@/components/layout/PanelBackdrop';
-import { useBareShellFrame } from '@/components/layout/shellFrame';
+import { useShellPanelInset } from '@/components/layout/shellFrame';
 import { ActionItemDialog } from '@/features/actionItems/ActionItemDialog';
 import { cn } from '@/lib/cn';
 import { AskMeetingPanel } from './AskMeetingPanel';
@@ -67,6 +66,10 @@ function marksFor(line: TranscriptLine, notes: Annotations | undefined): Mark[] 
 const columns =
   'xl:grid xl:grid-cols-[minmax(0,1fr)_var(--notes)] xl:items-start xl:gap-x-[var(--gap)]';
 const sheetCell = 'px-4 sm:px-8';
+// Where the shell's panel ends on wide screens: the notes width + the gap + the scrollbar, which
+// sits beside the panel and always keeps its space (14px, see scrollbar-panel in base.css).
+// Must match --notes and --gap on the section below.
+const PANEL_INSET = 'xl:right-[calc(24rem+1.5rem+14px)] 2xl:right-[calc(27rem+1.5rem+14px)]';
 const notesCell = 'px-4 sm:px-8 xl:px-0';
 // Under their line (narrow): indented to the text. Beside it (xl): solid cards, since see-through
 // glass turns grey on the dark frame.
@@ -83,8 +86,8 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
   const { hash } = useLocation();
   const targetLine = lineFromHash(hash);
 
-  // The shell's page panel is switched off: this page draws its own transcript sheet.
-  useBareShellFrame();
+  // Pull the shell's rounded panel in from the right, making room for the notes column.
+  useShellPanelInset(PANEL_INSET);
 
   // Ask this meeting: a floating card under its button, at the top of the notes column.
   const [askOpen, setAskOpen] = useState(false);
@@ -167,18 +170,6 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
       aria-labelledby="transcript-title"
       className="relative min-w-0 pb-10 text-fg [--gap:1.5rem] [--notes:24rem] 2xl:[--notes:27rem]"
     >
-      {/* The transcript sheet: one light rounded background behind the left column (all rows),
-          with the drifting blobs held in view while it scrolls. On wide screens it stops short
-          of the notes column, which sits on the dark frame like comments beside a document. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 right-0 left-0 overflow-clip bg-bg lg:rounded-panel xl:right-[calc(var(--notes)+var(--gap))]"
-      >
-        <div className="sticky top-0 h-dvh">
-          <PanelBackdrop contained />
-        </div>
-      </div>
-
       <div onKeyDown={closeAskOnEscape} className={cn(columns, 'relative z-20')}>
         <div className={cn(sheetCell, 'pt-7 lg:pt-9')}>
           <div className="border-b border-line pb-4">
@@ -255,15 +246,13 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
               )}
             >
               {/* Spacing lives inside the sheet cell, so the sheet has no gaps between rows. */}
-              <div
-                className={cn(
-                  sheetCell,
-                  'py-2.5',
-                  newSpeaker && i > 0 && 'pt-7',
-                  line.n === targetLine && 'bg-accent-soft/60',
-                )}
-              >
-                <div className="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-3 sm:grid-cols-[2.75rem_minmax(0,1fr)]">
+              <div className={cn(sheetCell, 'py-2.5', newSpeaker && i > 0 && 'pt-7')}>
+                <div
+                  className={cn(
+                    '-mx-3 grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-3 rounded-md px-3 sm:grid-cols-[2.75rem_minmax(0,1fr)]',
+                    line.n === targetLine && 'bg-accent-soft/60',
+                  )}
+                >
                   <a
                     href={`#L${line.n}`}
                     aria-label={`Line ${line.n}`}

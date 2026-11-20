@@ -13,7 +13,7 @@ const twMerge = extendTailwindMerge({
       radius: ['card', 'panel', 'pill', 'mark'],
       shadow: ['card', 'raised', 'glow'],
       tracking: ['label'],
-      spacing: ['sidebar', 'topbar', 'tabbar'],
+      spacing: ['sidebar', 'rail', 'topbar', 'tabbar'],
       container: ['content', 'form'],
       animate: ['blob-1', 'blob-2', 'blob-3'],
       ease: ['out-3'],
