@@ -56,17 +56,36 @@ export function ForgotPasswordPage() {
           we&apos;ve sent it a link to choose a new password. Open it on this or any other device.
           It works for 30 minutes.
         </p>
-        <p className="mt-6 text-sm text-muted">
-          Nothing arrived after a few minutes? Check your spam folder, or{' '}
-          <button
-            type="button"
-            className="font-semibold text-spark underline-offset-4 hover:underline"
-            onClick={() => setSentTo(null)}
-          >
-            try again
-          </button>
-          .
-        </p>
+        {/* What to do if nothing comes. It never says whether the account exists (see above):
+            it points at the likely reasons instead, including "you may not have an account". */}
+        <div className="mt-6 space-y-2 text-sm text-muted">
+          <p className="font-semibold text-fg">Nothing after a few minutes?</p>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>Look in your spam or junk folder.</li>
+            <li>
+              Check the address is spelled right, or{' '}
+              <button
+                type="button"
+                className="font-semibold text-spark underline-offset-4 hover:underline"
+                onClick={() => setSentTo(null)}
+              >
+                try a different email
+              </button>
+              .
+            </li>
+            <li>
+              No account with that email yet?{' '}
+              <Link
+                viewTransition
+                to="/register"
+                className="font-semibold text-spark underline-offset-4 hover:underline"
+              >
+                Create one
+              </Link>
+              .
+            </li>
+          </ul>
+        </div>
         <p className="mt-8 text-center text-sm">
           <Link
             viewTransition
