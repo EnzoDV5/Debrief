@@ -20,7 +20,7 @@ export function PageHeader({
   usePageTitle(title);
   return (
     <PageBar>
-      <header className="flex flex-col gap-4 px-4 pt-7 sm:px-8 lg:flex-row lg:items-end lg:justify-between lg:px-1 lg:pt-0 lg:pb-5">
+      <header className="flex animate-page-in flex-col gap-4 px-4 pt-7 sm:px-8 lg:flex-row lg:items-end lg:justify-between lg:px-1 lg:pt-0 lg:pb-5">
         <div className="min-w-0">
           <h1 className="text-2xl font-bold lg:truncate lg:text-xl lg:text-white">{title}</h1>
           {description && (

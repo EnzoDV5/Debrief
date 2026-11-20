@@ -64,6 +64,7 @@ export function AppShell() {
   // Classes from a page that narrows the panel (the meeting page), or null for full width.
   const [frame, setFrame] = useState<ShellFrameClasses | null>(null);
   const panelInset = frame?.panel ?? null;
+  const { pathname } = useLocation();
 
   return (
     <div className="min-h-dvh bg-bg lg:flex lg:h-dvh lg:bg-sidebar">
@@ -128,7 +129,7 @@ export function AppShell() {
           <div
             aria-hidden="true"
             className={cn(
-              'pointer-events-none absolute inset-0 hidden overflow-hidden rounded-panel bg-bg transition-[right] duration-300 ease-out-3 lg:block',
+              'pointer-events-none absolute inset-0 hidden overflow-hidden rounded-panel bg-bg transition-[right] duration-500 ease-panel lg:block',
               panelInset,
             )}
           >
@@ -156,7 +157,11 @@ export function AppShell() {
               <ShellFrameContext.Provider value={setFrame}>
                 <PageBarSlot.Provider value={pageBarSlot}>
                   <PanelOverlaySlot.Provider value={panelOverlay}>
-                    <Outlet />
+                    {/* Keyed by path, so each newly opened page plays its fade-in while the
+                        panel slides to the new page's width. */}
+                    <div key={pathname} className="animate-page-in">
+                      <Outlet />
+                    </div>
                   </PanelOverlaySlot.Provider>
                 </PageBarSlot.Provider>
               </ShellFrameContext.Provider>
@@ -168,7 +173,7 @@ export function AppShell() {
           <div
             ref={setPanelOverlay}
             className={cn(
-              'pointer-events-none absolute inset-0 z-10 hidden transition-[right] duration-300 ease-out-3 lg:block',
+              'pointer-events-none absolute inset-0 z-10 hidden transition-[right] duration-500 ease-panel lg:block',
               panelInset,
             )}
           />

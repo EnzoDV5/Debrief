@@ -113,6 +113,20 @@
   /* Motion: short and calm. Turned off entirely for prefers-reduced-motion (base.css). */
   --ease-out-3: cubic-bezier(0.215, 0.61, 0.355, 1);
   --duration-fast: 150ms;
+  /* The page panel resizing between pages: quick to start, long soft landing, so the frame
+     glides instead of snapping. Used with duration-500. */
+  --ease-panel: cubic-bezier(0.32, 0.72, 0, 1);
+  /* A newly opened page fades and rises in, just after the panel starts moving, so its content
+     is never seen sticking out over the frame while the panel catches up. */
+  --animate-page-in: page-in 420ms var(--ease-panel) 60ms both;
+
+  @keyframes page-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+
   /* Background blobs (PanelBackdrop): slow, out of step with each other, never looping visibly. */
   --animate-blob-1: blob-1 26s ease-in-out infinite alternate;
   --animate-blob-2: blob-2 32s ease-in-out infinite alternate;

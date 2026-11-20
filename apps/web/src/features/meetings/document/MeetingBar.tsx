@@ -47,7 +47,10 @@ export function MeetingBar({ meeting }: { meeting: Meeting }) {
   };
 
   return (
-    <div onKeyDown={closeOnEscape} className="px-4 pt-7 sm:px-8 lg:px-1 lg:pt-0 lg:pb-5">
+    <div
+      onKeyDown={closeOnEscape}
+      className="animate-page-in px-4 pt-7 sm:px-8 lg:px-1 lg:pt-0 lg:pb-5"
+    >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
           {/* The analysis status sits with the title it describes. */}

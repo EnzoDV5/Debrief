@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect } from 'react';
+import { createContext, useContext, useLayoutEffect } from 'react';
 
 /** Classes a page adds to the shell: on the rounded panel, and on the scrolling area over it. */
 export type ShellFrameClasses = { panel: string; scroller?: string };
@@ -19,7 +19,9 @@ export const ShellFrameContext = createContext<(classes: ShellFrameClasses | nul
  */
 export function useShellPanelInset(panel: string, scroller?: string) {
   const setClasses = useContext(ShellFrameContext);
-  useEffect(() => {
+  // Layout effect: the panel starts moving in the same frame the page first paints, instead of
+  // one frame later at the wrong width.
+  useLayoutEffect(() => {
     setClasses({ panel, scroller });
     return () => setClasses(null);
   }, [setClasses, panel, scroller]);

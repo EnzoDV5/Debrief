@@ -3,13 +3,19 @@ import { FileSearch } from 'lucide-react';
 import { useParams } from 'react-router';
 import { ApiError } from '@/api/client';
 import { PageBar } from '@/components/layout/PageBar';
+import { useShellPanelInset } from '@/components/layout/shellFrame';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { MeetingDocument } from '@/features/meetings/document/MeetingDocument';
+import {
+  MeetingDocument,
+  PANEL_INSET,
+  PANEL_INSET_MARGIN,
+} from '@/features/meetings/document/MeetingDocument';
 import { MeetingBar } from '@/features/meetings/document/MeetingBar';
 import { useMeeting } from '@/features/meetings/hooks';
+import { cn } from '@/lib/cn';
 import { usePageTitle } from '@/lib/usePageTitle';
 
 export function MeetingDetailPage() {
@@ -62,8 +68,16 @@ function MeetingNotFound() {
 }
 
 function DetailSkeleton() {
+  // Narrow the panel already, as the loaded meeting will: switching meetings then keeps the frame
+  // still instead of widening for the skeleton and narrowing again.
+  useShellPanelInset(PANEL_INSET);
   return (
-    <div role="status" aria-label="Loading meeting" className="mx-auto max-w-6xl">
+    <div
+      role="status"
+      aria-label="Loading meeting"
+      // The panel keeps no padding while narrowed (pages pad themselves), so add it here.
+      className={cn('px-4 py-7 sm:px-8 lg:py-10', PANEL_INSET_MARGIN)}
+    >
       <Skeleton className="h-8 w-2/3 max-w-md" />
       <Skeleton className="mt-3 h-4 w-1/2 max-w-xs" />
       <Skeleton className="mt-8 h-40 rounded-card" />

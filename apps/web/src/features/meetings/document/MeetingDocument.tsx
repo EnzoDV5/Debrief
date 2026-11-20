@@ -68,8 +68,12 @@ const columns =
 const sheetCell = 'px-4 sm:px-8';
 // Where the shell's panel ends on wide screens: the notes width + the gap + the scrollbar, which
 // sits beside the panel and always keeps its space (14px, see scrollbar-panel in base.css).
-// Must match --notes and --gap on the section below.
-const PANEL_INSET = 'xl:right-[calc(24rem+1.5rem+14px)] 2xl:right-[calc(27rem+1.5rem+14px)]';
+// Must match --notes and --gap on the section below. Exported for the loading skeleton, which
+// holds the same width so opening a meeting doesn't resize the frame twice.
+export const PANEL_INSET = 'xl:right-[calc(24rem+1.5rem+14px)] 2xl:right-[calc(27rem+1.5rem+14px)]';
+/** Keeps content inside the narrowed panel (the same distance, as a margin). */
+export const PANEL_INSET_MARGIN =
+  'xl:mr-[calc(24rem+1.5rem+14px)] 2xl:mr-[calc(27rem+1.5rem+14px)]';
 const notesCell = 'px-4 sm:px-8 xl:px-0';
 // Under their line (narrow): indented to the text. Beside it (xl): solid cards, since see-through
 // glass turns grey on the dark frame, each in the scroll spotlight (base.css).
