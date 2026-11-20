@@ -63,6 +63,21 @@ const envSchema = z.object({
   // Where Google sends the user back. Goes through the web origin (Vite proxy / Vercel rewrite)
   // so the session cookie is first-party. Must match the client's "Authorized redirect URIs".
   GOOGLE_REDIRECT_URI: stringWithDefault('http://localhost:5173/api/integrations/google/callback'),
+  // Sign in with Google uses the same OAuth client, with its own redirect URI (also listed in the
+  // client's "Authorized redirect URIs"). Needs only GOOGLE_CLIENT_ID/SECRET, no ENCRYPTION_KEY:
+  // nothing from Google is stored except the account's id.
+  GOOGLE_AUTH_REDIRECT_URI: stringWithDefault('http://localhost:5173/api/auth/google/callback'),
+  // ---- Email (EmailJS), for "Forgot password" links ----
+  // Optional: without all four, the "Forgot password?" link isn't offered. Sent from the server
+  // with the private key (EmailJS: Account → Security → "Allow EmailJS API for non-browser
+  // applications"), never from the browser, which must never see a reset link.
+  EMAILJS_SERVICE_ID: optionalString,
+  EMAILJS_TEMPLATE_ID: optionalString,
+  EMAILJS_PUBLIC_KEY: optionalString,
+  EMAILJS_PRIVATE_KEY: optionalString,
+  // Optional second template: the welcome letter sent to a new account (to them only).
+  EMAILJS_WELCOME_TEMPLATE_ID: optionalString,
+
   // 32 random bytes, base64: the AES-256-GCM key for stored Google tokens.
   ENCRYPTION_KEY: optionalString.refine(
     (value) => value === undefined || Buffer.from(value, 'base64').length === 32,

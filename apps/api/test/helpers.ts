@@ -3,7 +3,7 @@ import request, { type Response } from 'supertest';
 import { pool } from '../src/db/client';
 import type { AppDeps } from '../src/app';
 
-export const PASSWORD = 'correct-horse-battery';
+export const PASSWORD = 'correct-horse-battery-42';
 export const WEB_ORIGIN = 'http://localhost:5173'; // the default in env.ts
 
 export const testAppDeps: AppDeps = { analysisQueue: { enqueue: async () => {} } };
@@ -11,7 +11,7 @@ export const testAppDeps: AppDeps = { analysisQueue: { enqueue: async () => {} }
 /** Empties every table so each test starts from a clean database. */
 export async function resetDatabase() {
   await pool.query(
-    'TRUNCATE TABLE calendar_connections, analysis_runs, action_items, decisions, meetings, projects, sessions, users RESTART IDENTITY CASCADE',
+    'TRUNCATE TABLE calendar_connections, analysis_runs, action_items, decisions, meetings, projects, password_resets, sessions, users RESTART IDENTITY CASCADE',
   );
 }
 

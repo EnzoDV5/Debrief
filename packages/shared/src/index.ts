@@ -6,5 +6,6 @@ export * from './schemas/auth';
 export * from './schemas/errors';
 export * from './schemas/health';
 export * from './schemas/meetings';
+export * from './password';
 export * from './transcript/parse';
 export * from './transcript/meetingDate';

@@ -4,8 +4,10 @@ import { AuthLayout } from '@/components/layout/AuthLayout';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { RedirectIfAuthed } from '@/features/auth/RedirectIfAuthed';
 import { RequireAuth } from '@/features/auth/RequireAuth';
+import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
+import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
 import { RouteErrorPage } from '@/pages/RouteErrorPage';
 
 function RootLayout() {
@@ -38,9 +40,17 @@ export const routes: RouteObject[] = [
             children: [
               { path: 'login', element: <LoginPage /> },
               { path: 'register', element: <RegisterPage /> },
+              { path: 'forgot-password', element: <ForgotPasswordPage /> },
             ],
           },
         ],
+      },
+
+      // The link from a "forgot password" email works whether or not this browser is logged in
+      // (e.g. still logged in on the phone that's opening it), so it's outside RedirectIfAuthed.
+      {
+        element: <AuthLayout />,
+        children: [{ path: 'reset-password', element: <ResetPasswordPage /> }],
       },
 
       {

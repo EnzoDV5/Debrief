@@ -10,7 +10,7 @@ import { SESSION_TTL_MS } from './sessionCookie';
 
 // argon2id: memory-hard, so guessing passwords on GPUs is slow and expensive. The library's
 // defaults (64 MiB, 3 passes) follow the OWASP recommendation.
-const hashPassword = (password: string) => argon2.hash(password, { type: argon2.argon2id });
+export const hashPassword = (password: string) => argon2.hash(password, { type: argon2.argon2id });
 
 // Used when the email doesn't exist, so a failed login takes the same time either way.
 // Without it, a fast "no such user" response would reveal which emails have accounts.
@@ -19,17 +19,18 @@ const dummyHash = hashPassword('timing-equaliser-not-a-real-password');
 const invalidCredentials = () =>
   new AppError(401, 'INVALID_CREDENTIALS', 'Invalid email or password');
 
-function toPublicUser(user: UserRow): PublicUser {
+export function toPublicUser(user: UserRow): PublicUser {
   return {
     id: user.id,
     email: user.email,
     name: user.name,
     createdAt: user.createdAt.toISOString(),
+    hasPassword: user.passwordHash !== null,
   };
 }
 
 /** Creates a session and returns the raw token for the cookie. Only its hash is stored. */
-async function startSession(userId: string): Promise<string> {
+export async function startSession(userId: string): Promise<string> {
   const token = generateSessionToken();
   await authRepository.createSession({
     id: hashSessionToken(token),
@@ -56,7 +57,9 @@ export const authService = {
   /** `previousToken`: a session cookie the browser already had. It's ended, never reused. */
   async login(input: LoginInput, previousToken?: string) {
     const user = await authRepository.findActiveUserByEmail(input.email);
-    const passwordOk = user
+    // No account, or an account made with Google (no password): check against the dummy hash so
+    // it takes as long as a real check, and fail with the same generic message either way.
+    const passwordOk = user?.passwordHash
       ? await argon2.verify(user.passwordHash, input.password)
       : await argon2.verify(await dummyHash, input.password).then(() => false);
     if (!user || !passwordOk) throw invalidCredentials();
@@ -77,12 +80,22 @@ export const authService = {
     return user ? { user: toPublicUser(user), tokenHash } : null;
   },
 
+  /**
+   * Password accounts confirm with their password. Accounts made with Google have none, so they
+   * confirm by typing their account's email: enough to stop a stray click or a wrong tab.
+   */
   async deleteAccount(userId: string, input: DeleteAccountInput) {
     const user = await authRepository.findActiveUserById(userId);
     if (!user) throw unauthenticated();
-    if (!(await argon2.verify(user.passwordHash, input.password))) {
-      const message = 'Password is incorrect';
-      throw new AppError(400, 'INCORRECT_PASSWORD', message, { password: message });
+    if (user.passwordHash) {
+      const ok = 'password' in input && (await argon2.verify(user.passwordHash, input.password));
+      if (!ok) {
+        const message = 'Password is incorrect';
+        throw new AppError(400, 'INCORRECT_PASSWORD', message, { password: message });
+      }
+    } else if (!('email' in input) || input.email !== user.email) {
+      const message = 'That isn’t the email for this account';
+      throw new AppError(400, 'INCORRECT_EMAIL', message, { email: message });
     }
     await authRepository.softDeleteUser(userId);
   },

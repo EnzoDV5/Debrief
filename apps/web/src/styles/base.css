@@ -252,3 +252,64 @@
     --notes-area: calc(27rem + 1.5rem + 14px);
   }
 }
+
+/*
+ * Content that sits straight on the dark frame (the sign-in form column), like the sidebar.
+ * Instead of a dark variant of every form component, this re-points the colour tokens inside
+ * it: labels, hints and errors turn light, inputs turn dark, and the shared Field, Input,
+ * Button and Alert components work unchanged. Contrast notes are against the frame (sidebar).
+ */
+@utility on-frame {
+  --color-fg: var(--color-sidebar-fg);
+  --color-muted: var(--color-sidebar-muted); /* 7.6:1 */
+  --color-surface: var(--color-sidebar-hover); /* input fill */
+  --color-surface-2: var(--color-sidebar-active);
+  --color-line-strong: #868c99; /* input borders: 4.2:1 on the input fill */
+  /* Brighter cobalt: white button text still 4.7:1, focus rings 3.8:1 on the frame. */
+  --color-accent: #5560ff;
+  --color-accent-hover: #2b36f5;
+  --color-accent-soft: color-mix(in srgb, #5560ff 18%, var(--color-sidebar)); /* info alerts */
+  --color-danger: var(--color-danger-light);
+  --color-danger-soft: color-mix(in srgb, var(--color-danger-light) 14%, var(--color-sidebar));
+  --color-success: #5fd394;
+  --color-warning: #f5b544; /* "Fair" on the password strength bar */
+  --color-success-soft: color-mix(in srgb, #5fd394 14%, var(--color-sidebar));
+}
+
+/*
+ * Switching between log in and sign up (the links use React Router's viewTransition). The
+ * browser snapshots the old and new form and animates between them: the old one fades up and
+ * out, the new one rises in just after, and the box between them smoothly changes height. The
+ * rest of the page swaps instantly, so the walkthrough on the right keeps running untouched.
+ * Browsers without view transitions simply switch pages.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+  ::view-transition-group(auth-form) {
+    animation-duration: 600ms;
+    animation-timing-function: var(--ease-panel);
+  }
+  ::view-transition-old(auth-form) {
+    animation: auth-form-out 260ms var(--ease-out-3) both;
+  }
+  ::view-transition-new(auth-form) {
+    animation: auth-form-in 560ms var(--ease-panel) 120ms both;
+  }
+}
+@keyframes auth-form-out {
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+    filter: blur(4px);
+  }
+}
+@keyframes auth-form-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+    filter: blur(4px);
+  }
+}

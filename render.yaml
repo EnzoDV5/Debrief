@@ -29,6 +29,8 @@ services:
         value: https://debriefweb.netlify.app
       - key: GOOGLE_REDIRECT_URI
         value: https://debriefweb.netlify.app/api/integrations/google/callback
+      - key: GOOGLE_AUTH_REDIRECT_URI
+        value: https://debriefweb.netlify.app/api/auth/google/callback
       - key: DATABASE_URL
         sync: false
       - key: OPENROUTER_API_KEY
@@ -36,6 +38,16 @@ services:
       - key: ENCRYPTION_KEY
         sync: false
       - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: EMAILJS_SERVICE_ID
+        sync: false
+      - key: EMAILJS_TEMPLATE_ID
+        sync: false
+      - key: EMAILJS_PUBLIC_KEY
+        sync: false
+      - key: EMAILJS_PRIVATE_KEY
+        sync: false
+      - key: EMAILJS_WELCOME_TEMPLATE_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false

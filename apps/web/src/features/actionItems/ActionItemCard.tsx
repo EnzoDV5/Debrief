@@ -96,7 +96,7 @@ export function NoteCardHeader({
 }
 
 /** Small round initials, like an avatar, for the person named as owner. */
-function Initials({ name }: { name: string }) {
+export function Initials({ name }: { name: string }) {
   const parts = name.trim().split(/\s+/);
   const letters = (parts[0]?.[0] ?? '') + (parts.length > 1 ? (parts.at(-1)?.[0] ?? '') : '');
   return (
@@ -109,7 +109,9 @@ function Initials({ name }: { name: string }) {
   );
 }
 
-const chip = 'inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-xs font-medium';
+/** The owner and due-date pills (also used by the sign-in page's how-it-works demo). */
+export const cardChip =
+  'inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-xs font-medium';
 
 /**
  * One action item: tick box, task, owner, due date, review warning and where it came from.
@@ -194,7 +196,9 @@ export function ActionItemCard({
           </p>
 
           <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-            <span className={cn(chip, 'bg-surface-2 pl-1', item.owner ? 'text-fg' : 'text-muted')}>
+            <span
+              className={cn(cardChip, 'bg-surface-2 pl-1', item.owner ? 'text-fg' : 'text-muted')}
+            >
               {item.owner ? (
                 <Initials name={item.owner} />
               ) : (
@@ -204,7 +208,7 @@ export function ActionItemCard({
             </span>
             <span
               className={cn(
-                chip,
+                cardChip,
                 overdue ? 'bg-danger-soft text-danger' : 'bg-surface-2',
                 !item.dueDate && 'text-muted',
               )}

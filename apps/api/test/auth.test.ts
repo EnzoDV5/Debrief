@@ -78,8 +78,21 @@ describe('POST /api/auth/register', () => {
     expect(res.body.error.fields).toEqual({
       name: 'Enter your name',
       email: 'Enter a valid email address',
-      password: 'Use at least 12 characters',
+      password: 'Add 7 more characters, a number and a symbol',
     });
+  });
+
+  // The same rules the sign-up form shows (shared password.ts), enforced here too, so a request
+  // that skips the form can't get a weak password in. The message says exactly what's missing.
+  it.each([
+    ['letters only', 'onlylettersherexyz', 'Add a number and a symbol'],
+    ['missing a symbol', 'lantern orbit 42', 'Add a symbol'],
+    ['missing a letter', '1234-5678-9012', 'Add a letter'],
+    ['one character short', 'lantern-o-4', 'Add 1 more character'],
+  ])('rejects a password that is %s', async (_label, password, message) => {
+    const res = await register({ ...alice, password });
+    expect(res.status).toBe(400);
+    expect(res.body.error.fields).toEqual({ password: message });
   });
 
   it('rejects passwords over 128 characters', async () => {

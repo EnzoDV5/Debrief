@@ -10,6 +10,13 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { originCheck } from './middleware/originCheck';
 import { createActionItemsRouter } from './modules/actionItems/actionItems.routes';
 import { createAuthRouter } from './modules/auth/auth.routes';
+import { createEmailJsClient, type EmailClient } from './modules/auth/emailClient';
+import { createGoogleAuthController } from './modules/auth/googleAuth.controller';
+import { createGoogleAuthService } from './modules/auth/googleAuth.service';
+import { createGoogleSignInClient, type GoogleSignInClient } from './modules/auth/googleSignIn';
+import { createPasswordResetController } from './modules/auth/passwordReset.controller';
+import { createPasswordResetService } from './modules/auth/passwordReset.service';
+import { createWelcomeMailer } from './modules/auth/welcomeEmail';
 import { createDecisionsRouter } from './modules/decisions/decisions.routes';
 import type { AnalysisQueue } from './modules/analysis/queue';
 import type { AskDeps } from './modules/analysis/ask.service';
@@ -30,6 +37,10 @@ export type AppDeps = {
   ask?: AskDeps;
   /** Google Calendar. Left out (tests, or a server without Google keys) = feature switched off. */
   integrations?: IntegrationsService;
+  /** Sign in with Google. Left out (tests, or a server without Google keys) = no Google button. */
+  googleSignIn?: GoogleSignInClient;
+  /** Sends "forgot password" emails (EmailJS). Left out (tests, or no EmailJS keys) = no email. */
+  email?: EmailClient;
 };
 
 const disabledIntegrations = () =>
@@ -38,6 +49,17 @@ const disabledIntegrations = () =>
     encryptionKey: undefined,
     webOrigin: env.WEB_ORIGIN,
   });
+
+const disabledEmail = () =>
+  createEmailJsClient({
+    serviceId: undefined,
+    templateId: undefined,
+    publicKey: undefined,
+    privateKey: undefined,
+  });
+
+const disabledGoogleSignIn = () =>
+  createGoogleSignInClient({ clientId: undefined, clientSecret: undefined, redirectUri: '' });
 
 // Builds the app without starting a server, so tests can call it directly with Supertest.
 // Dependencies are passed in (not imported), so tests can swap them without touching real services.
@@ -84,7 +106,27 @@ export function createApp(deps: AppDeps) {
     const body: HealthResponse = { status: 'ok' };
     res.json(body);
   });
-  api.use('/auth', createAuthRouter());
+  const email = deps.email ?? disabledEmail();
+  const welcome = createWelcomeMailer({ email, webOrigin: env.WEB_ORIGIN });
+  const googleAuth = createGoogleAuthController(
+    createGoogleAuthService(deps.googleSignIn ?? disabledGoogleSignIn()),
+    env.WEB_ORIGIN,
+    welcome,
+  );
+  const passwordReset = createPasswordResetService({
+    email,
+    webOrigin: env.WEB_ORIGIN,
+    showLinkInLogs: env.NODE_ENV === 'development',
+  });
+  api.use(
+    '/auth',
+    createAuthRouter({
+      google: googleAuth,
+      passwordReset: createPasswordResetController(passwordReset),
+      passwordResetAvailable: passwordReset.available,
+      welcome,
+    }),
+  );
   api.use('/meetings', createMeetingsRouter(deps));
   api.use('/projects', createProjectsRouter());
   const integrations = createIntegrationsController(

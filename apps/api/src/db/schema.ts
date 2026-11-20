@@ -38,7 +38,11 @@ export const users = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     // Always stored lowercase (the service normalises it) so "Alice@x.com" and "alice@x.com" match.
     email: text('email').notNull(),
-    passwordHash: text('password_hash').notNull(),
+    // Null for accounts made with Google: they have no password and sign in with Google only.
+    passwordHash: text('password_hash'),
+    // Google's permanent id for the person ("sub"), once they've signed in with Google. We match
+    // on this, not the email: the email on a Google account can change, the sub never does.
+    googleSub: text('google_sub'),
     name: text('name').notNull(),
     ...timestamps,
     // Soft delete: the row stays (for history and integrity) but the account can't be used.
@@ -49,6 +53,10 @@ export const users = pgTable(
     uniqueIndex('users_email_active_unique')
       .on(t.email)
       .where(sql`${t.deletedAt} is null`),
+    // One active account per Google account.
+    uniqueIndex('users_google_sub_active_unique')
+      .on(t.googleSub)
+      .where(sql`${t.deletedAt} is null and ${t.googleSub} is not null`),
   ],
 ).enableRLS();
 
@@ -65,6 +73,24 @@ export const sessions = pgTable(
     ...timestamps,
   },
   (t) => [index('sessions_user_id_idx').on(t.userId)],
+).enableRLS();
+
+/** "Forgot password" links. One per user at a time; asking again replaces it. */
+export const passwordResets = pgTable(
+  'password_resets',
+  {
+    // SHA-256 hash of the token in the emailed link, like sessions: a database leak doesn't
+    // hand out working reset links.
+    id: text('id').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    // Set when the link is used, so it only ever works once.
+    usedAt: timestamp('used_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [index('password_resets_user_id_idx').on(t.userId)],
 ).enableRLS();
 
 // Postgres enums: the database itself rejects any value outside these lists.

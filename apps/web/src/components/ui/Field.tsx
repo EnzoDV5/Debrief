@@ -12,6 +12,11 @@ type FieldProps = {
   label: string;
   hint?: ReactNode;
   error?: string;
+  /**
+   * Keep one line of space for the hint/error even when there's none, so a message appearing
+   * never pushes the rest of the form down (the sign-in forms use this).
+   */
+  reserveMessage?: boolean;
   /** Render prop: spread the given props onto the input so everything is wired up. */
   children: (control: FieldControlProps) => ReactNode;
 };
@@ -22,11 +27,23 @@ type FieldProps = {
  *     {(control) => <Input {...control} {...register('email')} />}
  *   </Field>
  */
-export function Field({ label, hint, error, children }: FieldProps) {
+export function Field({ label, hint, error, reserveMessage = false, children }: FieldProps) {
   const id = useId();
   const hintId = `${id}-hint`;
   const errorId = `${id}-error`;
-  const describedBy = [hint && hintId, error && errorId].filter(Boolean).join(' ') || undefined;
+  // Points at the message actually on screen (an error replaces the hint).
+  const describedBy = error ? errorId : hint ? hintId : undefined;
+
+  const message = error ? (
+    <p id={errorId} className="flex items-start gap-1.5 text-sm font-medium text-danger">
+      <CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+      {error}
+    </p>
+  ) : hint ? (
+    <p id={hintId} className="text-sm text-muted">
+      {hint}
+    </p>
+  ) : null;
 
   return (
     <div className="space-y-1.5">
@@ -34,17 +51,8 @@ export function Field({ label, hint, error, children }: FieldProps) {
         {label}
       </label>
       {children({ id, 'aria-invalid': Boolean(error), 'aria-describedby': describedBy })}
-      {hint && !error && (
-        <p id={hintId} className="text-sm text-muted">
-          {hint}
-        </p>
-      )}
-      {error && (
-        <p id={errorId} className="flex items-start gap-1.5 text-sm font-medium text-danger">
-          <CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-          {error}
-        </p>
-      )}
+      {/* Reserved: always exactly one line tall (text-sm), empty or not. */}
+      {reserveMessage ? <div className="min-h-5.25">{message}</div> : message}
     </div>
   );
 }

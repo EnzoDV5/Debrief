@@ -62,7 +62,7 @@ export function AccountPage() {
           <h2 className="text-lg font-bold text-danger">Delete account</h2>
           <p className="mt-1 text-sm text-muted">
             Deactivates your account straight away and logs you out everywhere. You&apos;ll need
-            your password to confirm.
+            {user.hasPassword ? ' your password' : ' to type your email'} to confirm.
           </p>
           <Button
             variant="danger"
@@ -78,9 +78,7 @@ export function AccountPage() {
       <DeleteAccountDialog
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
-        onDeleted={() =>
-          navigate('/login', { replace: true, state: { notice: 'account-deleted' } })
-        }
+        onDeleted={() => navigate('/login', { replace: true })}
       />
     </>
   );

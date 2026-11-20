@@ -1,6 +1,8 @@
 import { loginSchema } from '@debrief/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
+import type { ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
+import { AuthMessage } from '@/components/layout/AuthMessage';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Field } from '@/components/ui/Field';
@@ -8,7 +10,14 @@ import { Input, PasswordInput } from '@/components/ui/Input';
 import { applyApiError } from '@/lib/formErrors';
 import { useLogin } from './hooks';
 
-export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
+export function LoginForm({
+  onSuccess,
+  alternative,
+}: {
+  onSuccess: () => void;
+  /** Another way in, shown beside the Log in button (the Google button). */
+  alternative?: ReactNode;
+}) {
   const login = useLogin();
   const {
     register,
@@ -38,10 +47,14 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
 
   return (
     // noValidate: our own inline messages instead of the browser's inconsistent bubbles.
-    <form onSubmit={onSubmit} noValidate className="space-y-5">
-      {errors.root?.server && <Alert tone="danger">{errors.root.server.message}</Alert>}
+    <form onSubmit={onSubmit} noValidate className="space-y-3">
+      {errors.root?.server && (
+        <AuthMessage>
+          <Alert tone="danger">{errors.root.server.message}</Alert>
+        </AuthMessage>
+      )}
 
-      <Field label="Email" error={errors.email?.message}>
+      <Field label="Email" error={errors.email?.message} reserveMessage>
         {(control) => (
           <Input
             {...control}
@@ -54,15 +67,21 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
         )}
       </Field>
 
-      <Field label="Password" error={errors.password?.message}>
+      <Field label="Password" error={errors.password?.message} reserveMessage>
         {(control) => (
           <PasswordInput {...control} {...register('password')} autoComplete="current-password" />
         )}
       </Field>
 
-      <Button type="submit" fullWidth loading={isSubmitting}>
-        {isSubmitting ? 'Logging in…' : 'Log in'}
-      </Button>
+      {/* Side by side from sm up, stacked on narrow phones. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="sm:flex-1">
+          <Button type="submit" fullWidth loading={isSubmitting}>
+            {isSubmitting ? 'Logging in…' : 'Log in'}
+          </Button>
+        </div>
+        {alternative}
+      </div>
     </form>
   );
 }

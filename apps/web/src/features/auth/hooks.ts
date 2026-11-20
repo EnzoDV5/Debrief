@@ -1,12 +1,16 @@
 import {
+  authProvidersSchema,
   authResponseSchema,
   type DeleteAccountInput,
+  type ForgotPasswordInput,
   type LoginInput,
   type PublicUser,
   type RegisterInput,
+  type ResetPasswordInput,
 } from '@debrief/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, request, requestNoContent } from '@/api/client';
+import { setFlash } from '@/lib/flash';
 
 export const meQueryKey = ['auth', 'me'] as const;
 
@@ -25,6 +29,18 @@ export function useMe() {
         throw error;
       }
     },
+  });
+}
+
+/**
+ * Which sign-in options the server offers (Google only when it's set up there). Fetched once per
+ * visit: it only changes when the server's configuration does.
+ */
+export function useAuthProviders() {
+  return useQuery({
+    queryKey: ['auth', 'providers'],
+    queryFn: () => request('/auth/providers', { schema: authProvidersSchema }),
+    staleTime: Infinity,
   });
 }
 
@@ -58,7 +74,11 @@ export function useRegister() {
 function useSignedOut() {
   const queryClient = useQueryClient();
   return () => {
-    queryClient.clear();
+    // Forget everything this user loaded, except "who is logged in", which becomes "nobody".
+    // (Removing that one too would make the screens still showing ask the server again.)
+    queryClient.removeQueries({
+      predicate: (query) => !(query.queryKey[0] === 'auth' && query.queryKey[1] === 'me'),
+    });
     queryClient.setQueryData(meQueryKey, null);
   };
 }
@@ -77,6 +97,31 @@ export function useDeleteAccount() {
   return useMutation({
     mutationFn: (input: DeleteAccountInput) =>
       requestNoContent('/auth/account', { method: 'DELETE', body: input }),
+    // The message first: signing out sends the page to /login straight away.
+    onSuccess: () => {
+      setFlash('account-deleted');
+      signedOut();
+    },
+  });
+}
+
+/** "Forgot password": asks the server to email a reset link. Always succeeds (see the api). */
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: (input: ForgotPasswordInput) =>
+      requestNoContent('/auth/forgot-password', { method: 'POST', body: input }),
+  });
+}
+
+/**
+ * Sets a new password with the token from the emailed link. The server ends every session, so
+ * anything this browser still thinks about who's logged in is cleared too.
+ */
+export function useResetPassword() {
+  const signedOut = useSignedOut();
+  return useMutation({
+    mutationFn: (input: ResetPasswordInput) =>
+      requestNoContent('/auth/reset-password', { method: 'POST', body: input }),
     onSuccess: signedOut,
   });
 }

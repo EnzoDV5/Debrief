@@ -50,6 +50,20 @@
       "when": 1795168363533,
       "tag": "0006_item_edited_at",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795195921038,
+      "tag": "0007_google_sign_in",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795197838083,
+      "tag": "0008_password_resets",
+      "breakpoints": true
     }
   ]
 }

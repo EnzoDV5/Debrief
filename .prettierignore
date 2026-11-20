@@ -7,3 +7,6 @@ docs/private
 apps/api/drizzle
 # Hand-written project rules: keep my formatting as-is.
 CLAUDE.md
+
+# Email templates are pasted into EmailJS as-is (email HTML, laid out for email clients).
+docs/email-templates/*.html

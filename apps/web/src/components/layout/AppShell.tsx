@@ -11,7 +11,7 @@ import {
   UserRound,
   X,
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { Button } from '@/components/ui/Button';
 import { Logo } from '@/components/ui/Logo';
@@ -19,6 +19,7 @@ import { useCurrentUser, useLogout } from '@/features/auth/hooks';
 import { useMeetings } from '@/features/meetings/hooks';
 import { MeetingMenu } from '@/features/meetings/MeetingMenu';
 import { cn } from '@/lib/cn';
+import { AUTH_PANEL_LEFT, type EntranceState } from './authExit';
 import { PageBarSlot, PanelOverlaySlot } from './PageBar';
 import { PanelBackdrop } from './PanelBackdrop';
 import { ShellFrameContext, type ShellFrameClasses } from './shellFrame';
@@ -48,6 +49,42 @@ function useSidebarCollapsed() {
 }
 
 /**
+ * Straight after signing in: play the entrance (panel grows from where the sign-in panel was,
+ * sidebar slides in, page fades in). Told by navigation state from the sign-in forms, or by
+ * ?signed_in=new|back after a Google sign-in (a full page load, so state can't be used). The
+ * latter is turned into the same state and removed from the address bar, so a refresh or a
+ * shared link never replays it, and the meetings page can welcome a new Google account.
+ */
+function useEntrance() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const signedIn = new URLSearchParams(location.search).get('signed_in');
+  const [entering, setEntering] = useState(
+    () => Boolean((location.state as EntranceState | null)?.entrance) || signedIn !== null,
+  );
+
+  useEffect(() => {
+    if (signedIn === null) return;
+    const params = new URLSearchParams(location.search);
+    params.delete('signed_in');
+    const search = params.size ? `?${params}` : '';
+    navigate(`${location.pathname}${search}${location.hash}`, {
+      replace: true,
+      state: { entrance: true, welcome: signedIn === 'new' } satisfies EntranceState,
+    });
+  }, [signedIn, location.pathname, location.search, location.hash, navigate]);
+
+  // Once it has played, later page changes use the normal page transition.
+  useEffect(() => {
+    if (!entering) return;
+    const timer = setTimeout(() => setEntering(false), 1400);
+    return () => clearTimeout(timer);
+  }, [entering]);
+
+  return entering;
+}
+
+/**
  * Conversation-style workspace: history stays in reach while the current meeting is open.
  * On desktop the page sits in a rounded panel framed by the sidebar colour, and the panel (not
  * the window) scrolls, so the frame and sidebar never move. The sidebar can collapse to icons,
@@ -58,6 +95,7 @@ export function AppShell() {
   const { mainRef, scrollRef } = useMainFocusOnNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const { collapsed, toggle } = useSidebarCollapsed();
+  const entering = useEntrance();
   // State (not a ref) so pages re-render with the element once it exists.
   const [pageBarSlot, setPageBarSlot] = useState<HTMLDivElement | null>(null);
   const [panelOverlay, setPanelOverlay] = useState<HTMLDivElement | null>(null);
@@ -75,6 +113,7 @@ export function AppShell() {
         className={cn(
           'hidden shrink-0 flex-col overflow-hidden bg-sidebar text-sidebar-fg transition-[width] duration-300 ease-out-3 lg:flex',
           collapsed ? 'w-rail' : 'w-sidebar',
+          entering && 'lg:animate-sidebar-in',
         )}
       >
         <SidebarContent collapsed={collapsed} onToggleCollapsed={toggle} />
@@ -110,7 +149,17 @@ export function AppShell() {
         id="main"
         ref={mainRef}
         tabIndex={-1}
-        className="min-w-0 outline-none lg:my-5 lg:mr-5 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col"
+        className={cn(
+          'min-w-0 outline-none lg:my-5 lg:mr-5 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col',
+          entering && 'lg:animate-panel-expand',
+        )}
+        // The entrance starts the panel where the sign-in page's panel was: that edge, measured
+        // from this panel's left (just right of the sidebar).
+        style={
+          {
+            '--panel-from': `max(0px, calc(${AUTH_PANEL_LEFT} - var(${collapsed ? '--spacing-rail' : '--spacing-sidebar'})))`,
+          } as CSSProperties
+        }
       >
         {/* Page bar slot: empty (no height) unless the page fills it. Layered above the page
             (z-30), so its menus open over the content (e.g. the Ask card) and the mobile
@@ -159,7 +208,10 @@ export function AppShell() {
                   <PanelOverlaySlot.Provider value={panelOverlay}>
                     {/* Keyed by path, so each newly opened page plays its fade-in while the
                         panel slides to the new page's width. */}
-                    <div key={pathname} className="animate-page-in">
+                    <div
+                      key={pathname}
+                      className={entering ? 'animate-page-enter' : 'animate-page-in'}
+                    >
                       <Outlet />
                     </div>
                   </PanelOverlaySlot.Provider>

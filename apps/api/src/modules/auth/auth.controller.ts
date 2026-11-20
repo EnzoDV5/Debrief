@@ -18,11 +18,13 @@ function cookieToken(req: Request): string | undefined {
 }
 
 export const authController = {
+  /** Returns the new user, so the route can send the welcome email after answering. */
   async register(req: Request, res: Response) {
     const input = registerSchema.parse(req.body);
     const { user, token } = await authService.register(input);
     setSessionCookie(res, token);
     res.status(201).json({ user } satisfies AuthResponse);
+    return user;
   },
 
   async login(req: Request, res: Response) {
