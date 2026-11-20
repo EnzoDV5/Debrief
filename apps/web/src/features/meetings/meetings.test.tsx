@@ -509,6 +509,50 @@ describe('meeting detail', () => {
     );
   });
 
+  it('adds to a project, archives and offers delete from the meeting bar', async () => {
+    const projectId = '5d1c6b8e-2f3a-4c5d-8e9f-0a1b2c3d4e5f';
+    let current: Meeting = { ...meeting };
+    const patches: unknown[] = [];
+    mockApi({
+      ...me,
+      [`GET ${detailUrl}`]: () => ({ status: 200, body: { meeting: current } }),
+      'GET /api/projects': {
+        status: 200,
+        body: {
+          projects: [{ id: projectId, name: 'Launch', createdAt: '2026-11-01T08:00:00.000Z' }],
+        },
+      },
+      [`PATCH ${detailUrl}`]: (body) => {
+        patches.push(body);
+        const patch = body as { projectId?: string | null; archived?: boolean };
+        current = {
+          ...current,
+          ...('projectId' in patch ? { projectId: patch.projectId ?? null } : {}),
+          ...('archived' in patch
+            ? { archivedAt: patch.archived ? '2026-11-20T10:00:00.000Z' : null }
+            : {}),
+        };
+        return { status: 200, body: { meeting: current } };
+      },
+    });
+    const user = userEvent.setup();
+    renderApp(`/meetings/${meeting.id}`);
+
+    // Project menu: shows the chosen project's name afterwards.
+    await user.click(await screen.findByText('Add to project'));
+    await user.click(await screen.findByRole('button', { name: 'Launch' }));
+    expect(await screen.findByText('Launch', { selector: 'summary span' })).toBeInTheDocument();
+
+    // Archive toggles to Restore (the meeting stays open, so it can be undone here).
+    await user.click(screen.getByRole('button', { name: 'Archive' }));
+    expect(await screen.findByRole('button', { name: 'Restore' })).toBeInTheDocument();
+    expect(patches).toEqual([{ projectId }, { archived: true }]);
+
+    // Delete is an icon button that asks first.
+    await user.click(screen.getByRole('button', { name: 'Delete meeting' }));
+    expect(screen.getByRole('dialog')).toHaveTextContent(meeting.title);
+  });
+
   it('confirms a re-analysis and keeps existing results visible while it runs', async () => {
     let current: Meeting = { ...meeting, analysisStatus: 'done', summary: 'Original summary' };
     const fetchMock = mockApi({

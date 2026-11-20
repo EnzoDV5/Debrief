@@ -50,6 +50,7 @@
   --color-danger: #b42318;
   --color-danger-soft: #fdeceb;
   --color-danger-hover: #8f1c13;
+  --color-danger-light: #f97066; /* red on the dark frame/sidebar: 5:1 on sidebar-hover */
 
   /* Type */
   --font-sans:

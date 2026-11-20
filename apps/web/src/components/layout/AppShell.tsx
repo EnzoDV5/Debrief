@@ -110,9 +110,10 @@ export function AppShell() {
         tabIndex={-1}
         className="min-w-0 outline-none lg:my-5 lg:mr-5 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col"
       >
-        {/* Page bar slot: empty (no height) unless the page fills it. Positioned so the mobile
+        {/* Page bar slot: empty (no height) unless the page fills it. Layered above the page
+            (z-30), so its menus open over the content (e.g. the Ask card) and the mobile
             backdrop, which comes later in the DOM, doesn't paint over it. */}
-        <div ref={setPageBarSlot} className="relative z-10" />
+        <div ref={setPageBarSlot} className="relative z-30" />
         <div
           className={cn(
             'relative lg:min-h-0 lg:flex-1',

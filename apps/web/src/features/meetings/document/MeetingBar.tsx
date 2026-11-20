@@ -1,13 +1,6 @@
 import type { Meeting } from '@debrief/shared';
 import { CalendarDays, ChevronDown, Pencil, RotateCcw, Rows3 } from 'lucide-react';
-import {
-  useId,
-  useRef,
-  useState,
-  type ComponentProps,
-  type FormEvent,
-  type KeyboardEvent,
-} from 'react';
+import { useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Collapsible } from '@/components/ui/Collapsible';
@@ -18,6 +11,7 @@ import { formatCalendarDate, plural } from '@/lib/format';
 import { usePageTitle } from '@/lib/usePageTitle';
 import { AnalysisStatusBadge } from '../AnalysisStatusBadge';
 import { useAnalyzeMeeting, useUpdateMeeting } from '../hooks';
+import { ArchiveButton, BarButton, DeleteButton, ProjectMenu } from './MeetingBarActions';
 
 const sourceLabels: Record<Meeting['sourceType'], string> = {
   paste: 'Pasted text',
@@ -88,12 +82,15 @@ export function MeetingBar({ meeting }: { meeting: Meeting }) {
               className={cn('size-4 transition-transform', summaryOpen && 'rotate-180')}
             />
           </BarButton>
+          <ProjectMenu meeting={meeting} />
+          <ArchiveButton meeting={meeting} />
           {analysed && !running && (
-            <BarButton onClick={() => setConfirmRerun(true)}>
+            <BarButton tone="highlight" onClick={() => setConfirmRerun(true)}>
               <RotateCcw aria-hidden="true" className="size-4" />
               Re-analyse
             </BarButton>
           )}
+          <DeleteButton meeting={meeting} />
         </div>
       </div>
 
@@ -156,27 +153,6 @@ export function MeetingBar({ meeting }: { meeting: Meeting }) {
         </div>
       </Dialog>
     </div>
-  );
-}
-
-/**
- * A bar action. Light glass on mobile (page background); on desktop it matches the dark frame
- * it sits on, like the sidebar's items. Highlighted while its panel is open.
- */
-function BarButton({ className, ...props }: ComponentProps<'button'>) {
-  const expanded = props['aria-expanded'] === true;
-  return (
-    <button
-      type="button"
-      {...props}
-      className={cn(
-        'inline-flex min-h-9 items-center gap-1.5 rounded-md border px-3 text-sm font-semibold transition-colors',
-        'border-line-strong bg-surface/60 text-fg shadow-card hover:bg-surface',
-        'lg:border-sidebar-line lg:bg-sidebar-hover lg:text-sidebar-fg lg:shadow-none lg:hover:bg-sidebar-active lg:hover:text-white lg:focus-visible:outline-white',
-        expanded && 'bg-accent-soft text-accent lg:bg-sidebar-active lg:text-white',
-        className,
-      )}
-    />
   );
 }
 
