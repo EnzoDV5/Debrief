@@ -261,7 +261,8 @@ describe('meeting detail', () => {
     const user = userEvent.setup();
     const { router } = renderApp(`/meetings/${meeting.id}`);
 
-    await screen.findByRole('heading', { name: 'Ask this meeting' });
+    // Ask lives in a dropdown in the meeting bar: open it first.
+    await user.click(await screen.findByRole('button', { name: 'Ask this meeting' }));
     await user.click(screen.getByRole('button', { name: 'What decisions were made?' }));
     const input = screen.getByRole('textbox', { name: 'Ask a question about this meeting' });
     expect(input).toHaveValue('What decisions were made?');
@@ -298,7 +299,8 @@ describe('meeting detail', () => {
     });
     const user = userEvent.setup();
     renderApp(`/meetings/${meeting.id}`);
-    const input = await screen.findByRole('textbox', { name: 'Ask a question about this meeting' });
+    await user.click(await screen.findByRole('button', { name: 'Ask this meeting' }));
+    const input = screen.getByRole('textbox', { name: 'Ask a question about this meeting' });
     await user.type(input, 'What is blocking progress?');
     await user.click(screen.getByRole('button', { name: 'Ask' }));
 
@@ -411,6 +413,32 @@ describe('meeting detail', () => {
       ),
     ).toBeInTheDocument();
     expect(within(sourceLine).queryByText(/What was said:/)).not.toBeInTheDocument();
+  });
+
+  it('opens the summary from the meeting bar and closes it with Escape', async () => {
+    mockApi({
+      ...me,
+      [`GET ${detailUrl}`]: {
+        status: 200,
+        body: { meeting: { ...meeting, analysisStatus: 'done', summary: 'The team chose blue.' } },
+      },
+    });
+    const user = userEvent.setup();
+    renderApp(`/meetings/${meeting.id}`);
+
+    const toggle = await screen.findByRole('button', { name: 'Summary' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('region', { name: 'Meeting summary' })).toHaveTextContent(
+      'The team chose blue.',
+    );
+
+    // Escape from inside the panel closes it and puts focus back on its button.
+    await user.click(screen.getByRole('button', { name: 'Edit summary' }));
+    await user.keyboard('{Escape}');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(toggle).toHaveFocus();
   });
 
   it('confirms a re-analysis and keeps existing results visible while it runs', async () => {

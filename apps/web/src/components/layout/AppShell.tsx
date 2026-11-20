@@ -18,17 +18,21 @@ import { useCurrentUser, useLogout } from '@/features/auth/hooks';
 import { useMeetings } from '@/features/meetings/hooks';
 import { MeetingMenu } from '@/features/meetings/MeetingMenu';
 import { cn } from '@/lib/cn';
+import { PageBarSlot } from './PageBar';
 import { PanelBackdrop } from './PanelBackdrop';
 import { SkipLink } from './SkipLink';
 
 /**
  * Conversation-style workspace: history stays in reach while the current meeting is open.
  * On desktop the page sits in a rounded panel framed by the sidebar colour, and the panel (not
- * the window) scrolls, so the frame and sidebar never move.
+ * the window) scrolls, so the frame and sidebar never move. A page can also put a bar above the
+ * panel (see PageBar), which then shrinks to fit below it.
  */
 export function AppShell() {
   const { mainRef, scrollRef } = useMainFocusOnNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  // State (not a ref) so pages re-render with the element once it exists.
+  const [pageBarSlot, setPageBarSlot] = useState<HTMLDivElement | null>(null);
 
   return (
     <div className="min-h-dvh bg-bg lg:flex lg:h-dvh lg:bg-sidebar">
@@ -70,14 +74,21 @@ export function AppShell() {
         id="main"
         ref={mainRef}
         tabIndex={-1}
-        // Desktop: <main> is the rounded frame (clips the blobs); the div inside it scrolls, so
-        // the blobs stay put behind the moving content.
-        className="relative min-w-0 outline-none lg:my-5 lg:mr-5 lg:flex-1 lg:overflow-hidden lg:rounded-panel lg:bg-bg"
+        className="min-w-0 outline-none lg:my-5 lg:mr-5 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col"
       >
-        <PanelBackdrop />
-        <div ref={scrollRef} className="relative lg:scrollbar-panel lg:h-full lg:overflow-y-auto">
-          <div className="mx-auto w-full px-4 py-7 sm:px-8 lg:px-8 lg:py-10">
-            <Outlet />
+        {/* Page bar slot: empty (no height) unless the page fills it. Positioned so the mobile
+            backdrop, which comes later in the DOM, doesn't paint over it. */}
+        <div ref={setPageBarSlot} className="relative z-10" />
+        {/* Desktop: the rounded frame (clips the blobs); the div inside it scrolls, so the blobs
+            stay put behind the moving content. */}
+        <div className="relative lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:rounded-panel lg:bg-bg">
+          <PanelBackdrop />
+          <div ref={scrollRef} className="relative lg:scrollbar-panel lg:h-full lg:overflow-y-auto">
+            <div className="mx-auto w-full px-4 py-7 sm:px-8 lg:px-8 lg:py-10">
+              <PageBarSlot.Provider value={pageBarSlot}>
+                <Outlet />
+              </PageBarSlot.Provider>
+            </div>
           </div>
         </div>
       </main>

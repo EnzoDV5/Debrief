@@ -1,25 +1,16 @@
 import type { Meeting } from '@debrief/shared';
-import { CalendarDays, FileSearch, Rows3 } from 'lucide-react';
+import { FileSearch } from 'lucide-react';
 import { useParams } from 'react-router';
 import { ApiError } from '@/api/client';
-import { PageHeader } from '@/components/layout/PageHeader';
+import { PageBar } from '@/components/layout/PageBar';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { MeetingDocument } from '@/features/meetings/document/MeetingDocument';
-import { MeetingOverview } from '@/features/meetings/document/MeetingOverview';
-import { AskMeetingCard } from '@/features/meetings/document/AskMeetingCard';
+import { MeetingBar } from '@/features/meetings/document/MeetingBar';
 import { useMeeting } from '@/features/meetings/hooks';
-import { formatCalendarDate, plural } from '@/lib/format';
 import { usePageTitle } from '@/lib/usePageTitle';
-
-const sourceLabels: Record<Meeting['sourceType'], string> = {
-  paste: 'Pasted text',
-  txt: 'Text file',
-  vtt: 'VTT file',
-  md: 'Markdown file',
-};
 
 export function MeetingDetailPage() {
   const { meetingId = '' } = useParams();
@@ -43,38 +34,17 @@ export function MeetingDetailPage() {
 }
 
 /**
- * Meeting details and summary sit above the reading area; actions stay beside the transcript.
+ * The title, summary and Ask live in a bar above the transcript panel (see MeetingBar), so the
+ * panel holds just the transcript with its action items and decisions beside the lines.
  */
 function MeetingDetail({ meeting }: { meeting: Meeting }) {
   return (
-    <div className="w-full">
-      <div className="border-b border-line pb-8">
-        <PageHeader
-          title={meeting.title}
-          description={
-            <span className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <span className="inline-flex items-center gap-1.5">
-                <CalendarDays aria-hidden="true" className="size-4" />
-                {formatCalendarDate(meeting.meetingDate)}
-              </span>
-              <span className="inline-flex items-center gap-1.5 numeric">
-                <Rows3 aria-hidden="true" className="size-4" />
-                {plural(meeting.transcriptLines.length, 'line')} ·{' '}
-                {sourceLabels[meeting.sourceType]}
-              </span>
-            </span>
-          }
-        />
-        <section aria-label="Meeting summary">
-          <MeetingOverview meeting={meeting} />
-        </section>
-        <AskMeetingCard key={meeting.id} meetingId={meeting.id} />
-      </div>
-
-      <div className="pt-8">
-        <MeetingDocument meeting={meeting} />
-      </div>
-    </div>
+    <>
+      <PageBar>
+        <MeetingBar key={meeting.id} meeting={meeting} />
+      </PageBar>
+      <MeetingDocument meeting={meeting} />
+    </>
   );
 }
 

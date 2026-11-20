@@ -42,7 +42,8 @@ export function AskMeetingCard({ meetingId }: { meetingId: string }) {
       role="region"
       aria-label="Ask this meeting"
       aria-busy={ask.isPending}
-      className="mt-4 p-4 sm:p-5"
+      // Solid on desktop, where it opens over the dark frame (see MeetingBar).
+      className="p-4 sm:p-5 lg:scrollbar-panel lg:max-h-[40vh] lg:overflow-y-auto lg:bg-surface"
     >
       <div className="flex items-start gap-3">
         <span
