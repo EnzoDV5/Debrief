@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { ActionItemCard } from '@/features/actionItems/ActionItemCard';
 import { ActionItemDialog } from '@/features/actionItems/ActionItemDialog';
 import { DeleteActionItemDialog } from '@/features/actionItems/DeleteActionItemDialog';
-import { EditedLabel } from './DecisionBubble';
 
 /** An action and its source context, rendered beside its transcript line. */
 export function MeetingActionCard({
@@ -30,6 +29,7 @@ export function MeetingActionCard({
         onActiveChange={onActiveChange}
         onEdit={() => setEditing(true)}
         onDelete={() => setDeleting(true)}
+        line={item.sourceLine}
         source={<ActionContext meeting={meeting} item={item} />}
       />
       <ActionItemDialog
@@ -55,20 +55,12 @@ function ActionContext({ meeting, item }: { meeting: Meeting; item: ActionItem }
       </div>
     );
   const summary = contextSummary(item, line);
+  // A quiet quote line rather than a box: it's background, so it shouldn't compete with the task.
   return (
-    <>
-      <div className="rounded-md bg-surface-2/70 px-3 py-2 text-sm leading-6 text-muted">
-        <p>
-          <span className="font-semibold text-fg">In brief: </span>
-          {summary}
-        </p>
-      </div>
-      {item.editedAt !== null && (
-        <p className="mt-1.5 text-sm text-muted">
-          <EditedLabel />
-        </p>
-      )}
-    </>
+    <p className="border-l-2 border-line pl-3 text-sm leading-6 text-muted">
+      <span className="font-semibold text-fg">In brief: </span>
+      {summary}
+    </p>
   );
 }
 

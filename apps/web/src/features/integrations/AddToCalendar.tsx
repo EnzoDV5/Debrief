@@ -27,10 +27,13 @@ export function AddToCalendar({ item }: { item: ActionItem }) {
   }
 
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
       <Button
-        variant="secondary"
+        // A light, secondary action on the card: ghost, pulled left so its icon lines up with
+        // the text above.
+        variant="ghost"
         size="sm"
+        className="-ml-2.5"
         loading={add.isPending}
         icon={
           item.inCalendar ? (

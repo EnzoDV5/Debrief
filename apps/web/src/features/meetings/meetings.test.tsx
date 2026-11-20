@@ -412,7 +412,7 @@ describe('meeting detail', () => {
     expect(await screen.findByText('The team chose blue.')).toBeInTheDocument();
     const decisionLine = document.getElementById('L1')!;
     expect(within(decisionLine).getByText('Use blue')).toBeInTheDocument();
-    expect(within(decisionLine).getByText('Agreed decision')).toBeInTheDocument();
+    expect(within(decisionLine).getByText('Decision')).toBeInTheDocument();
     // Nothing edited yet: no label, and the highlights are solid fills (the card quotes them).
     expect(screen.queryByText('Edited by you')).not.toBeInTheDocument();
     expect(document.querySelector('mark[data-edited]')).toBeNull();

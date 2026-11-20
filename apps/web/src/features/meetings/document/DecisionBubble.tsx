@@ -1,12 +1,11 @@
 import type { Decision } from '@debrief/shared';
-import { Check, Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { IconButton, LineLink } from '@/features/actionItems/ActionItemCard';
+import { IconButton, NoteCardHeader, noteCardClass } from '@/features/actionItems/ActionItemCard';
 import { useDeleteDecision, useUpdateDecision } from '@/features/actionItems/hooks';
-import { cn } from '@/lib/cn';
 
 /** A decision card beside the transcript line where the choice was made. */
 export function DecisionBubble({
@@ -30,36 +29,34 @@ export function DecisionBubble({
       onMouseLeave={() => onActiveChange?.(false)}
       onFocus={() => onActiveChange?.(true)}
       onBlur={() => onActiveChange?.(false)}
-      className={cn(
-        'rounded-md border border-l-4 border-white/70 border-l-success glass p-3 text-sm shadow-card transition-shadow',
-        active && 'ring-2 ring-success/40',
-      )}
+      className={noteCardClass('decision', active)}
     >
-      <div className="flex items-start justify-between gap-2">
-        <p className="mt-1 inline-flex items-center gap-1.5 eyebrow text-success">
-          <Check aria-hidden="true" className="size-3.5" />
-          Agreed decision
-        </p>
-        {draft === null && (
-          <div className="-mt-1 -mr-1 flex shrink-0">
-            <IconButton
-              label={`Edit decision “${decision.text}”`}
-              onClick={() => setDraft(decision.text)}
-            >
-              <Pencil aria-hidden="true" className="size-4" />
-            </IconButton>
-            <IconButton
-              label={`Delete decision “${decision.text}”`}
-              onClick={() => remove.mutate(decision.id)}
-            >
-              <Trash2 aria-hidden="true" className="size-4" />
-            </IconButton>
-          </div>
-        )}
-      </div>
+      <NoteCardHeader
+        kind="decision"
+        line={decision.sourceLine}
+        edited={decision.editedAt !== null}
+        actions={
+          draft === null && (
+            <>
+              <IconButton
+                label={`Edit decision “${decision.text}”`}
+                onClick={() => setDraft(decision.text)}
+              >
+                <Pencil aria-hidden="true" className="size-4" />
+              </IconButton>
+              <IconButton
+                label={`Delete decision “${decision.text}”`}
+                onClick={() => remove.mutate(decision.id)}
+              >
+                <Trash2 aria-hidden="true" className="size-4" />
+              </IconButton>
+            </>
+          )
+        }
+      />
 
       {draft === null ? (
-        <p className="mt-1 font-semibold">{decision.text}</p>
+        <p className="mt-2 leading-snug font-semibold text-pretty">{decision.text}</p>
       ) : (
         <form
           className="mt-2 space-y-2"
@@ -85,32 +82,11 @@ export function DecisionBubble({
           </div>
         </form>
       )}
-      {(decision.sourceLine !== null || decision.editedAt !== null) && (
-        <p className="mt-2 text-sm text-muted">
-          {decision.sourceLine !== null && (
-            <>
-              Source: <LineLink line={decision.sourceLine} meetingId={meetingId} />
-            </>
-          )}
-          {decision.sourceLine !== null && decision.editedAt !== null && ' · '}
-          {/* The transcript stays as it was said; this tells the reader the card was reworded. */}
-          {decision.editedAt !== null && <EditedLabel />}
-        </p>
-      )}
       {remove.error && (
-        <p role="alert" className="mt-2 text-danger">
+        <p role="alert" className="mt-2 text-sm text-danger">
           Couldn’t delete: {remove.error.message}
         </p>
       )}
     </article>
-  );
-}
-
-/** "Edited by you", with a tooltip saying the transcript line keeps the original words. */
-export function EditedLabel() {
-  return (
-    <span title="You changed this card. The transcript still shows what was originally said.">
-      Edited by you
-    </span>
   );
 }
