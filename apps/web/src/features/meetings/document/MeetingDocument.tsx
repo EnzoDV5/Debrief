@@ -118,7 +118,11 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
     return { byLine: map, unlinkedItems: looseItems, unlinkedDecisions: looseDecisions };
   }, [meeting.transcriptLines, meeting.actionItems, meeting.decisions]);
 
-  // Dots for the transcript map: one per line and kind, labelled with what's there.
+  const lineNumbers = useMemo(
+    () => meeting.transcriptLines.map((line) => line.n),
+    [meeting.transcriptLines],
+  );
+  // Long ticks for the transcript map: one per line and kind, labelled with what's there.
   const mapMarkers = useMemo(() => {
     const markers: MapMarker[] = [];
     for (const [line, notes] of [...byLine].sort(([a], [b]) => a - b)) {
@@ -334,7 +338,7 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
         </section>
       )}
 
-      <TranscriptMap listRef={transcriptRef} markers={mapMarkers} />
+      <TranscriptMap listRef={transcriptRef} lines={lineNumbers} markers={mapMarkers} />
       {toolbar && <PickToolbar state={toolbar} onChoose={choose} onClose={closeToolbar} />}
       {creating?.kind === 'action' && (
         <ActionItemDialog
