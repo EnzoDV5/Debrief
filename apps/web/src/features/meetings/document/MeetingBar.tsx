@@ -11,7 +11,6 @@ import {
 } from 'react';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { Dialog } from '@/components/ui/Dialog';
 import { Textarea } from '@/components/ui/Input';
 import { cn } from '@/lib/cn';
@@ -142,21 +141,20 @@ export function MeetingBar({ meeting }: { meeting: Meeting }) {
       )}
 
       <Collapsible id={summaryId} open={open === 'summary'}>
-        <Card
-          role="region"
+        {/* No card: the summary reads as plain text on the page (light) or the dark frame. */}
+        <section
           aria-label="Meeting summary"
-          // Solid on desktop: see-through glass over the dark frame would turn grey.
-          className="p-5 sm:p-6 lg:scrollbar-panel lg:max-h-[40vh] lg:overflow-y-auto lg:bg-surface"
+          className="px-1 lg:scrollbar-panel lg:max-h-[40vh] lg:overflow-y-auto lg:pr-3 lg:text-sidebar-fg"
         >
-          <h2 className="eyebrow text-accent">Summary</h2>
+          <h2 className="eyebrow text-accent lg:text-spark">Summary</h2>
           {analysed ? (
             <SummaryText meeting={meeting} />
           ) : (
-            <p className="mt-3 text-muted">
+            <p className="mt-3 text-muted lg:text-sidebar-muted">
               The summary appears here once the AI has read the transcript.
             </p>
           )}
-        </Card>
+        </section>
       </Collapsible>
       <Collapsible id={askId} open={open === 'ask'}>
         <AskMeetingCard key={meeting.id} meetingId={meeting.id} />
@@ -268,16 +266,14 @@ function SummaryText({ meeting }: { meeting: Meeting }) {
   return (
     <div className="mt-3 flex items-start gap-3">
       <p className="flex-1 text-base leading-7 whitespace-pre-wrap">{meeting.summary}</p>
-      <Button
-        variant="ghost"
-        size="sm"
-        icon={<Pencil aria-hidden="true" className="size-4" />}
+      <BarButton
         onClick={() => setDraft(meeting.summary ?? '')}
         // Explicit label: a visually hidden " summary" span can lose its space ("Editsummary").
         aria-label="Edit summary"
       >
+        <Pencil aria-hidden="true" className="size-4" />
         Edit
-      </Button>
+      </BarButton>
     </div>
   );
 }
