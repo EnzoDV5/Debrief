@@ -10,8 +10,8 @@ import {
   type KeyboardEvent,
 } from 'react';
 import { useLocation } from 'react-router';
-import { Button } from '@/components/ui/Button';
-import { Collapsible } from '@/components/ui/Collapsible';
+import { PanelBackdrop } from '@/components/layout/PanelBackdrop';
+import { useBareShellFrame } from '@/components/layout/shellFrame';
 import { ActionItemDialog } from '@/features/actionItems/ActionItemDialog';
 import { cn } from '@/lib/cn';
 import { AskMeetingPanel } from './AskMeetingPanel';
@@ -62,9 +62,20 @@ function marksFor(line: TranscriptLine, notes: Annotations | undefined): Mark[] 
   return marks;
 }
 
+// Layout. From xl each row has two cells: the transcript (on the sheet) and its notes (beside
+// it, on the dark frame). Narrower, the notes stack under their line, inside the sheet.
+const columns =
+  'xl:grid xl:grid-cols-[minmax(0,1fr)_var(--notes)] xl:items-start xl:gap-x-[var(--gap)]';
+const sheetCell = 'px-4 sm:px-8';
+const notesCell = 'px-4 sm:px-8 xl:px-0';
+// Under their line (narrow): indented to the text. Beside it (xl): solid cards, since see-through
+// glass turns grey on the dark frame.
+const cardsCell =
+  'space-y-3 pb-3 pl-16 sm:pl-22 xl:py-2.5 xl:pl-0 xl:[&_.glass]:bg-surface xl:[&_.glass]:bg-none';
+
 /**
- * The transcript panel: Ask at the top, then each line with its action items and decisions
- * beside it (sharing a row, so both sides scroll together). New items come from the text itself:
+ * The transcript: a sheet with each line, and beside it the notes column with Ask at the top
+ * and each line's action items and decisions (sharing a row, so both sides scroll together). New items come from the text itself:
  * click a sentence or select words, then choose Action item or Decision.
  */
 export function MeetingDocument({ meeting }: { meeting: Meeting }) {
@@ -72,15 +83,28 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
   const { hash } = useLocation();
   const targetLine = lineFromHash(hash);
 
-  // Ask this meeting: a dropdown at the top of the panel.
+  // The shell's page panel is switched off: this page draws its own transcript sheet.
+  useBareShellFrame();
+
+  // Ask this meeting: a floating card under its button, at the top of the notes column.
   const [askOpen, setAskOpen] = useState(false);
   const askToggle = useRef<HTMLButtonElement>(null);
+  const askArea = useRef<HTMLDivElement>(null);
   const askId = useId();
   const closeAskOnEscape = (event: KeyboardEvent) => {
     if (event.key !== 'Escape' || !askOpen) return;
-    askToggle.current?.focus(); // the panel becomes inert, so focus can't stay inside it
+    askToggle.current?.focus(); // the card becomes inert, so focus can't stay inside it
     setAskOpen(false);
   };
+  // A click anywhere outside the button and card closes it (it floats over the page).
+  useEffect(() => {
+    if (!askOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!askArea.current?.contains(event.target as Node)) setAskOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [askOpen]);
 
   // Click a sentence / select words / Enter on a line → toolbar → a pre-filled item.
   const transcriptRef = useRef<HTMLOListElement>(null);
@@ -138,10 +162,26 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
   }, [targetLine, meeting.transcriptLines]);
 
   return (
-    <section aria-labelledby="transcript-title" className="min-w-0">
-      <div onKeyDown={closeAskOnEscape} className="border-b border-line pb-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
+    // --notes / --gap: the notes column's width and the gap beside the sheet (wide screens).
+    <section
+      aria-labelledby="transcript-title"
+      className="relative min-w-0 pb-10 text-fg [--gap:1.5rem] [--notes:24rem] 2xl:[--notes:27rem]"
+    >
+      {/* The transcript sheet: one light rounded background behind the left column (all rows),
+          with the drifting blobs held in view while it scrolls. On wide screens it stops short
+          of the notes column, which sits on the dark frame like comments beside a document. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 right-0 left-0 overflow-clip bg-bg lg:rounded-panel xl:right-[calc(var(--notes)+var(--gap))]"
+      >
+        <div className="sticky top-0 h-dvh">
+          <PanelBackdrop contained />
+        </div>
+      </div>
+
+      <div onKeyDown={closeAskOnEscape} className={cn(columns, 'relative z-20')}>
+        <div className={cn(sheetCell, 'pt-7 lg:pt-9')}>
+          <div className="border-b border-line pb-4">
             <h2 id="transcript-title" className="text-lg font-bold">
               Transcript
             </h2>
@@ -153,30 +193,51 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
               </span>
             </p>
           </div>
-          <Button
+        </div>
+
+        {/* Ask this meeting, at the top of the notes column. */}
+        <div ref={askArea} className={cn(notesCell, 'relative pt-4 xl:pt-9')}>
+          <button
             ref={askToggle}
-            variant="secondary"
-            size="sm"
-            icon={<Sparkles aria-hidden="true" className="size-4 text-accent" />}
+            type="button"
             aria-expanded={askOpen}
             aria-controls={askId}
             onClick={() => setAskOpen((open) => !open)}
+            className={cn(
+              'inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-pill border px-4 text-sm font-semibold transition-colors',
+              // Inside the sheet (narrow screens): light. Beside it on the dark frame: dark.
+              'border-line-strong bg-surface text-fg shadow-card hover:bg-surface-2',
+              'xl:border-sidebar-line xl:bg-sidebar-hover xl:text-sidebar-fg xl:shadow-none xl:hover:bg-sidebar-active xl:hover:text-white xl:focus-visible:outline-white',
+              askOpen && 'xl:bg-sidebar-active xl:text-white',
+            )}
           >
+            <Sparkles aria-hidden="true" className="size-4 text-accent xl:text-spark" />
             Ask this meeting
             <ChevronDown
               aria-hidden="true"
               className={cn('size-4 transition-transform', askOpen && 'rotate-180')}
             />
-          </Button>
-        </div>
-        <Collapsible id={askId} open={askOpen}>
-          <div className="pb-2">
-            <AskMeetingPanel meetingId={meeting.id} />
+          </button>
+          {/* Floats over the page instead of pushing the transcript down. Kept mounted while
+              closed (inert), so earlier answers are still there when it is reopened. */}
+          <div
+            id={askId}
+            inert={!askOpen}
+            className={cn(
+              'absolute top-full right-4 left-4 z-30 mt-2 transition duration-200 ease-out-3 sm:right-8 sm:left-8 xl:right-0 xl:left-auto xl:w-[30rem]',
+              askOpen
+                ? 'translate-y-0 opacity-100'
+                : 'pointer-events-none -translate-y-1 opacity-0',
+            )}
+          >
+            <div className="scrollbar-panel max-h-[60vh] overflow-y-auto rounded-card border border-line bg-surface p-4 shadow-raised">
+              <AskMeetingPanel meetingId={meeting.id} />
+            </div>
           </div>
-        </Collapsible>
+        </div>
       </div>
 
-      <ol ref={transcriptRef} className="pt-5">
+      <ol ref={transcriptRef} className="relative pt-3">
         {meeting.transcriptLines.map((line, i) => {
           const notes = byLine.get(line.n);
           const newSpeaker =
@@ -187,56 +248,65 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
               id={`L${line.n}`}
               aria-current={line.n === targetLine ? 'location' : undefined}
               className={cn(
-                'grid scroll-mt-24 items-start gap-x-5 gap-y-3 rounded-md py-2.5 xl:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_27rem]',
-                line.n === targetLine && 'bg-accent-soft/60',
-                newSpeaker && i > 0 && 'mt-5',
+                columns,
+                'scroll-mt-24',
                 // Off-screen plain lines skip rendering (smooth on 1 MB transcripts).
                 !notes && '[contain-intrinsic-size:auto_3rem] [content-visibility:auto]',
               )}
             >
-              <div className="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-3 sm:grid-cols-[2.75rem_minmax(0,1fr)]">
-                <a
-                  href={`#L${line.n}`}
-                  aria-label={`Line ${line.n}`}
-                  // The line text below is the line's tab stop; one per line is plenty.
-                  tabIndex={-1}
-                  className="pt-0.5 text-right font-mono text-xs text-muted tabular-nums hover:text-accent"
-                >
-                  {line.n}
-                </a>
-                <div className="min-w-0">
-                  {newSpeaker && <p className="mb-1 text-base font-bold">{line.speaker}</p>}
-                  {/* data-line-text: what a selection reads (see transcriptPick.tsx).
-                      Focusable so keyboard users can make an item from a line with Enter. */}
-                  <p
-                    data-line-text={line.n}
-                    tabIndex={0}
-                    onKeyDown={(event) => {
-                      if (event.key !== 'Enter' && event.key !== ' ') return;
-                      event.preventDefault();
-                      const box = event.currentTarget.getBoundingClientRect();
-                      setToolbar({
-                        pick: pickText(line.n, line.text),
-                        x: box.left + Math.min(box.width / 2, 160),
-                        y: box.top,
-                        source: 'click',
-                        focus: true,
-                      });
-                    }}
-                    className="rounded-md text-lg leading-8 wrap-break-word text-fg/90 sm:text-xl sm:leading-9"
+              {/* Spacing lives inside the sheet cell, so the sheet has no gaps between rows. */}
+              <div
+                className={cn(
+                  sheetCell,
+                  'py-2.5',
+                  newSpeaker && i > 0 && 'pt-7',
+                  line.n === targetLine && 'bg-accent-soft/60',
+                )}
+              >
+                <div className="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-3 sm:grid-cols-[2.75rem_minmax(0,1fr)]">
+                  <a
+                    href={`#L${line.n}`}
+                    aria-label={`Line ${line.n}`}
+                    // The line text below is the line's tab stop; one per line is plenty.
+                    tabIndex={-1}
+                    className="pt-0.5 text-right font-mono text-xs text-muted tabular-nums hover:text-accent"
                   >
-                    <LineText
-                      line={line}
-                      marks={marksFor(line, notes)}
-                      activeId={activeId}
-                      onActive={setActiveId}
-                      onPick={setToolbar}
-                    />
-                  </p>
+                    {line.n}
+                  </a>
+                  <div className="min-w-0">
+                    {newSpeaker && <p className="mb-1 text-base font-bold">{line.speaker}</p>}
+                    {/* data-line-text: what a selection reads (see transcriptPick.tsx).
+                        Focusable so keyboard users can make an item from a line with Enter. */}
+                    <p
+                      data-line-text={line.n}
+                      tabIndex={0}
+                      onKeyDown={(event) => {
+                        if (event.key !== 'Enter' && event.key !== ' ') return;
+                        event.preventDefault();
+                        const box = event.currentTarget.getBoundingClientRect();
+                        setToolbar({
+                          pick: pickText(line.n, line.text),
+                          x: box.left + Math.min(box.width / 2, 160),
+                          y: box.top,
+                          source: 'click',
+                          focus: true,
+                        });
+                      }}
+                      className="rounded-md text-lg leading-8 wrap-break-word text-fg/90 sm:text-xl sm:leading-9"
+                    >
+                      <LineText
+                        line={line}
+                        marks={marksFor(line, notes)}
+                        activeId={activeId}
+                        onActive={setActiveId}
+                        onPick={setToolbar}
+                      />
+                    </p>
+                  </div>
                 </div>
               </div>
               {notes && (notes.items.length > 0 || notes.decisions.length > 0) && (
-                <div className="space-y-3 pl-12 sm:pl-14 xl:pl-0">
+                <div className={cn(notesCell, cardsCell)}>
                   {notes.decisions.map((decision) => (
                     <DecisionBubble
                       key={decision.id}
@@ -264,17 +334,16 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
       </ol>
 
       {(unlinkedItems.length > 0 || unlinkedDecisions.length > 0) && (
-        <section
-          aria-label="Notes without a transcript line"
-          className="mt-8 grid gap-4 border-t border-line pt-6 xl:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_27rem]"
-        >
-          <div>
-            <h3 className="font-semibold">Other notes</h3>
-            <p className="mt-1 text-sm text-muted">
-              These actions and decisions have no verified transcript line.
-            </p>
+        <section aria-label="Notes without a transcript line" className={cn(columns, 'relative')}>
+          <div className={cn(sheetCell, 'pt-8')}>
+            <div className="border-t border-line pt-6">
+              <h3 className="font-semibold">Other notes</h3>
+              <p className="mt-1 text-sm text-muted">
+                These actions and decisions have no verified transcript line.
+              </p>
+            </div>
           </div>
-          <div className="space-y-3">
+          <div className={cn(notesCell, cardsCell, 'xl:pt-14')}>
             {unlinkedDecisions.map((decision) => (
               <DecisionBubble key={decision.id} meetingId={meeting.id} decision={decision} />
             ))}

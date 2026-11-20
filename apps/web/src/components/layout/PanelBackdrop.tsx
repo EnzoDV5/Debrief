@@ -7,12 +7,17 @@
  * Decorative only: hidden from screen readers, ignores the mouse, and stands still when the
  * user prefers reduced motion (rule in base.css).
  */
-export function PanelBackdrop() {
+export function PanelBackdrop({ contained = false }: { contained?: boolean }) {
   return (
     <div
       aria-hidden="true"
       // Desktop: fills the framed panel. Mobile: fixed to the screen behind the scrolling page.
-      className="pointer-events-none fixed inset-0 overflow-hidden lg:absolute"
+      // Contained: fills its parent at every size (the meeting page's own transcript sheet).
+      className={
+        contained
+          ? 'pointer-events-none absolute inset-0 overflow-hidden'
+          : 'pointer-events-none fixed inset-0 overflow-hidden lg:absolute'
+      }
     >
       <div className="absolute -top-48 -right-40 size-152 rounded-pill blob-lime will-change-transform motion-safe:animate-blob-1" />
       <div className="absolute -right-24 -bottom-64 size-176 rounded-pill blob-cobalt will-change-transform motion-safe:animate-blob-2" />
