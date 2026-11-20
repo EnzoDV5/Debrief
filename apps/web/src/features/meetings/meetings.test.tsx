@@ -314,9 +314,11 @@ describe('meeting detail', () => {
       ...meeting,
       analysisStatus: 'done' as const,
       summary: 'The team chose blue.',
+      lineCount: 3,
       transcriptLines: [
         { n: 1, speaker: 'Ann', text: 'We chose blue for the design.' },
         { n: 2, speaker: 'Ben', text: 'The draft is ready. Can you send the files to the team?' },
+        { n: 3, speaker: 'Ann', text: 'Thanks everyone.' },
       ],
       decisions: [{ id: crypto.randomUUID(), text: 'Use blue', sourceLine: 1, position: 0 }],
       actionItems: [
@@ -368,7 +370,7 @@ describe('meeting detail', () => {
     await user.click(within(sourceLine).getByRole('link', { name: 'Line 2' }));
     expect(screen.getByRole('heading', { name: 'Transcript' })).toBeInTheDocument();
 
-    // The transcript map has a labelled dot per marked line; a dot jumps to its line.
+    // The transcript map has short plain ticks and labelled result ticks; both jump precisely.
     const map = screen.getByRole('navigation', { name: 'Transcript map' });
     expect(
       await within(map).findByRole('button', { name: 'Line 1: decision: Use blue' }),
@@ -383,6 +385,8 @@ describe('meeting detail', () => {
         within(map).getByRole('button', { name: 'Line 2: action item: Send the files' }),
       );
       expect(scrolled.at(-1)?.id).toBe('L2');
+      await userEvent.click(within(map).getByRole('button', { name: 'Jump to line 3' }));
+      expect(scrolled.at(-1)?.id).toBe('L3');
     } finally {
       Element.prototype.scrollIntoView = original; // jsdom has none; don't leak the stub
     }

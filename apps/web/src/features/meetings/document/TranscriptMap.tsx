@@ -5,7 +5,7 @@ import { cn } from '@/lib/cn';
 export type MapMarker = { line: number; kind: 'action' | 'decision'; label: string };
 
 /** Past this many lines, plain lines are sampled so the map stays calm (marked lines always show). */
-const MAX_PLAIN_TICKS = 120;
+const MAX_PLAIN_TICKS = 80;
 
 type Geometry = {
   /** Each shown line's position, 0–1 down the page (measured: rows with cards are taller). */
@@ -20,10 +20,9 @@ const smooth = (): ScrollBehavior =>
 
 /**
  * A slim map of the transcript on the right edge of the frame (desktop), drawn as a column of
- * short horizontal ticks, one per line, at the line's height. Lines with an action item (cobalt)
- * or a decision (green) get longer ticks; the ticks of the lines on screen are darker, so you can
- * see where you are without a scrollbar. Click or drag along it to move; a long tick is a button
- * that jumps to its line. Faint until hovered, so it doesn't compete with the text.
+ * short horizontal ticks, one per line, at the line's height. Plain lines are short and dark;
+ * action items (cobalt) and decisions (green) are longer. Every tick grows on hover and jumps
+ * to its exact line. Dragging the space between ticks scrubs the whole transcript.
  *
  * It lives on the panel overlay (fixed while the page scrolls) and follows the shell's scrolling
  * area: positions are measured on resize, and only the "on screen" range changes on scroll.
@@ -117,7 +116,7 @@ export function TranscriptMap({
     <PanelOverlay>
       <nav
         aria-label="Transcript map"
-        className="pointer-events-auto absolute top-12 right-2 bottom-12 w-6 opacity-70 transition-opacity duration-200 focus-within:opacity-100 hover:opacity-100"
+        className="pointer-events-auto absolute top-12 right-2 bottom-12 w-9"
       >
         {/* Click or drag anywhere to move. Wheel scrolling over it still scrolls the page. */}
         <div
@@ -135,15 +134,25 @@ export function TranscriptMap({
               const marked = kindsByLine.get(line);
               if (!marked) {
                 return (
-                  <span
+                  <button
                     key={line}
-                    aria-hidden="true"
+                    type="button"
+                    aria-label={`Jump to line ${line}`}
+                    // Plain ticks can be clicked, but don't add up to 80 stops to the Tab order.
+                    tabIndex={-1}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={() => goToLine(line)}
                     style={{ top: `${top * 100}%` }}
-                    className={cn(
-                      'absolute right-0 h-0.5 w-2 -translate-y-1/2 rounded-pill transition-colors',
-                      onScreen ? 'bg-fg/45' : 'bg-line-strong/35',
-                    )}
-                  />
+                    className="group/tick absolute right-0 z-0 flex h-3 w-9 -translate-y-1/2 cursor-pointer items-center justify-end hover:z-20"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        'block h-0.5 rounded-pill bg-fg transition-[width] duration-150 group-hover/tick:w-5',
+                        onScreen ? 'w-3' : 'w-2',
+                      )}
+                    />
+                  </button>
                 );
               }
               // Longer ticks for action items and decisions; both on one line: two, just apart.
@@ -152,23 +161,31 @@ export function TranscriptMap({
                   key={`${line}-${marker.kind}`}
                   type="button"
                   aria-label={`Line ${line}: ${marker.label}`}
-                  title={`Line ${line} · ${marker.label}`}
                   // Don't start a drag when pressing a tick.
                   onPointerDown={(event) => event.stopPropagation()}
                   onClick={() => goToLine(line)}
                   style={{
-                    top: `calc(${top * 100}% + ${(index - (marked.length - 1) / 2) * 5}px)`,
+                    top: `calc(${top * 100}% + ${(index - (marked.length - 1) / 2) * 10}px)`,
                   }}
-                  // A taller invisible hit area (py) makes the 2px tick easy to click.
-                  className="group/tick absolute right-0 -translate-y-1/2 py-1"
+                  className="group/tick absolute right-0 z-0 flex h-3 w-9 -translate-y-1/2 cursor-pointer items-center justify-end hover:z-20 focus-visible:z-20"
                 >
                   <span
+                    aria-hidden="true"
                     className={cn(
-                      'block h-0.5 w-5 rounded-pill transition-[width,opacity] group-hover/tick:w-6 group-focus-visible/tick:w-6',
+                      'block h-0.5 w-6 rounded-pill transition-[width,opacity] duration-150 group-hover/tick:w-9 group-focus-visible/tick:w-9',
                       marker.kind === 'action' ? 'bg-accent' : 'bg-success',
-                      !onScreen && 'opacity-60',
+                      !onScreen && 'opacity-70',
                     )}
                   />
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      'pointer-events-none absolute right-full mr-2 w-max max-w-64 rounded-md bg-sidebar px-3 py-2 text-left text-xs leading-5 text-sidebar-fg opacity-0 shadow-raised transition-opacity duration-150 group-hover/tick:opacity-100 group-focus-visible/tick:opacity-100',
+                      top < 0.65 ? 'top-0' : 'bottom-0',
+                    )}
+                  >
+                    Line {line} · {marker.label}
+                  </span>
                 </button>
               ));
             })}
