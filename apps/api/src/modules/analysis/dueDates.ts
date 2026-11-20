@@ -81,6 +81,16 @@ export function resolveDueDate(text: string, meetingDate: string): DueDateResult
   // them: keep a suggestion, but say the words don't add up.
   const statedDay = explicitDayOfMonth(text);
   if (statedDay !== null && statedDay !== start.get('day')) {
+    // Said on a Friday, "Friday the 27th" makes chrono pick that same Friday and drop "the 27th".
+    // If the next 27th after the meeting really is a Friday, the words agree: use it.
+    const nextStatedDay = resolveDayOfMonth(text, meetingDate);
+    if (
+      nextStatedDay &&
+      start.isCertain('weekday') &&
+      referenceFor(nextStatedDay).getUTCDay() === start.get('weekday')
+    ) {
+      return { date: nextStatedDay };
+    }
     return {
       date,
       review: `“${text}” doesn't match a single date after the meeting (check the meeting date)`,

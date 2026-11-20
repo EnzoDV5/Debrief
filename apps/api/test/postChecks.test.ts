@@ -191,6 +191,17 @@ describe('resolveDueDate: contradictions', () => {
     // With the right meeting date it simply resolves.
     expect(resolveDueDate('by Wednesday the 18th', '2026-11-16')).toEqual({ date: '2026-11-18' });
   });
+
+  it('resolves a weekday + day-of-month said on that same weekday a week earlier', () => {
+    // Said on Friday 20 Nov: chrono reads "Friday" as that same day and drops "the 27th", but
+    // 27 Nov 2026 is a Friday, so the words agree. Found on the live site.
+    expect(resolveDueDate('by Friday the 27th', '2026-11-20')).toEqual({ date: '2026-11-27' });
+    expect(resolveDueDate('by Friday the 27th', '2026-11-18')).toEqual({ date: '2026-11-27' });
+    // Still flagged when the next 27th is a different weekday: no guessing.
+    expect(resolveDueDate('by Thursday the 27th', '2026-11-20')).toMatchObject({
+      review: expect.stringContaining("doesn't match a single date"),
+    });
+  });
 });
 
 describe('prompt safety helpers', () => {
