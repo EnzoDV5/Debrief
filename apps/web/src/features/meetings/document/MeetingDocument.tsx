@@ -143,10 +143,12 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
       className="relative min-w-0 pb-10 text-fg [--gap:1.5rem] [--notes:24rem] 2xl:[--notes:27rem]"
     >
       {/* Header row: the transcript heading (on the panel) and Ask this meeting (top of the notes
-          column, level with the panel's top edge). On wide screens the Ask card is lifted out of
-          the row (absolute) and the row is just tall enough for it at rest, so the transcript
-          never moves: suggestions and answers grow the card down over the notes column. */}
-      <div className={cn(columns, 'relative z-20 xl:min-h-31 xl:items-stretch')}>
+          column, level with the panel's top edge). On wide screens the Ask cell becomes a
+          full-height track down the notes column (absolute, against the section) with the card
+          sticky inside it: it stays in view while the transcript scrolls, and the cards slide up
+          underneath it. The row is just tall enough for the card at rest, so nothing sits under
+          it until the page scrolls. */}
+      <div className={cn(columns, 'xl:min-h-31 xl:items-stretch')}>
         <div className={cn(sheetCell, 'flex flex-col pt-7 lg:pt-9')}>
           <div className="flex-1 border-b border-line pb-4">
             <h2 id="transcript-title" className="text-lg font-bold">
@@ -161,8 +163,16 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
             </p>
           </div>
         </div>
-        <div className={cn(notesCell, 'relative pt-4 pb-3 xl:pt-0 xl:pb-0')}>
-          <div className="xl:absolute xl:inset-x-0 xl:top-0">
+        <div
+          className={cn(
+            notesCell,
+            'pt-4 pb-3 xl:pointer-events-none xl:absolute xl:inset-y-0 xl:right-0 xl:z-20 xl:w-(--notes) xl:p-0',
+          )}
+        >
+          {/* The track ignores the mouse (the cards below it stay clickable); the card doesn't.
+              The dark backing (frame colour) hides cards cleanly as they slide under it, including
+              behind its rounded corners. */}
+          <div className="xl:pointer-events-auto xl:sticky xl:top-0 xl:bg-sidebar xl:pb-3">
             <AskMeetingPanel meetingId={meeting.id} />
           </div>
         </div>

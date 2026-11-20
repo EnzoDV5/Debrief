@@ -23,8 +23,8 @@ const chip =
 /**
  * "Ask this meeting": a card at the top of the notes column, always open. At rest it is just the
  * title and a compact chat-style question box. Suggestions appear while it has focus, and an
- * answer opens below. The card scrolls inside past a maximum height; on wide screens it grows
- * down over the notes column instead of pushing the transcript (see MeetingDocument).
+ * answer opens below. On wide screens it is sticky at the top of the notes column and grows down
+ * over it instead of pushing the transcript (see MeetingDocument).
  */
 export function AskMeetingPanel({ meetingId }: { meetingId: string }) {
   const ask = useAskMeeting(meetingId);
@@ -59,7 +59,7 @@ export function AskMeetingPanel({ meetingId }: { meetingId: string }) {
       aria-label="Ask this meeting"
       aria-busy={ask.isPending}
       // "group": the suggestions show while anything in the card has focus (focus-within).
-      className="group scrollbar-panel max-h-[28rem] overflow-y-auto rounded-card border border-line bg-surface p-4 shadow-raised"
+      className="group rounded-card border border-line bg-surface p-4 shadow-raised"
     >
       <div className="flex items-center gap-2.5">
         <span

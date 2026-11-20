@@ -1,4 +1,3 @@
-import type { AnalysisStatus } from '@debrief/shared';
 import {
   Archive,
   Folder,
@@ -360,13 +359,6 @@ function SidebarContent({
                             )
                           }
                         >
-                          <span
-                            className={cn(
-                              'size-1.5 shrink-0 rounded-pill',
-                              statusDot(meeting.analysisStatus),
-                            )}
-                            aria-hidden="true"
-                          />
                           <span className="min-w-0 flex-1 truncate">{meeting.title}</span>
                         </NavLink>
                         <MeetingMenu meeting={meeting} />
@@ -395,13 +387,6 @@ function navClass(isActive: boolean, collapsed: boolean) {
     collapsed ? 'justify-center' : 'px-3',
     isActive ? 'bg-sidebar-active text-white' : 'text-sidebar-fg hover:bg-sidebar-hover',
   );
-}
-
-function statusDot(status: AnalysisStatus) {
-  if (status === 'done') return 'bg-success-soft';
-  if (status === 'failed') return 'bg-warning-soft';
-  if (status === 'processing') return 'bg-spark';
-  return 'bg-sidebar-muted';
 }
 
 function initials(name: string) {
