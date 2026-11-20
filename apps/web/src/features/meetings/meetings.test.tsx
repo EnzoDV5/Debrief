@@ -441,38 +441,7 @@ describe('meeting detail', () => {
     expect(toggle).toHaveFocus();
   });
 
-  it('finds exact words in the transcript and steps through the matches', async () => {
-    const withText = {
-      ...meeting,
-      transcriptLines: [
-        { n: 1, speaker: 'Ann', text: 'The deck is ready.' },
-        { n: 2, speaker: 'Ben', text: 'Send the deck to the team.' },
-      ],
-    };
-    mockApi({ ...me, [`GET ${detailUrl}`]: { status: 200, body: { meeting: withText } } });
-    const user = userEvent.setup();
-    renderApp(`/meetings/${meeting.id}`);
-
-    await user.click(await screen.findByRole('button', { name: 'Ask this meeting' }));
-    const find = screen.getByRole('searchbox', { name: 'Find in transcript' });
-    await user.type(find, 'deck');
-    const status = within(screen.getByRole('region', { name: 'Find in transcript' })).getByRole(
-      'status',
-    );
-    expect(status).toHaveTextContent('1 of 2 matches');
-    expect(document.querySelectorAll('mark[data-kind="find"]')).toHaveLength(2);
-
-    await user.keyboard('{Enter}');
-    expect(status).toHaveTextContent('2 of 2 matches');
-    await user.keyboard('{Shift>}{Enter}{/Shift}');
-    expect(status).toHaveTextContent('1 of 2 matches');
-
-    // Closing the panel clears the highlights.
-    await user.click(screen.getByRole('button', { name: 'Ask this meeting' }));
-    expect(document.querySelectorAll('mark[data-kind="find"]')).toHaveLength(0);
-  });
-
-  it('turns a transcript line into an action item linked to that line', async () => {
+  it('makes an action item from a line with the keyboard (Enter on the line)', async () => {
     const withText = {
       ...meeting,
       transcriptLines: [
@@ -513,9 +482,15 @@ describe('meeting detail', () => {
     const user = userEvent.setup();
     renderApp(`/meetings/${meeting.id}`);
 
-    await user.click(await screen.findByRole('button', { name: 'Make an item from line 2' }));
+    // Each line's text is one tab stop; Enter opens the toolbar with focus inside it.
+    const line = (await screen.findByText('I will send the deck to Lerato.')).closest(
+      '[data-line-text]',
+    );
+    (line as HTMLElement).focus();
+    await user.keyboard('{Enter}');
     const toolbar = screen.getByRole('toolbar', { name: 'Create from the transcript' });
-    await user.click(within(toolbar).getByRole('button', { name: 'Action item' }));
+    expect(within(toolbar).getByRole('button', { name: 'Action item' })).toHaveFocus();
+    await user.keyboard('{Enter}');
 
     const dialog = screen.getByRole('dialog', { name: 'Add an action item' });
     expect(dialog).toHaveTextContent('From line 2 of the transcript');

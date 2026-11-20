@@ -80,8 +80,11 @@ describe('action items on the meeting page', () => {
     ).toBeChecked();
     expect(sent).toEqual({ status: 'done' });
     answer({ status: 200, body: { actionItem: item({ status: 'done' }) } });
+    // Still ticked once the server has confirmed it.
     await waitFor(() =>
-      expect(screen.getByRole('list', { name: 'Counts' })).toHaveTextContent('1 done'),
+      expect(
+        screen.getByRole('checkbox', { name: 'Mark “Send the files” as not done' }),
+      ).toBeChecked(),
     );
   });
 
@@ -121,7 +124,6 @@ describe('action items on the meeting page', () => {
     renderApp(`/meetings/${MEETING_ID}`);
 
     expect(await screen.findByText(/Owner “Zed” isn’t mentioned/)).toBeInTheDocument();
-    expect(screen.getByRole('list', { name: 'Counts' })).toHaveTextContent('1 needs review');
 
     await user.click(screen.getByRole('button', { name: 'Edit “Send the files”' }));
     const dialog = screen.getByRole('dialog', { name: 'Edit action item' });
@@ -135,7 +137,8 @@ describe('action items on the meeting page', () => {
     expect(sent).toMatchObject({ text: 'Send the files', owner: 'Ann', dueDate: '2026-11-27' });
   });
 
-  it('adds an action item by hand', async () => {
+  it('adds an action item by clicking a sentence in the transcript', async () => {
+    const said = 'Ann will send the files by Friday 27 November.';
     let sent: unknown;
     mockApi({
       ...me,
@@ -151,8 +154,8 @@ describe('action items on the meeting page', () => {
               owner: null,
               dueDate: null,
               dueDateText: null,
-              sourceLine: null,
-              sourceQuote: null,
+              sourceLine: 2,
+              sourceQuote: said,
               origin: 'manual',
             }),
           },
@@ -162,24 +165,32 @@ describe('action items on the meeting page', () => {
     const user = userEvent.setup();
     renderApp(`/meetings/${MEETING_ID}`);
 
-    await user.click(await screen.findByRole('button', { name: 'Add action item' }));
+    await user.click(await screen.findByText(said));
+    const toolbar = screen.getByRole('toolbar', { name: 'Create from the transcript' });
+    await user.click(within(toolbar).getByRole('button', { name: 'Action item' }));
+
     const dialog = screen.getByRole('dialog', { name: 'Add an action item' });
+    expect(dialog).toHaveTextContent('From line 2 of the transcript');
+    const task = within(dialog).getByLabelText('Task');
+    expect(task).toHaveValue(said);
+    await user.clear(task);
     await user.click(within(dialog).getByRole('button', { name: 'Add item' }));
     expect(await within(dialog).findByText('Describe the action item')).toBeInTheDocument();
 
-    await user.type(within(dialog).getByLabelText('Task'), 'Book the venue');
+    await user.type(task, 'Book the venue');
     await user.click(within(dialog).getByRole('button', { name: 'Add item' }));
 
-    expect(await screen.findByText('Book the venue')).toBeInTheDocument();
-    expect(screen.getByText('Added by you')).toBeInTheDocument();
+    // Saved with its line, so it shows beside line 2.
+    expect(
+      await within(document.getElementById('L2')!).findByText('Book the venue'),
+    ).toBeInTheDocument();
     expect(sent).toEqual({
       text: 'Book the venue',
       owner: null,
       dueDate: null,
       status: 'todo',
-      // Added from the button, not from selected text: no transcript source.
-      sourceLine: null,
-      sourceQuote: null,
+      sourceLine: 2,
+      sourceQuote: said,
     });
   });
 
@@ -201,7 +212,7 @@ describe('action items on the meeting page', () => {
             decision: {
               id: '44444444-4444-4444-8444-444444444444',
               text: 'Ship Friday',
-              sourceLine: null,
+              sourceLine: 1,
               position: 1,
             },
           },
@@ -220,19 +231,23 @@ describe('action items on the meeting page', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }));
     expect(await screen.findByText('Corrected.')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Add decision' }));
-    await user.type(screen.getByLabelText('New decision'), 'Ship Friday');
-    await user.click(screen.getAllByRole('button', { name: 'Add decision' }).at(-1)!);
-    expect((await screen.findAllByText('Ship Friday')).length).toBeGreaterThan(0);
+    // A decision made from a clicked sentence sits beside that line.
+    await user.click(screen.getByText('We chose blue.'));
+    const toolbar = screen.getByRole('toolbar', { name: 'Create from the transcript' });
+    await user.click(within(toolbar).getByRole('button', { name: 'Decision' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add decision' });
+    expect(dialog).toHaveTextContent('From line 1 of the transcript');
+    const text = within(dialog).getByLabelText('New decision');
+    expect(text).toHaveValue('We chose blue.');
+    await user.clear(text);
+    await user.type(text, 'Ship Friday');
+    await user.click(within(dialog).getByRole('button', { name: 'Add decision' }));
     expect(
-      within(screen.getByRole('region', { name: 'Notes without a transcript line' })).getByText(
-        'Ship Friday',
-      ),
+      await within(document.getElementById('L1')!).findByText('Ship Friday'),
     ).toBeInTheDocument();
     expect(sent).toEqual({
       summary: { summary: 'Corrected.' },
-      // Added from the button, not from selected text: no transcript line.
-      decision: { text: 'Ship Friday', sourceLine: null },
+      decision: { text: 'Ship Friday', sourceLine: 1 },
     });
   });
 });

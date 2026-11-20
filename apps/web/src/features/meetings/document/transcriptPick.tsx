@@ -1,8 +1,8 @@
 import { Gavel, ListChecks } from 'lucide-react';
 import { useEffect, useRef, type RefObject } from 'react';
 
-// "Select text → create an action item or decision". Turns a selection in the transcript (or a
-// whole line, from its + button) into a pick, and shows a small floating toolbar for it.
+// "Click a sentence, or select words → create an action item or decision". Turns what the user
+// picked in the transcript into a pick, and shows a small floating toolbar for it.
 
 /** What the user picked: the text for the new item and the line it came from. */
 export type TranscriptPick = {
@@ -19,8 +19,13 @@ export type PickToolbarState = {
   /** Where to show the toolbar (viewport coordinates, since it's position: fixed). */
   x: number;
   y: number;
-  /** "selection": above the selected words. "line": beside a line's + button. */
-  source: 'selection' | 'line';
+  /**
+   * "selection": selected words (the toolbar goes when the selection does).
+   * "click": a clicked sentence, or a line opened with Enter (closes on an outside click).
+   */
+  source: 'selection' | 'click';
+  /** Opened from the keyboard: move focus into the toolbar. */
+  focus?: boolean;
 };
 
 export type PickKind = 'action' | 'decision';
@@ -85,10 +90,26 @@ export function readSelection(container: HTMLElement): Omit<PickToolbarState, 's
   };
 }
 
-/** The whole line, for the + button beside it. */
-export function pickWholeLine(line: { n: number; text: string }): TranscriptPick {
-  const text = collapse(line.text);
-  return { text: text.slice(0, MAX_TEXT), line: line.n, quote: text.slice(0, MAX_QUOTE) };
+/** A pick of some words from one line: a clicked sentence, or the whole line (keyboard). */
+export function pickText(line: number, words: string): TranscriptPick {
+  const text = collapse(words);
+  return { text: text.slice(0, MAX_TEXT), line, quote: text.slice(0, MAX_QUOTE) };
+}
+
+/**
+ * Splits a line into sentences, as [start, end) ranges that cover the whole text with no gaps,
+ * so each can be hovered and clicked. A sentence ends at . ! or ? (plus closing quotes or
+ * brackets and the spaces after it). Simple on purpose: "e.g." splits too, and selecting
+ * words by hand covers those cases.
+ */
+export function sentencesOf(text: string): Array<{ start: number; end: number }> {
+  const ranges: Array<{ start: number; end: number }> = [];
+  const pattern = /[^.!?]*[.!?]+["'”’)\]]*\s*|[^.!?]+$/g;
+  for (const match of text.matchAll(pattern)) {
+    if (match[0].length > 0)
+      ranges.push({ start: match.index, end: match.index + match[0].length });
+  }
+  return ranges.length > 0 ? ranges : [{ start: 0, end: text.length }];
 }
 
 /**
@@ -143,10 +164,10 @@ export function PickToolbar({
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
-  // Opened from a line's + button: move focus into the toolbar, and close it on an outside click.
+  // From a click or the keyboard: close on an outside click, and take focus if from the keyboard.
   useEffect(() => {
-    if (state.source !== 'line') return;
-    ref.current?.querySelector('button')?.focus();
+    if (state.source !== 'click') return;
+    if (state.focus) ref.current?.querySelector('button')?.focus();
     const onPointerDown = (event: PointerEvent) => {
       if (!ref.current?.contains(event.target as Node)) onClose();
     };
@@ -161,14 +182,10 @@ export function PickToolbar({
       ref={ref}
       role="toolbar"
       aria-label="Create from the transcript"
-      // Position comes from the selection at runtime, so it can't be a class.
+      // Position comes from the pointer or selection at runtime, so it can't be a class.
+      // Centred just above that point.
       style={{ left: state.x, top: state.y }}
-      className={
-        'fixed z-40 flex gap-1 rounded-pill border border-white/70 glass-float p-1 shadow-raised ' +
-        (state.source === 'selection'
-          ? '-translate-x-1/2 -translate-y-[calc(100%+0.5rem)]'
-          : 'translate-x-2 -translate-y-1/2')
-      }
+      className="fixed z-40 flex -translate-x-1/2 -translate-y-[calc(100%+0.5rem)] gap-1 rounded-pill border border-white/70 glass-float p-1 shadow-raised"
     >
       {/* preventDefault on pointerdown keeps the text selected while clicking. */}
       <button

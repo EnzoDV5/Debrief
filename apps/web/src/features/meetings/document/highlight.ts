@@ -1,8 +1,7 @@
 // Finds phrases (an action item's quote, its date words) inside a transcript line, so they can be
 // highlighted like comment anchors in Google Docs. Pure functions: no React, easy to test.
 
-// 'find' marks words matched by Find in transcript (see useTranscriptFind).
-export type MarkKind = 'action' | 'date' | 'decision' | 'find';
+export type MarkKind = 'action' | 'date' | 'decision';
 
 export type Mark = {
   start: number;

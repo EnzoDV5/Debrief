@@ -15,16 +15,13 @@ const suggestions = [
 
 type Exchange = { question: string; result: AskMeetingResponse };
 
-// A pill on the page (light) or on the dark frame of the meeting bar (desktop).
 const chip =
-  'rounded-pill border px-3 py-1.5 text-sm transition-colors ' +
-  'border-line text-muted hover:border-accent/40 hover:bg-accent-soft hover:text-accent ' +
-  'lg:border-sidebar-line lg:text-sidebar-fg lg:hover:border-sidebar-active lg:hover:bg-sidebar-hover lg:hover:text-white lg:focus-visible:outline-white';
+  'rounded-pill border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:border-accent/40 hover:bg-accent-soft hover:text-accent';
 
 /**
- * "Ask this meeting", opened from the meeting bar. No card: like the summary, it sits straight
- * on the page (mobile) or the dark frame (desktop). The question box is a compact chat-style
- * field with the send button inside it, not a full-width form row.
+ * "Ask this meeting", opened from the dropdown at the top of the transcript panel. No card: it
+ * sits on the panel like the transcript. The question box is a compact chat-style field with the
+ * send button inside it, not a full-width form row.
  */
 export function AskMeetingPanel({ meetingId }: { meetingId: string }) {
   const ask = useAskMeeting(meetingId);
@@ -49,16 +46,15 @@ export function AskMeetingPanel({ meetingId }: { meetingId: string }) {
   };
 
   return (
-    <section aria-label="Ask this meeting" aria-busy={ask.isPending}>
-      <h2 className="text-lg font-bold">Ask this meeting</h2>
-      <p className="mt-1 text-sm text-muted lg:text-sidebar-muted">
+    <section aria-label="Ask this meeting" aria-busy={ask.isPending} className="px-1">
+      <p className="text-sm text-muted">
         Get a short answer with links to the words that support it.
       </p>
 
-      <form onSubmit={submit} className="relative mt-4 max-w-2xl">
+      <form onSubmit={submit} className="relative mt-3 max-w-2xl">
         <Sparkles
           aria-hidden="true"
-          className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-accent lg:text-spark"
+          className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-accent"
         />
         <input
           ref={input}
@@ -70,23 +66,15 @@ export function AskMeetingPanel({ meetingId }: { meetingId: string }) {
             setQuestion(event.target.value);
             if (ask.isError) ask.reset();
           }}
-          className={cn(
-            'h-12 w-full rounded-pill border pr-14 pl-11 text-base transition-colors',
-            'border-line-strong bg-surface text-fg placeholder:text-muted focus:border-accent',
-            'lg:border-sidebar-line lg:bg-sidebar-hover lg:text-white lg:placeholder:text-sidebar-muted lg:focus:border-sidebar-muted lg:focus-visible:outline-white',
-          )}
+          className="h-12 w-full rounded-pill border border-line-strong bg-surface pr-14 pl-11 text-base text-fg shadow-card transition-colors placeholder:text-muted focus:border-accent"
         />
         <button
           type="submit"
           aria-label="Ask"
           disabled={!canSend || ask.isPending}
-          className="absolute top-1/2 right-1.5 grid size-9 -translate-y-1/2 place-items-center rounded-pill bg-accent text-accent-fg shadow-glow transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50 lg:focus-visible:outline-white"
+          className="absolute top-1/2 right-1.5 grid size-9 -translate-y-1/2 place-items-center rounded-pill bg-accent text-accent-fg shadow-glow transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {ask.isPending ? (
-            <Spinner className="size-4" />
-          ) : (
-            <ArrowUp aria-hidden="true" className="size-4" />
-          )}
+          {ask.isPending ? <Spinner /> : <ArrowUp aria-hidden="true" className="size-4" />}
         </button>
       </form>
 
@@ -109,7 +97,7 @@ export function AskMeetingPanel({ meetingId }: { meetingId: string }) {
       )}
 
       {ask.isPending && (
-        <p role="status" className="mt-3 text-sm text-muted lg:text-sidebar-muted">
+        <p role="status" className="mt-3 text-sm text-muted">
           Reading the transcript for an answer…
         </p>
       )}
@@ -133,7 +121,7 @@ export function AskMeetingPanel({ meetingId }: { meetingId: string }) {
                     chip,
                     'max-w-64 truncate',
                     index === selected &&
-                      'border-accent/40 bg-accent-soft font-semibold text-accent lg:border-sidebar-active lg:bg-sidebar-active lg:text-white',
+                      'border-accent/40 bg-accent-soft font-semibold text-accent',
                   )}
                 >
                   {exchange.question}
@@ -142,23 +130,16 @@ export function AskMeetingPanel({ meetingId }: { meetingId: string }) {
             </div>
           )}
           {/* The answer reads like a quote: a coloured rule, no box. */}
-          <div className="border-l-2 border-accent pl-4 lg:border-spark" aria-live="polite">
-            <p className="text-sm font-semibold text-muted lg:text-sidebar-muted">
-              {shown.question}
-            </p>
+          <div className="border-l-2 border-accent pl-4" aria-live="polite">
+            <p className="text-sm font-semibold text-muted">{shown.question}</p>
             <p className="mt-1.5 text-base leading-7 whitespace-pre-wrap">
               {shown.result.answer ?? 'I couldn’t find an answer supported by this transcript.'}
             </p>
             {shown.result.citations.length > 0 && (
-              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted lg:text-sidebar-muted">
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
                 <span>Check the source:</span>
                 {shown.result.citations.map((line) => (
-                  <LineLink
-                    key={line}
-                    meetingId={meetingId}
-                    line={line}
-                    className="lg:text-spark"
-                  />
+                  <LineLink key={line} meetingId={meetingId} line={line} />
                 ))}
               </div>
             )}

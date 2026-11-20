@@ -1,24 +1,33 @@
 import type { ActionItem, Decision, Meeting, TranscriptLine } from '@debrief/shared';
-import { Plus, TextSelect } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown, Sparkles, TextSelect } from 'lucide-react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from 'react';
 import { useLocation } from 'react-router';
 import { Button } from '@/components/ui/Button';
+import { Collapsible } from '@/components/ui/Collapsible';
 import { ActionItemDialog } from '@/features/actionItems/ActionItemDialog';
 import { cn } from '@/lib/cn';
-import { plural } from '@/lib/format';
-import { MeetingActionCard } from './MeetingActionCard';
+import { AskMeetingPanel } from './AskMeetingPanel';
 import { DecisionBubble } from './DecisionBubble';
-import { NewDecisionDialog } from './NewDecisionDialog';
 import { findPhrase, segment, type Mark } from './highlight';
+import { MeetingActionCard } from './MeetingActionCard';
+import { NewDecisionDialog } from './NewDecisionDialog';
 import {
   PickToolbar,
-  pickWholeLine,
+  pickText,
+  sentencesOf,
   useTranscriptSelection,
   type PickKind,
   type PickToolbarState,
   type TranscriptPick,
 } from './transcriptPick';
-import type { FindMatch, TranscriptFind } from './useTranscriptFind';
 
 type Annotations = { items: ActionItem[]; decisions: Decision[] };
 
@@ -36,25 +45,10 @@ function findQuote(line: TranscriptLine, quote: string | null) {
   );
 }
 
-/** Find in transcript's id for a match, shared by its mark and the "current match" check. */
-const findId = (index: number) => `find-${index}`;
-
-/**
- * Highlights for one line: each item's quote, its date words, decisions made on that line, and
- * any Find in transcript matches.
- */
-function marksFor(
-  line: TranscriptLine,
-  notes: Annotations | undefined,
-  found: Array<FindMatch & { index: number }> = [],
-): Mark[] {
-  const marks: Mark[] = found.map((match) => ({
-    start: match.start,
-    end: match.end,
-    kind: 'find',
-    itemId: findId(match.index),
-  }));
-  if (!notes) return marks;
+/** Highlights for one line: each item's quote, its date words, and decisions made on that line. */
+function marksFor(line: TranscriptLine, notes: Annotations | undefined): Mark[] {
+  if (!notes) return [];
+  const marks: Mark[] = [];
   for (const item of notes.items) {
     const quote = findQuote(line, item.sourceQuote);
     if (quote) marks.push({ ...quote, kind: 'action', itemId: item.id });
@@ -69,16 +63,26 @@ function marksFor(
 }
 
 /**
- * Actions and decisions share a document row with their source line, so both sides scroll together.
+ * The transcript panel: Ask at the top, then each line with its action items and decisions
+ * beside it (sharing a row, so both sides scroll together). New items come from the text itself:
+ * click a sentence or select words, then choose Action item or Decision.
  */
-export function MeetingDocument({ meeting, find }: { meeting: Meeting; find?: TranscriptFind }) {
+export function MeetingDocument({ meeting }: { meeting: Meeting }) {
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [adding, setAdding] = useState(false);
-  const [addingDecision, setAddingDecision] = useState(false);
   const { hash } = useLocation();
   const targetLine = lineFromHash(hash);
 
-  // Select text (or use a line's + button) → toolbar → a pre-filled action item or decision.
+  // Ask this meeting: a dropdown at the top of the panel.
+  const [askOpen, setAskOpen] = useState(false);
+  const askToggle = useRef<HTMLButtonElement>(null);
+  const askId = useId();
+  const closeAskOnEscape = (event: KeyboardEvent) => {
+    if (event.key !== 'Escape' || !askOpen) return;
+    askToggle.current?.focus(); // the panel becomes inert, so focus can't stay inside it
+    setAskOpen(false);
+  };
+
+  // Click a sentence / select words / Enter on a line → toolbar → a pre-filled item.
   const transcriptRef = useRef<HTMLOListElement>(null);
   const [toolbar, setToolbar] = useState<PickToolbarState | null>(null);
   const [creating, setCreating] = useState<{ kind: PickKind; pick: TranscriptPick } | null>(null);
@@ -90,25 +94,6 @@ export function MeetingDocument({ meeting, find }: { meeting: Meeting; find?: Tr
     setToolbar(null);
     window.getSelection()?.removeAllRanges();
   };
-
-  // Find in transcript: matches grouped by line, numbered in reading order.
-  const foundByLine = useMemo(() => {
-    const map = new Map<number, Array<FindMatch & { index: number }>>();
-    find?.matches.forEach((match, index) => {
-      map.set(match.line, [...(map.get(match.line) ?? []), { ...match, index }]);
-    });
-    return map;
-  }, [find?.matches]);
-  const currentFindId = find?.matches.length ? findId(find.current) : null;
-
-  // Bring the current match into view as the user steps through them.
-  useEffect(() => {
-    if (currentFindId) {
-      document
-        .querySelector(`[data-find-id="${currentFindId}"]`)
-        ?.scrollIntoView?.({ block: 'center' });
-    }
-  }, [currentFindId, find?.query]);
 
   const { byLine, unlinkedItems, unlinkedDecisions } = useMemo(() => {
     const lineNumbers = new Set(meeting.transcriptLines.map((l) => l.n));
@@ -144,8 +129,6 @@ export function MeetingDocument({ meeting, find }: { meeting: Meeting; find?: Tr
       ].sort((a, b) => a.localeCompare(b)),
     [meeting.transcriptLines, meeting.actionItems],
   );
-  const done = meeting.actionItems.filter((item) => item.status === 'done').length;
-  const needsReview = meeting.actionItems.filter((item) => item.needsReview).length;
 
   // Bring a linked line into view once it exists (after a reload or from a shared link).
   useEffect(() => {
@@ -156,54 +139,43 @@ export function MeetingDocument({ meeting, find }: { meeting: Meeting; find?: Tr
 
   return (
     <section aria-labelledby="transcript-title" className="min-w-0">
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_27rem]">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3">
-          <h2 id="transcript-title" className="text-lg font-bold">
-            Transcript
-          </h2>
-          <p className="inline-flex items-center gap-1.5 text-sm text-muted">
-            <TextSelect aria-hidden="true" className="size-4" />
-            Select words to make an action item or decision
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3">
+      <div onKeyDown={closeAskOnEscape} className="border-b border-line pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="text-lg font-bold">Actions & decisions</h3>
-            <ul aria-label="Counts" className="mt-1 flex flex-wrap gap-x-3 text-sm text-muted">
-              <li>{plural(meeting.actionItems.length, 'action item')}</li>
-              <li>{plural(meeting.decisions.length, 'decision')}</li>
-              {meeting.actionItems.length > 0 && <li>{done} done</li>}
-              {needsReview > 0 && <li className="text-warning">{needsReview} needs review</li>}
-            </ul>
-            <p className="mt-1.5 text-sm text-muted">
-              Decisions record agreements. Action items are tasks to complete.
+            <h2 id="transcript-title" className="text-lg font-bold">
+              Transcript
+            </h2>
+            <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-muted">
+              <TextSelect aria-hidden="true" className="size-4" />
+              Click a sentence or select words to make an action item or decision
+              <span className="sr-only">
+                . With the keyboard, press Enter on a line to do the same.
+              </span>
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant="secondary"
-              icon={<Plus aria-hidden="true" className="size-4" />}
-              onClick={() => setAdding(true)}
-            >
-              Add action item
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              icon={<Plus aria-hidden="true" className="size-4" />}
-              onClick={() => setAddingDecision(true)}
-            >
-              Add decision
-            </Button>
-          </div>
-          {meeting.actionItems.length === 0 && meeting.decisions.length === 0 && (
-            <p className="w-full text-sm text-muted">
-              No actions or decisions yet. Add one, or wait for the analysis to finish.
-            </p>
-          )}
+          <Button
+            ref={askToggle}
+            variant="secondary"
+            size="sm"
+            icon={<Sparkles aria-hidden="true" className="size-4 text-accent" />}
+            aria-expanded={askOpen}
+            aria-controls={askId}
+            onClick={() => setAskOpen((open) => !open)}
+          >
+            Ask this meeting
+            <ChevronDown
+              aria-hidden="true"
+              className={cn('size-4 transition-transform', askOpen && 'rotate-180')}
+            />
+          </Button>
         </div>
+        <Collapsible id={askId} open={askOpen}>
+          <div className="pb-2">
+            <AskMeetingPanel meetingId={meeting.id} />
+          </div>
+        </Collapsible>
       </div>
+
       <ol ref={transcriptRef} className="pt-5">
         {meeting.transcriptLines.map((line, i) => {
           const notes = byLine.get(line.n);
@@ -215,55 +187,50 @@ export function MeetingDocument({ meeting, find }: { meeting: Meeting; find?: Tr
               id={`L${line.n}`}
               aria-current={line.n === targetLine ? 'location' : undefined}
               className={cn(
-                'group grid scroll-mt-24 items-start gap-x-5 gap-y-3 rounded-md py-2.5 xl:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_27rem]',
+                'grid scroll-mt-24 items-start gap-x-5 gap-y-3 rounded-md py-2.5 xl:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_27rem]',
                 line.n === targetLine && 'bg-accent-soft/60',
                 newSpeaker && i > 0 && 'mt-5',
                 // Off-screen plain lines skip rendering (smooth on 1 MB transcripts).
                 !notes && '[contain-intrinsic-size:auto_3rem] [content-visibility:auto]',
               )}
             >
-              <div className="relative grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-3 sm:grid-cols-[2.75rem_minmax(0,1fr)]">
-                {/* Hover a line for a + (at the end of its text, like a Google Docs comment
-                    button) that turns the whole line into an item. Inside the row on purpose:
-                    content-visibility clips anything outside it. Mouse only (tabIndex -1): a
-                    tab stop per line would bury the page; keyboard users have the Add buttons. */}
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  aria-label={`Make an item from line ${line.n}`}
-                  onClick={(event) => {
-                    const box = event.currentTarget.getBoundingClientRect();
-                    setToolbar({
-                      pick: pickWholeLine(line),
-                      x: box.right,
-                      y: box.top + box.height / 2,
-                      source: 'line',
-                    });
-                  }}
-                  className="absolute top-1.5 right-0 hidden size-7 place-items-center rounded-pill text-muted opacity-0 transition-opacity group-hover:opacity-100 hover:bg-accent-soft hover:text-accent lg:grid"
-                >
-                  <Plus aria-hidden="true" className="size-4" />
-                </button>
+              <div className="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-3 sm:grid-cols-[2.75rem_minmax(0,1fr)]">
                 <a
                   href={`#L${line.n}`}
                   aria-label={`Line ${line.n}`}
+                  // The line text below is the line's tab stop; one per line is plenty.
+                  tabIndex={-1}
                   className="pt-0.5 text-right font-mono text-xs text-muted tabular-nums hover:text-accent"
                 >
                   {line.n}
                 </a>
-                <div className="min-w-0 lg:pr-10">
+                <div className="min-w-0">
                   {newSpeaker && <p className="mb-1 text-base font-bold">{line.speaker}</p>}
-                  {/* data-line-text: what a selection reads (see transcriptPick.tsx). */}
+                  {/* data-line-text: what a selection reads (see transcriptPick.tsx).
+                      Focusable so keyboard users can make an item from a line with Enter. */}
                   <p
                     data-line-text={line.n}
-                    className="text-lg leading-8 wrap-break-word text-fg/90 sm:text-xl sm:leading-9"
+                    tabIndex={0}
+                    onKeyDown={(event) => {
+                      if (event.key !== 'Enter' && event.key !== ' ') return;
+                      event.preventDefault();
+                      const box = event.currentTarget.getBoundingClientRect();
+                      setToolbar({
+                        pick: pickText(line.n, line.text),
+                        x: box.left + Math.min(box.width / 2, 160),
+                        y: box.top,
+                        source: 'click',
+                        focus: true,
+                      });
+                    }}
+                    className="rounded-md text-lg leading-8 wrap-break-word text-fg/90 sm:text-xl sm:leading-9"
                   >
                     <LineText
-                      text={line.text}
-                      marks={marksFor(line, notes, foundByLine.get(line.n))}
+                      line={line}
+                      marks={marksFor(line, notes)}
                       activeId={activeId}
                       onActive={setActiveId}
-                      currentFindId={currentFindId}
+                      onPick={setToolbar}
                     />
                   </p>
                 </div>
@@ -325,16 +292,6 @@ export function MeetingDocument({ meeting, find }: { meeting: Meeting; find?: Tr
         </section>
       )}
 
-      <ActionItemDialog
-        open={adding}
-        onClose={() => setAdding(false)}
-        meetingId={meeting.id}
-        ownerSuggestions={ownerSuggestions}
-      />
-      {addingDecision && (
-        <NewDecisionDialog meetingId={meeting.id} onClose={() => setAddingDecision(false)} />
-      )}
-
       {toolbar && <PickToolbar state={toolbar} onChoose={choose} onClose={closeToolbar} />}
       {creating?.kind === 'action' && (
         <ActionItemDialog
@@ -362,54 +319,77 @@ const MARK_STYLES: Record<Mark['kind'], string> = {
   decision: 'bg-success-soft',
   action: 'bg-accent-soft',
   date: 'bg-spark/70 font-semibold',
-  find: 'bg-warning-soft',
 };
 
 // Where marks overlap, the first kind here wins the colour.
-const MARK_PRIORITY: Mark['kind'][] = ['find', 'date', 'action', 'decision'];
+const MARK_PRIORITY: Mark['kind'][] = ['date', 'action', 'decision'];
 
-/** A line's text with its highlights (item quotes, dates, decisions, Find matches). */
+/**
+ * A line's text, one hoverable, clickable span per sentence, with the item highlights inside.
+ * Clicking a sentence opens the Action item / Decision toolbar for it. A click that ends a text
+ * selection is left to the selection toolbar instead.
+ */
 function LineText({
-  text,
+  line,
   marks,
   activeId,
   onActive,
-  currentFindId,
+  onPick,
 }: {
-  text: string;
+  line: TranscriptLine;
   marks: Mark[];
   activeId: string | null;
   onActive: (id: string | null) => void;
-  currentFindId: string | null;
+  onPick: (state: PickToolbarState) => void;
 }) {
-  if (marks.length === 0) return <>{text}</>;
   return (
     <>
-      {segment(text, marks).map((piece, i) => {
-        if (piece.marks.length === 0) return <span key={i}>{piece.text}</span>;
-        const kind = MARK_PRIORITY.find((k) => piece.marks.some((m) => m.kind === k))!;
-        const owner = piece.marks.find((m) => m.kind === kind) ?? piece.marks[0]!;
-        // A Find match has no card to light up, so hovering it does nothing.
-        const itemMark = piece.marks.find((m) => m.kind !== 'find');
-        const active = piece.marks.some((m) => m.itemId === activeId);
-        const isCurrentFind = kind === 'find' && owner.itemId === currentFindId;
+      {sentencesOf(line.text).map((sentence) => {
+        const text = line.text.slice(sentence.start, sentence.end);
+        // This sentence's share of each highlight, measured from the sentence's start.
+        const local = marks
+          .filter((m) => m.end > sentence.start && m.start < sentence.end)
+          .map((m) => ({
+            ...m,
+            start: Math.max(m.start, sentence.start) - sentence.start,
+            end: Math.min(m.end, sentence.end) - sentence.start,
+          }));
         return (
-          <mark
-            key={i}
-            data-kind={kind}
-            data-find-id={kind === 'find' ? owner.itemId : undefined}
-            aria-current={isCurrentFind ? 'true' : undefined}
-            onMouseEnter={itemMark ? () => onActive(itemMark.itemId) : undefined}
-            onMouseLeave={itemMark ? () => onActive(null) : undefined}
-            className={cn(
-              'rounded-mark px-0.5 text-fg transition-shadow',
-              MARK_STYLES[kind],
-              active && 'ring-2 ring-accent/50',
-              isCurrentFind && 'ring-2 ring-warning',
-            )}
+          <span
+            key={sentence.start}
+            onClick={(event) => {
+              if (!(window.getSelection()?.isCollapsed ?? true)) return;
+              onPick({
+                pick: pickText(line.n, text),
+                x: event.clientX,
+                y: event.clientY - 6,
+                source: 'click',
+              });
+            }}
+            className="cursor-pointer rounded-mark transition-colors hover:bg-accent-soft/60"
           >
-            {piece.text}
-          </mark>
+            {segment(text, local).map((piece, i) => {
+              if (piece.marks.length === 0) return <span key={i}>{piece.text}</span>;
+              const kind = MARK_PRIORITY.find((k) => piece.marks.some((m) => m.kind === k))!;
+              const owner = piece.marks.find((m) => m.kind === kind) ?? piece.marks[0]!;
+              const active = piece.marks.some((m) => m.itemId === activeId);
+              return (
+                <mark
+                  key={i}
+                  data-kind={kind}
+                  onMouseEnter={() => onActive(owner.itemId)}
+                  onMouseLeave={() => onActive(null)}
+                  className={cn(
+                    'rounded-mark px-0.5 text-fg transition-shadow',
+                    MARK_STYLES[kind],
+                    active && 'ring-2 ring-accent/50',
+                  )}
+                >
+                  {piece.text}
+                </mark>
+              );
+            })}
+          </span>
         );
       })}
     </>

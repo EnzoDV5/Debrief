@@ -9,7 +9,6 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { MeetingDocument } from '@/features/meetings/document/MeetingDocument';
 import { MeetingBar } from '@/features/meetings/document/MeetingBar';
-import { useTranscriptFind } from '@/features/meetings/document/useTranscriptFind';
 import { useMeeting } from '@/features/meetings/hooks';
 import { usePageTitle } from '@/lib/usePageTitle';
 
@@ -31,23 +30,21 @@ export function MeetingDetailPage() {
     );
   }
 
-  // Keyed: opening another meeting starts fresh (closed panels, empty Find).
+  // Keyed: opening another meeting starts fresh (closed panels, no half-finished question).
   return <MeetingDetail key={meeting.id} meeting={meeting} />;
 }
 
 /**
- * The title, summary and Ask live in a bar above the transcript panel (see MeetingBar), so the
- * panel holds just the transcript with its action items and decisions beside the lines.
+ * The title, status and summary live in a bar above the transcript panel (see MeetingBar). The
+ * panel holds the transcript, Ask, and the action items and decisions beside their lines.
  */
 function MeetingDetail({ meeting }: { meeting: Meeting }) {
-  // Shared by the Find field (in the bar) and the highlights (in the transcript).
-  const find = useTranscriptFind(meeting.transcriptLines);
   return (
     <>
       <PageBar>
-        <MeetingBar meeting={meeting} find={find} />
+        <MeetingBar meeting={meeting} />
       </PageBar>
-      <MeetingDocument meeting={meeting} find={find} />
+      <MeetingDocument meeting={meeting} />
     </>
   );
 }
