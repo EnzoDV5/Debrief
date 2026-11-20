@@ -19,7 +19,7 @@ import { useCurrentUser, useLogout } from '@/features/auth/hooks';
 import { useMeetings } from '@/features/meetings/hooks';
 import { MeetingMenu } from '@/features/meetings/MeetingMenu';
 import { cn } from '@/lib/cn';
-import { PageBarSlot } from './PageBar';
+import { PageBarSlot, PanelOverlaySlot } from './PageBar';
 import { PanelBackdrop } from './PanelBackdrop';
 import { ShellFrameContext, type ShellFrameClasses } from './shellFrame';
 import { SkipLink } from './SkipLink';
@@ -60,6 +60,7 @@ export function AppShell() {
   const { collapsed, toggle } = useSidebarCollapsed();
   // State (not a ref) so pages re-render with the element once it exists.
   const [pageBarSlot, setPageBarSlot] = useState<HTMLDivElement | null>(null);
+  const [panelOverlay, setPanelOverlay] = useState<HTMLDivElement | null>(null);
   // Classes from a page that narrows the panel (the meeting page), or null for full width.
   const [frame, setFrame] = useState<ShellFrameClasses | null>(null);
   const panelInset = frame?.panel ?? null;
@@ -139,6 +140,8 @@ export function AppShell() {
           </div>
           <div
             ref={scrollRef}
+            // Lets a page find the scrolling area (e.g. the transcript map follows its scroll).
+            data-scroller=""
             className={cn(
               'relative lg:scrollbar-panel lg:h-full lg:overflow-y-auto',
               // Beside a narrowed panel the scrollbar is on the dark frame: tint it light, and
@@ -152,11 +155,23 @@ export function AppShell() {
             >
               <ShellFrameContext.Provider value={setFrame}>
                 <PageBarSlot.Provider value={pageBarSlot}>
-                  <Outlet />
+                  <PanelOverlaySlot.Provider value={panelOverlay}>
+                    <Outlet />
+                  </PanelOverlaySlot.Provider>
                 </PageBarSlot.Provider>
               </ShellFrameContext.Provider>
             </div>
           </div>
+          {/* Desktop: a layer the same size as the panel, over the scrolling content, for things
+              that stay fixed on the panel (PanelOverlay). Clicks pass through it except where a
+              page puts something. */}
+          <div
+            ref={setPanelOverlay}
+            className={cn(
+              'pointer-events-none absolute inset-0 z-10 hidden transition-[right] duration-300 ease-out-3 lg:block',
+              panelInset,
+            )}
+          />
         </div>
       </main>
     </div>

@@ -16,3 +16,16 @@ export function PageBar({ children }: { children: ReactNode }) {
   const slot = useContext(PageBarSlot);
   return slot ? createPortal(children, slot) : null;
 }
+
+/**
+ * A layer over the rounded page panel (desktop): same size and position as the panel, but it
+ * doesn't scroll. A page puts things here that must stay fixed on the panel while its content
+ * scrolls, like the meeting page's transcript map.
+ */
+export const PanelOverlaySlot = createContext<HTMLElement | null>(null);
+
+/** Renders its children into the panel overlay (nothing on mobile, where there is no panel). */
+export function PanelOverlay({ children }: { children: ReactNode }) {
+  const slot = useContext(PanelOverlaySlot);
+  return slot ? createPortal(children, slot) : null;
+}

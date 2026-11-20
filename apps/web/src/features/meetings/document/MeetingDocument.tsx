@@ -10,6 +10,7 @@ import { DecisionBubble } from './DecisionBubble';
 import { findPhrase, segment, type Mark } from './highlight';
 import { MeetingActionCard } from './MeetingActionCard';
 import { NewDecisionDialog } from './NewDecisionDialog';
+import { TranscriptMap, type MapMarker } from './TranscriptMap';
 import {
   PickToolbar,
   pickText,
@@ -116,6 +117,25 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
     }
     return { byLine: map, unlinkedItems: looseItems, unlinkedDecisions: looseDecisions };
   }, [meeting.transcriptLines, meeting.actionItems, meeting.decisions]);
+
+  // Dots for the transcript map: one per line and kind, labelled with what's there.
+  const mapMarkers = useMemo(() => {
+    const markers: MapMarker[] = [];
+    for (const [line, notes] of [...byLine].sort(([a], [b]) => a - b)) {
+      if (notes.decisions.length > 0) {
+        markers.push({ line, kind: 'decision', label: `decision: ${notes.decisions[0]!.text}` });
+      }
+      if (notes.items.length > 0) {
+        const more = notes.items.length > 1 ? ` (+${notes.items.length - 1} more)` : '';
+        markers.push({
+          line,
+          kind: 'action',
+          label: `action item: ${notes.items[0]!.text}${more}`,
+        });
+      }
+    }
+    return markers;
+  }, [byLine]);
 
   const ownerSuggestions = useMemo(
     () =>
@@ -313,6 +333,7 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
         </section>
       )}
 
+      <TranscriptMap listRef={transcriptRef} markers={mapMarkers} />
       {toolbar && <PickToolbar state={toolbar} onChoose={choose} onClose={closeToolbar} />}
       {creating?.kind === 'action' && (
         <ActionItemDialog

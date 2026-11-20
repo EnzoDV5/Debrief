@@ -182,19 +182,26 @@
 }
 
 /*
- * The same spotlight for the transcript's lines, gentler because this is the text people read:
- * a wider sharp zone in the middle, less shrinking and blur. Scales from the left edge so lines
- * don't drift sideways.
+ * The same spotlight for the transcript's lines, so the line being read has its moment: sharp in
+ * a band across the middle of the frame (the middle few lines), dimmer above and below, and
+ * softest at the edges. Lighter on shrink and blur than the cards, since this is the text people
+ * read. Scales from the left edge so lines don't drift sideways.
  */
 @keyframes spotlight-soft {
   0%,
   100% {
-    opacity: 0.35;
-    transform: scale(0.98);
+    opacity: 0.25;
+    transform: scale(0.97);
     filter: blur(1.5px);
   }
-  30%,
-  70% {
+  22%,
+  78% {
+    opacity: 0.5;
+    transform: scale(0.99);
+    filter: none;
+  }
+  40%,
+  60% {
     opacity: 1;
     transform: none;
     filter: none;

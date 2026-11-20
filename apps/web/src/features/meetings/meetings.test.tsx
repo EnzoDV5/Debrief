@@ -367,6 +367,25 @@ describe('meeting detail', () => {
     expect(screen.getByText(/Check the due date/)).toHaveTextContent('Needs review:');
     await user.click(within(sourceLine).getByRole('link', { name: 'Line 2' }));
     expect(screen.getByRole('heading', { name: 'Transcript' })).toBeInTheDocument();
+
+    // The transcript map has a labelled dot per marked line; a dot jumps to its line.
+    const map = screen.getByRole('navigation', { name: 'Transcript map' });
+    expect(
+      await within(map).findByRole('button', { name: 'Line 1: decision: Use blue' }),
+    ).toBeInTheDocument();
+    const original = Element.prototype.scrollIntoView;
+    const scrolled: Element[] = [];
+    Element.prototype.scrollIntoView = function (this: Element) {
+      scrolled.push(this);
+    };
+    try {
+      await userEvent.click(
+        within(map).getByRole('button', { name: 'Line 2: action item: Send the files' }),
+      );
+      expect(scrolled.at(-1)?.id).toBe('L2');
+    } finally {
+      Element.prototype.scrollIntoView = original; // jsdom has none; don't leak the stub
+    }
     expect(screen.getByRole('link', { name: 'Line 2' })).toBeInTheDocument();
     expect(document.getElementById('L2')).toBeInTheDocument();
   });
