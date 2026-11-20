@@ -1,0 +1,41 @@
+# Render Blueprint for the api (New → Blueprint in the Render dashboard, pick this repo).
+# One web service runs the Express api and the pg-boss analysis worker in the same process
+# (server.ts starts both), and applies pending migrations on every start (see the Dockerfile).
+# The database is Supabase: paste its session-pooler URL into DATABASE_URL.
+# Values marked `sync: false` are secrets: Render asks for them once and never reads them from git.
+services:
+  - type: web
+    name: debrief-api
+    runtime: docker
+    # Free sleeps after ~15 min idle; the first request then takes ~1 min to wake it up.
+    plan: free
+    # Pick the region closest to your Supabase project (every query crosses this distance).
+    region: frankfurt
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Browser → Netlify's proxy → Render's load balancer → api: two proxies to trust, so the
+      # rate limiter sees the visitor's IP rather than Netlify's.
+      - key: TRUST_PROXY
+        value: '2'
+      # The site people open. The api only accepts state-changing requests from this origin.
+      - key: WEB_ORIGIN
+        value: https://debriefweb.netlify.app
+      - key: APP_URL
+        value: https://debriefweb.netlify.app
+      - key: GOOGLE_REDIRECT_URI
+        value: https://debriefweb.netlify.app/api/integrations/google/callback
+      - key: DATABASE_URL
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: ENCRYPTION_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
