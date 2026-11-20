@@ -18,7 +18,7 @@ import { formatCalendarDate, plural } from '@/lib/format';
 import { usePageTitle } from '@/lib/usePageTitle';
 import { AnalysisStatusBadge } from '../AnalysisStatusBadge';
 import { useAnalyzeMeeting, useUpdateMeeting } from '../hooks';
-import { AskMeetingCard } from './AskMeetingCard';
+import { AskMeetingPanel } from './AskMeetingPanel';
 
 const sourceLabels: Record<Meeting['sourceType'], string> = {
   paste: 'Pasted text',
@@ -146,7 +146,7 @@ export function MeetingBar({ meeting }: { meeting: Meeting }) {
           aria-label="Meeting summary"
           className="px-1 lg:scrollbar-panel lg:max-h-[40vh] lg:overflow-y-auto lg:pr-3 lg:text-sidebar-fg"
         >
-          <h2 className="eyebrow text-accent lg:text-spark">Summary</h2>
+          <h2 className="text-lg font-bold">Summary</h2>
           {analysed ? (
             <SummaryText meeting={meeting} />
           ) : (
@@ -157,7 +157,7 @@ export function MeetingBar({ meeting }: { meeting: Meeting }) {
         </section>
       </Collapsible>
       <Collapsible id={askId} open={open === 'ask'}>
-        <AskMeetingCard key={meeting.id} meetingId={meeting.id} />
+        <AskMeetingPanel key={meeting.id} meetingId={meeting.id} />
       </Collapsible>
 
       <Dialog

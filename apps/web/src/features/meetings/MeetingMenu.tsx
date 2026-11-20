@@ -59,7 +59,7 @@ export function MeetingMenu({ meeting }: { meeting: MeetingListItem }) {
           aria-label={`Options for ${meeting.title}`}
         >
           {update.error && (
-            <Alert tone="danger" className="mb-1 text-xs">
+            <Alert tone="danger" className="mb-1 text-sm">
               {update.error.message}
             </Alert>
           )}
@@ -91,7 +91,7 @@ export function MeetingMenu({ meeting }: { meeting: MeetingListItem }) {
                 </MenuAction>
               ))}
               {projects.length === 0 && (
-                <p className="px-2 py-1 text-xs text-muted">Create a project first</p>
+                <p className="px-2 py-1 text-sm text-muted">Create a project first</p>
               )}
             </div>
           )}

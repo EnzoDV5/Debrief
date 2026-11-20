@@ -61,7 +61,7 @@ export function DecisionBubble({
       {draft === null ? (
         <div className="mt-1">
           <p className="font-semibold">{decision.text}</p>
-          <p className="mt-1 text-xs text-muted">
+          <p className="mt-1 text-sm text-muted">
             Keep this as a record of what the team agreed. Edit it if it is incorrect.
           </p>
         </div>
@@ -91,7 +91,7 @@ export function DecisionBubble({
         </form>
       )}
       {decision.sourceLine !== null && (
-        <p className="mt-2 text-xs text-muted">
+        <p className="mt-2 text-sm text-muted">
           Source: <LineLink line={decision.sourceLine} meetingId={meetingId} />
         </p>
       )}

@@ -144,17 +144,20 @@ export function LineLink({
   meetingId,
   line,
   onJump,
+  className,
 }: {
   meetingId?: string;
   line: number | null;
   onJump?: () => void;
+  /** e.g. a lighter colour where the link sits on a dark background. */
+  className?: string;
 }) {
   if (line === null) return null;
   return (
     <Link
       to={meetingId ? `/meetings/${meetingId}#L${line}` : `#L${line}`}
       onClick={onJump}
-      className="font-semibold text-accent hover:underline"
+      className={cn('font-semibold text-accent hover:underline', className)}
     >
       Line {line}
     </Link>

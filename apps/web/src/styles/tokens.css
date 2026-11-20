@@ -62,6 +62,14 @@
   /* Wide spacing for small uppercase labels ("RECENT MEETINGS", eyebrows). */
   --tracking-label: 0.12em;
 
+  /*
+   * Type scale. One job per size, so the same kind of text looks the same everywhere:
+   *   2xl  page titles          lg    section and panel headings
+   *   base reading text (transcript, summary, answers)
+   *   sm   secondary text: descriptions, details, counts, notes, buttons, chips
+   *   xs   only badges, uppercase labels, line numbers and initials, never a sentence
+   * (xl is the meeting title in the top bar; 3xl the sign-in page headline.)
+   */
   --text-xs: 0.75rem;
   --text-xs--line-height: 1.4;
   --text-sm: 0.875rem;

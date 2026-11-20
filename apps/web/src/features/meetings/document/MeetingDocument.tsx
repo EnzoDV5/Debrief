@@ -110,13 +110,13 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3">
           <div>
             <h3 className="text-lg font-bold">Actions & decisions</h3>
-            <ul aria-label="Counts" className="mt-1 flex flex-wrap gap-x-3 text-xs text-muted">
+            <ul aria-label="Counts" className="mt-1 flex flex-wrap gap-x-3 text-sm text-muted">
               <li>{plural(meeting.actionItems.length, 'action item')}</li>
               <li>{plural(meeting.decisions.length, 'decision')}</li>
               {meeting.actionItems.length > 0 && <li>{done} done</li>}
               {needsReview > 0 && <li className="text-warning">{needsReview} needs review</li>}
             </ul>
-            <p className="mt-1.5 text-xs text-muted">
+            <p className="mt-1.5 text-sm text-muted">
               Decisions record agreements. Action items are tasks to complete.
             </p>
           </div>
@@ -307,7 +307,7 @@ function Legend() {
   return (
     <ul
       aria-label="Highlight colours"
-      className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted"
+      className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted"
     >
       <li className="inline-flex items-center gap-1.5">
         <span

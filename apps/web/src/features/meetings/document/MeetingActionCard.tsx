@@ -48,14 +48,14 @@ function ActionContext({ meeting, item }: { meeting: Meeting; item: ActionItem }
   const line = meeting.transcriptLines.find((entry) => entry.n === item.sourceLine);
   if (!line)
     return (
-      <div className="text-xs text-muted">
+      <div className="text-sm text-muted">
         <p>{item.origin === 'manual' ? 'Added by you' : 'Source needs review'}</p>
         <p>No verified transcript line linked.</p>
       </div>
     );
   const summary = contextSummary(item, line);
   return (
-    <div className="rounded-md bg-surface-2/70 px-3 py-2 text-xs leading-5 text-muted">
+    <div className="rounded-md bg-surface-2/70 px-3 py-2 text-sm leading-6 text-muted">
       <p>
         <span className="font-semibold text-fg">In brief: </span>
         {summary}
