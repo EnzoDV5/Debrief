@@ -172,7 +172,15 @@ describe('action items on the meeting page', () => {
 
     expect(await screen.findByText('Book the venue')).toBeInTheDocument();
     expect(screen.getByText('Added by you')).toBeInTheDocument();
-    expect(sent).toEqual({ text: 'Book the venue', owner: null, dueDate: null, status: 'todo' });
+    expect(sent).toEqual({
+      text: 'Book the venue',
+      owner: null,
+      dueDate: null,
+      status: 'todo',
+      // Added from the button, not from selected text: no transcript source.
+      sourceLine: null,
+      sourceQuote: null,
+    });
   });
 
   it('edits the summary and adds a decision', async () => {

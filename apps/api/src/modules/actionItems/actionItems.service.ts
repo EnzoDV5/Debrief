@@ -10,6 +10,7 @@ import type { z } from 'zod';
 import { notFound } from '../../lib/errors';
 import { toActionItem } from '../meetings/meetings.mappers';
 import { actionItemsRepository } from './actionItems.repository';
+import { assertPickedSource } from './pickedSource';
 
 // Business rules for action items. No req/res, no SQL.
 
@@ -23,9 +24,9 @@ const utcToday = () => new Date().toISOString().slice(0, 10);
 export const actionItemsService = {
   /** A hand-made item: never flagged (the user wrote it), and never replaced by re-analysis. */
   async create(userId: string, meetingId: string, input: CreateInput): Promise<ActionItem> {
-    if (!(await actionItemsRepository.meetingBelongsTo(userId, meetingId))) {
-      throw notFound('Meeting');
-    }
+    const lines = await actionItemsRepository.findTranscriptLines(userId, meetingId);
+    if (!lines) throw notFound('Meeting');
+    assertPickedSource(lines, input.sourceLine, input.sourceQuote);
     const row = await actionItemsRepository.create({
       meetingId,
       userId,

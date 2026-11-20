@@ -33,6 +33,12 @@ export function normalise(text: string): string {
 const lineText = (line: TranscriptLine) =>
   normalise(line.speaker ? `${line.speaker}: ${line.text}` : line.text);
 
+/** Whether these words appear on this line (same forgiving comparison as the AI's quotes). */
+export function quoteIsOnLine(line: TranscriptLine, quote: string): boolean {
+  const needle = normalise(quote);
+  return needle.length > 0 && lineText(line).includes(needle);
+}
+
 /** Whole-word / whole-phrase match: "Ann" is in "ann said" but not in "annual". */
 function containsPhrase(haystack: string, phrase: string): boolean {
   const needle = normalise(phrase);

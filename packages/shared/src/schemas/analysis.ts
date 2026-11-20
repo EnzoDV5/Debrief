@@ -64,11 +64,20 @@ const dueDateInput = z
   .nullable()
   .transform((value) => value || null);
 
+/**
+ * The transcript line a hand-made item came from (picked by selecting text on the meeting page).
+ * The server checks it exists in that meeting's transcript.
+ */
+const sourceLineInput = z.number().int().positive().nullable().default(null);
+
 export const createActionItemSchema = z.object({
   text: itemText,
   owner: ownerInput.default(null),
   dueDate: dueDateInput.default(null),
   status: z.enum(ACTION_ITEM_STATUSES).default('todo'),
+  sourceLine: sourceLineInput,
+  // The exact words picked on that line; the server checks they really are on it.
+  sourceQuote: z.string().trim().min(1).max(1000).nullable().default(null),
 });
 export type CreateActionItemInput = z.input<typeof createActionItemSchema>;
 
@@ -89,9 +98,10 @@ const decisionText = z
   .min(1, 'Describe the decision')
   .max(500, 'Use 500 characters or fewer');
 
-export const createDecisionSchema = z.object({ text: decisionText });
+export const createDecisionSchema = z.object({ text: decisionText, sourceLine: sourceLineInput });
 export const updateDecisionSchema = z.object({ text: decisionText });
-export type DecisionInput = z.infer<typeof createDecisionSchema>;
+export type CreateDecisionInput = z.input<typeof createDecisionSchema>;
+export type DecisionInput = z.infer<typeof updateDecisionSchema>;
 
 export const actionItemResponseSchema = z.object({ actionItem: actionItemSchema });
 

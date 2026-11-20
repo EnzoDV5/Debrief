@@ -242,6 +242,82 @@ describe('GET /api/action-items ("my open items")', () => {
   });
 });
 
+describe('items picked from the transcript (select text → create)', () => {
+  async function meetingWithTranscript(cookie: string) {
+    const res = await send('post', '/api/meetings', cookie, {
+      title: 'Launch',
+      meetingDate: '2026-11-24',
+      transcript: 'Ann: We should ship on Friday.\nBen: I will send the deck to Lerato.',
+    });
+    return res.body.meeting.id as string;
+  }
+  const addItem = (meetingId: string, body: object) =>
+    send('post', `/api/meetings/${meetingId}/action-items`, alice, body);
+
+  it('links a hand-made item to the line and words the user selected', async () => {
+    const meetingId = await meetingWithTranscript(alice);
+    const res = await addItem(meetingId, {
+      text: 'Send the deck to Lerato',
+      sourceLine: 2,
+      // Different capitals and punctuation still match, like the AI's quotes.
+      sourceQuote: 'i will SEND the deck',
+    });
+    expect(res.status).toBe(201);
+    expect(res.body.actionItem).toMatchObject({
+      sourceLine: 2,
+      sourceQuote: 'i will SEND the deck',
+      origin: 'manual',
+      needsReview: false,
+    });
+  });
+
+  it('rejects a line that is not in the transcript, or words that are not on it', async () => {
+    const meetingId = await meetingWithTranscript(alice);
+    const noLine = await addItem(meetingId, { text: 'X', sourceLine: 9 });
+    expect(noLine.status).toBe(400);
+    expect(noLine.body.error.fields).toEqual({ sourceLine: "Line 9 isn't in this transcript" });
+
+    const wrongWords = await addItem(meetingId, {
+      text: 'X',
+      sourceLine: 1,
+      sourceQuote: 'send the deck',
+    });
+    expect(wrongWords.status).toBe(400);
+    expect(wrongWords.body.error.fields).toEqual({
+      sourceQuote: "Those words aren't on line 1",
+    });
+
+    const quoteOnly = await addItem(meetingId, { text: 'X', sourceQuote: 'ship on Friday' });
+    expect(quoteOnly.status).toBe(400);
+    expect(quoteOnly.body.error.fields).toHaveProperty('sourceQuote');
+  });
+
+  it('links a hand-made decision to its line, and checks the line exists', async () => {
+    const meetingId = await meetingWithTranscript(alice);
+    const ok = await send('post', `/api/meetings/${meetingId}/decisions`, alice, {
+      text: 'Ship on Friday',
+      sourceLine: 1,
+    });
+    expect(ok.status).toBe(201);
+    expect(ok.body.decision).toMatchObject({ text: 'Ship on Friday', sourceLine: 1 });
+
+    const bad = await send('post', `/api/meetings/${meetingId}/decisions`, alice, {
+      text: 'Ship on Friday',
+      sourceLine: 3,
+    });
+    expect(bad.status).toBe(400);
+  });
+
+  it("still gives 404 for someone else's meeting, before looking at the source", async () => {
+    const meetingId = await meetingWithTranscript(alice);
+    const res = await send('post', `/api/meetings/${meetingId}/action-items`, bob, {
+      text: 'X',
+      sourceLine: 99,
+    });
+    expect(res.status).toBe(404);
+  });
+});
+
 describe('decisions and summary', () => {
   it('adds, edits and deletes a decision', async () => {
     const { meetingId } = await meetingWithItems(alice);

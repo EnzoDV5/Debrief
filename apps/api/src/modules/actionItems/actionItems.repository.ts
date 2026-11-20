@@ -1,4 +1,4 @@
-import { UNASSIGNED_OWNER, type ActionItemStatus } from '@debrief/shared';
+import { UNASSIGNED_OWNER, type ActionItemStatus, type TranscriptLine } from '@debrief/shared';
 import { and, asc, desc, eq, inArray, isNotNull, isNull, lt, ne, sql, type SQL } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { actionItems, meetings, type ActionItemRow } from '../../db/schema';
@@ -12,13 +12,14 @@ export type ActionItemFilters = {
 };
 
 export const actionItemsRepository = {
-  async meetingBelongsTo(userId: string, meetingId: string): Promise<boolean> {
+  /** The meeting's numbered lines, or null if it isn't this user's meeting. */
+  async findTranscriptLines(userId: string, meetingId: string): Promise<TranscriptLine[] | null> {
     const [row] = await db
-      .select({ id: meetings.id })
+      .select({ lines: meetings.transcriptLines })
       .from(meetings)
       .where(and(eq(meetings.id, meetingId), eq(meetings.userId, userId)))
       .limit(1);
-    return Boolean(row);
+    return row?.lines ?? null;
   },
 
   /** New hand-made items go to the end of the meeting's list. */
