@@ -1,5 +1,5 @@
 import type { AskMeetingResponse } from '@debrief/shared';
-import { ArrowUp, Sparkles } from 'lucide-react';
+import { ArrowUp, Sparkles, X } from 'lucide-react';
 import { useRef, useState, type FormEvent } from 'react';
 import { Alert } from '@/components/ui/Alert';
 import { Spinner } from '@/components/ui/Spinner';
@@ -15,13 +15,16 @@ const suggestions = [
 
 type Exchange = { question: string; result: AskMeetingResponse };
 
+const keepFocus = (event: { preventDefault: () => void }) => event.preventDefault();
+
 const chip =
   'rounded-pill border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:border-accent/40 hover:bg-accent-soft hover:text-accent';
 
 /**
- * "Ask this meeting", opened from the dropdown at the top of the transcript panel. No card: it
- * sits on the panel like the transcript. The question box is a compact chat-style field with the
- * send button inside it, not a full-width form row.
+ * "Ask this meeting": a card at the top of the notes column, always open. At rest it is just the
+ * title and a compact chat-style question box. Suggestions appear while it has focus, and an
+ * answer opens below. The card scrolls inside past a maximum height; on wide screens it grows
+ * down over the notes column instead of pushing the transcript (see MeetingDocument).
  */
 export function AskMeetingPanel({ meetingId }: { meetingId: string }) {
   const ask = useAskMeeting(meetingId);
@@ -29,7 +32,8 @@ export function AskMeetingPanel({ meetingId }: { meetingId: string }) {
   const [question, setQuestion] = useState('');
   const [exchanges, setExchanges] = useState<Exchange[]>([]);
   const [selected, setSelected] = useState(0);
-  const shown = exchanges[selected];
+  const [answerHidden, setAnswerHidden] = useState(false);
+  const shown = answerHidden ? undefined : exchanges[selected];
   const canSend = question.trim().length >= 3;
 
   const submit = (event: FormEvent) => {
@@ -40,33 +44,45 @@ export function AskMeetingPanel({ meetingId }: { meetingId: string }) {
       onSuccess: (result) => {
         setSelected(exchanges.length);
         setExchanges((previous) => [...previous, { question: text, result }]);
+        setAnswerHidden(false);
         setQuestion('');
       },
     });
   };
+  const showExchange = (index: number) => {
+    setSelected(index);
+    setAnswerHidden(false);
+  };
 
   return (
-    <section aria-label="Ask this meeting" aria-busy={ask.isPending} className="px-1">
-      <p className="text-sm text-muted">
-        Get a short answer with links to the words that support it.
-      </p>
-
-      <form onSubmit={submit} className="relative mt-3 max-w-2xl">
-        <Sparkles
+    <section
+      aria-label="Ask this meeting"
+      aria-busy={ask.isPending}
+      // "group": the suggestions show while anything in the card has focus (focus-within).
+      className="group scrollbar-panel max-h-[28rem] overflow-y-auto rounded-card border border-line bg-surface p-4 shadow-raised"
+    >
+      <div className="flex items-center gap-2.5">
+        <span
           aria-hidden="true"
-          className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-accent"
-        />
+          className="grid size-8 shrink-0 place-items-center rounded-md bg-accent-soft text-accent"
+        >
+          <Sparkles className="size-4" />
+        </span>
+        <h2 className="font-bold">Ask this meeting</h2>
+      </div>
+
+      <form onSubmit={submit} className="relative mt-3">
         <input
           ref={input}
           aria-label="Ask a question about this meeting"
-          placeholder="e.g. Why did we choose this approach?"
+          placeholder="e.g. Why did we choose this?"
           value={question}
           maxLength={500}
           onChange={(event) => {
             setQuestion(event.target.value);
             if (ask.isError) ask.reset();
           }}
-          className="h-12 w-full rounded-pill border border-line-strong bg-surface pr-14 pl-11 text-base text-fg shadow-card transition-colors placeholder:text-muted focus:border-accent"
+          className="h-12 w-full rounded-pill border border-line-strong bg-surface pr-14 pl-4 text-base text-fg transition-colors placeholder:text-muted focus:border-accent"
         />
         <button
           type="submit"
@@ -78,21 +94,40 @@ export function AskMeetingPanel({ meetingId }: { meetingId: string }) {
         </button>
       </form>
 
-      {exchanges.length === 0 && (
-        <div className="mt-3 flex flex-wrap gap-2" aria-label="Suggested questions">
-          {suggestions.map((suggestion) => (
-            <button
-              key={suggestion}
-              type="button"
-              onClick={() => {
-                setQuestion(suggestion);
-                input.current?.focus();
-              }}
-              className={chip}
-            >
-              {suggestion}
-            </button>
-          ))}
+      {/* While the card has focus and no answer is open: suggestions, or earlier questions.
+          The chips don't take focus on press (keepFocus): otherwise the box would lose focus,
+          hiding the chips before the click lands (Safari doesn't focus clicked buttons). */}
+      {!shown && (
+        <div
+          className="mt-3 hidden flex-wrap gap-2 group-focus-within:flex"
+          aria-label={exchanges.length ? 'Questions asked this visit' : 'Suggested questions'}
+        >
+          {exchanges.length === 0
+            ? suggestions.map((suggestion) => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  onPointerDown={keepFocus}
+                  onClick={() => {
+                    setQuestion(suggestion);
+                    input.current?.focus();
+                  }}
+                  className={chip}
+                >
+                  {suggestion}
+                </button>
+              ))
+            : exchanges.map((exchange, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  onPointerDown={keepFocus}
+                  onClick={() => showExchange(index)}
+                  className={cn(chip, 'max-w-full truncate')}
+                >
+                  {exchange.question}
+                </button>
+              ))}
         </div>
       )}
 
@@ -102,13 +137,13 @@ export function AskMeetingPanel({ meetingId }: { meetingId: string }) {
         </p>
       )}
       {ask.error && (
-        <Alert tone="danger" className="mt-3 max-w-2xl">
+        <Alert tone="danger" className="mt-3">
           {ask.error.message}
         </Alert>
       )}
 
       {shown && (
-        <div className="mt-5 max-w-3xl">
+        <div className="mt-4">
           {exchanges.length > 1 && (
             <div className="mb-3 flex flex-wrap gap-2" aria-label="Questions asked this visit">
               {exchanges.map((exchange, index) => (
@@ -116,10 +151,10 @@ export function AskMeetingPanel({ meetingId }: { meetingId: string }) {
                   key={index}
                   type="button"
                   aria-pressed={index === selected}
-                  onClick={() => setSelected(index)}
+                  onClick={() => showExchange(index)}
                   className={cn(
                     chip,
-                    'max-w-64 truncate',
+                    'max-w-full truncate',
                     index === selected &&
                       'border-accent/40 bg-accent-soft font-semibold text-accent',
                   )}
@@ -130,7 +165,15 @@ export function AskMeetingPanel({ meetingId }: { meetingId: string }) {
             </div>
           )}
           {/* The answer reads like a quote: a coloured rule, no box. */}
-          <div className="border-l-2 border-accent pl-4" aria-live="polite">
+          <div className="relative border-l-2 border-accent pr-8 pl-4" aria-live="polite">
+            <button
+              type="button"
+              aria-label="Hide answer"
+              onClick={() => setAnswerHidden(true)}
+              className="absolute top-0 right-0 grid size-7 place-items-center rounded-pill text-muted hover:bg-surface-2 hover:text-fg"
+            >
+              <X aria-hidden="true" className="size-4" />
+            </button>
             <p className="text-sm font-semibold text-muted">{shown.question}</p>
             <p className="mt-1.5 text-base leading-7 whitespace-pre-wrap">
               {shown.result.answer ?? 'I couldn’t find an answer supported by this transcript.'}

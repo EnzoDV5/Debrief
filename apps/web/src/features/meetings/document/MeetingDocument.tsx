@@ -1,14 +1,6 @@
 import type { ActionItem, Decision, Meeting, TranscriptLine } from '@debrief/shared';
-import { ChevronDown, Sparkles, TextSelect } from 'lucide-react';
-import {
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-  type KeyboardEvent,
-} from 'react';
+import { TextSelect } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router';
 import { useShellPanelInset } from '@/components/layout/shellFrame';
 import { ActionItemDialog } from '@/features/actionItems/ActionItemDialog';
@@ -89,26 +81,6 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
   // Pull the shell's rounded panel in from the right, making room for the notes column.
   useShellPanelInset(PANEL_INSET);
 
-  // Ask this meeting: a floating card under its button, at the top of the notes column.
-  const [askOpen, setAskOpen] = useState(false);
-  const askToggle = useRef<HTMLButtonElement>(null);
-  const askArea = useRef<HTMLDivElement>(null);
-  const askId = useId();
-  const closeAskOnEscape = (event: KeyboardEvent) => {
-    if (event.key !== 'Escape' || !askOpen) return;
-    askToggle.current?.focus(); // the card becomes inert, so focus can't stay inside it
-    setAskOpen(false);
-  };
-  // A click anywhere outside the button and card closes it (it floats over the page).
-  useEffect(() => {
-    if (!askOpen) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (!askArea.current?.contains(event.target as Node)) setAskOpen(false);
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    return () => document.removeEventListener('pointerdown', onPointerDown);
-  }, [askOpen]);
-
   // Click a sentence / select words / Enter on a line → toolbar → a pre-filled item.
   const transcriptRef = useRef<HTMLOListElement>(null);
   const [toolbar, setToolbar] = useState<PickToolbarState | null>(null);
@@ -170,9 +142,13 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
       aria-labelledby="transcript-title"
       className="relative min-w-0 pb-10 text-fg [--gap:1.5rem] [--notes:24rem] 2xl:[--notes:27rem]"
     >
-      <div onKeyDown={closeAskOnEscape} className={cn(columns, 'relative z-20')}>
-        <div className={cn(sheetCell, 'pt-7 lg:pt-9')}>
-          <div className="border-b border-line pb-4">
+      {/* Header row: the transcript heading (on the panel) and Ask this meeting (top of the notes
+          column, level with the panel's top edge). On wide screens the Ask card is lifted out of
+          the row (absolute) and the row is just tall enough for it at rest, so the transcript
+          never moves: suggestions and answers grow the card down over the notes column. */}
+      <div className={cn(columns, 'relative z-20 xl:min-h-31 xl:items-stretch')}>
+        <div className={cn(sheetCell, 'flex flex-col pt-7 lg:pt-9')}>
+          <div className="flex-1 border-b border-line pb-4">
             <h2 id="transcript-title" className="text-lg font-bold">
               Transcript
             </h2>
@@ -185,45 +161,9 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
             </p>
           </div>
         </div>
-
-        {/* Ask this meeting, at the top of the notes column. */}
-        <div ref={askArea} className={cn(notesCell, 'relative pt-4 xl:pt-9')}>
-          <button
-            ref={askToggle}
-            type="button"
-            aria-expanded={askOpen}
-            aria-controls={askId}
-            onClick={() => setAskOpen((open) => !open)}
-            className={cn(
-              'inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-pill border px-4 text-sm font-semibold transition-colors',
-              // Inside the sheet (narrow screens): light. Beside it on the dark frame: dark.
-              'border-line-strong bg-surface text-fg shadow-card hover:bg-surface-2',
-              'xl:border-sidebar-line xl:bg-sidebar-hover xl:text-sidebar-fg xl:shadow-none xl:hover:bg-sidebar-active xl:hover:text-white xl:focus-visible:outline-white',
-              askOpen && 'xl:bg-sidebar-active xl:text-white',
-            )}
-          >
-            <Sparkles aria-hidden="true" className="size-4 text-accent xl:text-spark" />
-            Ask this meeting
-            <ChevronDown
-              aria-hidden="true"
-              className={cn('size-4 transition-transform', askOpen && 'rotate-180')}
-            />
-          </button>
-          {/* Floats over the page instead of pushing the transcript down. Kept mounted while
-              closed (inert), so earlier answers are still there when it is reopened. */}
-          <div
-            id={askId}
-            inert={!askOpen}
-            className={cn(
-              'absolute top-full right-4 left-4 z-30 mt-2 transition duration-200 ease-out-3 sm:right-8 sm:left-8 xl:right-0 xl:left-auto xl:w-[30rem]',
-              askOpen
-                ? 'translate-y-0 opacity-100'
-                : 'pointer-events-none -translate-y-1 opacity-0',
-            )}
-          >
-            <div className="scrollbar-panel max-h-[60vh] overflow-y-auto rounded-card border border-line bg-surface p-4 shadow-raised">
-              <AskMeetingPanel meetingId={meeting.id} />
-            </div>
+        <div className={cn(notesCell, 'relative pt-4 pb-3 xl:pt-0 xl:pb-0')}>
+          <div className="xl:absolute xl:inset-x-0 xl:top-0">
+            <AskMeetingPanel meetingId={meeting.id} />
           </div>
         </div>
       </div>

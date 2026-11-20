@@ -56,9 +56,13 @@ export function MeetingBar({ meeting }: { meeting: Meeting }) {
     <div onKeyDown={closeOnEscape} className="px-4 pt-7 sm:px-8 lg:px-1 lg:pt-0 lg:pb-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold lg:truncate lg:text-xl lg:text-white">
-            {meeting.title}
-          </h1>
+          {/* The analysis status sits with the title it describes. */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h1 className="min-w-0 text-2xl font-bold lg:truncate lg:text-xl lg:text-white">
+              {meeting.title}
+            </h1>
+            <AnalysisStatusBadge status={meeting.analysisStatus} />
+          </div>
           <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted lg:text-sidebar-muted">
             <span className="inline-flex items-center gap-1.5">
               <CalendarDays aria-hidden="true" className="size-4" />
@@ -72,7 +76,6 @@ export function MeetingBar({ meeting }: { meeting: Meeting }) {
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <AnalysisStatusBadge status={meeting.analysisStatus} />
           <BarButton
             ref={summaryToggle}
             aria-expanded={summaryOpen}

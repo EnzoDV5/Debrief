@@ -261,8 +261,8 @@ describe('meeting detail', () => {
     const user = userEvent.setup();
     const { router } = renderApp(`/meetings/${meeting.id}`);
 
-    // Ask lives in a dropdown in the meeting bar: open it first.
-    await user.click(await screen.findByRole('button', { name: 'Ask this meeting' }));
+    // Ask is always open, at the top of the notes column.
+    await screen.findByRole('region', { name: 'Ask this meeting' });
     await user.click(screen.getByRole('button', { name: 'What decisions were made?' }));
     const input = screen.getByRole('textbox', { name: 'Ask a question about this meeting' });
     expect(input).toHaveValue('What decisions were made?');
@@ -299,7 +299,7 @@ describe('meeting detail', () => {
     });
     const user = userEvent.setup();
     renderApp(`/meetings/${meeting.id}`);
-    await user.click(await screen.findByRole('button', { name: 'Ask this meeting' }));
+    await screen.findByRole('region', { name: 'Ask this meeting' });
     const input = screen.getByRole('textbox', { name: 'Ask a question about this meeting' });
     await user.type(input, 'What is blocking progress?');
     await user.click(screen.getByRole('button', { name: 'Ask' }));
