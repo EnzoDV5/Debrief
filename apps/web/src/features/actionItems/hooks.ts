@@ -6,7 +6,7 @@ import {
   type ActionItemStatusFilter,
   type CreateActionItemInput,
   type Decision,
-  type DecisionInput,
+  type CreateDecisionInput,
   type Meeting,
   type UpdateActionItemInput,
 } from '@debrief/shared';
@@ -168,7 +168,7 @@ export function useCreateActionItem(meetingId: string) {
 export function useCreateDecision(meetingId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: DecisionInput) =>
+    mutationFn: async (input: CreateDecisionInput) =>
       (
         await request(`/meetings/${meetingId}/decisions`, {
           method: 'POST',

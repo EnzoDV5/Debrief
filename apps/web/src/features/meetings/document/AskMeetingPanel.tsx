@@ -49,11 +49,7 @@ export function AskMeetingPanel({ meetingId }: { meetingId: string }) {
   };
 
   return (
-    <section
-      aria-label="Ask this meeting"
-      aria-busy={ask.isPending}
-      className="px-1 lg:scrollbar-panel lg:max-h-[40vh] lg:overflow-y-auto lg:pr-3 lg:text-sidebar-fg"
-    >
+    <section aria-label="Ask this meeting" aria-busy={ask.isPending}>
       <h2 className="text-lg font-bold">Ask this meeting</h2>
       <p className="mt-1 text-sm text-muted lg:text-sidebar-muted">
         Get a short answer with links to the words that support it.

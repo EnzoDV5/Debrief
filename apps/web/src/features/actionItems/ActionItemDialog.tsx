@@ -26,6 +26,8 @@ export function ActionItemDialog({
   meetingId,
   item,
   ownerSuggestions = [],
+  initialText,
+  source,
 }: {
   open: boolean;
   onClose: () => void;
@@ -33,6 +35,10 @@ export function ActionItemDialog({
   item?: ActionItem;
   /** Names to suggest for the owner field (the meeting's speakers and known owners). */
   ownerSuggestions?: string[];
+  /** New items only: start the task text with these words (picked from the transcript). */
+  initialText?: string;
+  /** New items only: the transcript line and words they were picked from. */
+  source?: { line: number; quote: string };
 }) {
   const create = useCreateActionItem(meetingId);
   const update = useUpdateActionItem();
@@ -48,7 +54,7 @@ export function ActionItemDialog({
     // The same schema the api enforces.
     resolver: zodResolver(createActionItemSchema),
     values: {
-      text: item?.text ?? '',
+      text: item?.text ?? initialText ?? '',
       owner: item?.owner ?? '',
       dueDate: item?.dueDate ?? '',
       status: item?.status ?? 'todo',
@@ -63,9 +69,15 @@ export function ActionItemDialog({
   const onSubmit = handleSubmit(async (values) => {
     try {
       if (item) {
-        await update.mutateAsync({ id: item.id, patch: values });
+        // The source can't be changed by editing, so it isn't sent.
+        const { sourceLine: _line, sourceQuote: _quote, ...patch } = values;
+        await update.mutateAsync({ id: item.id, patch });
       } else {
-        await create.mutateAsync(values);
+        await create.mutateAsync({
+          ...values,
+          sourceLine: source?.line ?? null,
+          sourceQuote: source?.quote ?? null,
+        });
       }
       close();
     } catch (error) {
@@ -83,7 +95,9 @@ export function ActionItemDialog({
           ? 'Saving your changes marks this item as reviewed.'
           : item
             ? undefined
-            : 'Add a task the AI missed. Items you add stay when the meeting is re-analysed.'
+            : source
+              ? `From line ${source.line} of the transcript. Edit the words into a task; it will sit beside that line.`
+              : 'Add a task the AI missed. Items you add stay when the meeting is re-analysed.'
       }
     >
       <form onSubmit={onSubmit} noValidate className="space-y-5">

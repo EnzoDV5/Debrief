@@ -9,6 +9,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { MeetingDocument } from '@/features/meetings/document/MeetingDocument';
 import { MeetingBar } from '@/features/meetings/document/MeetingBar';
+import { useTranscriptFind } from '@/features/meetings/document/useTranscriptFind';
 import { useMeeting } from '@/features/meetings/hooks';
 import { usePageTitle } from '@/lib/usePageTitle';
 
@@ -30,7 +31,8 @@ export function MeetingDetailPage() {
     );
   }
 
-  return <MeetingDetail meeting={meeting} />;
+  // Keyed: opening another meeting starts fresh (closed panels, empty Find).
+  return <MeetingDetail key={meeting.id} meeting={meeting} />;
 }
 
 /**
@@ -38,12 +40,14 @@ export function MeetingDetailPage() {
  * panel holds just the transcript with its action items and decisions beside the lines.
  */
 function MeetingDetail({ meeting }: { meeting: Meeting }) {
+  // Shared by the Find field (in the bar) and the highlights (in the transcript).
+  const find = useTranscriptFind(meeting.transcriptLines);
   return (
     <>
       <PageBar>
-        <MeetingBar key={meeting.id} meeting={meeting} />
+        <MeetingBar meeting={meeting} find={find} />
       </PageBar>
-      <MeetingDocument meeting={meeting} />
+      <MeetingDocument meeting={meeting} find={find} />
     </>
   );
 }

@@ -211,7 +211,9 @@ describe('action items on the meeting page', () => {
     const user = userEvent.setup();
     renderApp(`/meetings/${MEETING_ID}`);
 
-    await user.click(await screen.findByRole('button', { name: 'Edit summary' }));
+    // The summary lives in the meeting bar's Summary dropdown.
+    await user.click(await screen.findByRole('button', { name: 'Summary' }));
+    await user.click(screen.getByRole('button', { name: 'Edit summary' }));
     const summary = screen.getByLabelText('Summary text');
     await user.clear(summary);
     await user.type(summary, 'Corrected.');
@@ -227,7 +229,11 @@ describe('action items on the meeting page', () => {
         'Ship Friday',
       ),
     ).toBeInTheDocument();
-    expect(sent).toEqual({ summary: { summary: 'Corrected.' }, decision: { text: 'Ship Friday' } });
+    expect(sent).toEqual({
+      summary: { summary: 'Corrected.' },
+      // Added from the button, not from selected text: no transcript line.
+      decision: { text: 'Ship Friday', sourceLine: null },
+    });
   });
 });
 

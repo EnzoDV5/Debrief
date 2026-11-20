@@ -8,19 +8,34 @@ import { useCreateDecision } from '@/features/actionItems/hooks';
 export function NewDecisionDialog({
   meetingId,
   onClose,
+  initialText = '',
+  sourceLine = null,
 }: {
   meetingId: string;
   onClose: () => void;
+  /** Start with these words (picked from the transcript). */
+  initialText?: string;
+  /** The transcript line it was picked from: the decision will sit beside it. */
+  sourceLine?: number | null;
 }) {
   const create = useCreateDecision(meetingId);
-  const [text, setText] = useState('');
+  const [text, setText] = useState(initialText);
   return (
-    <Dialog open onClose={() => !create.isPending && onClose()} title="Add decision">
+    <Dialog
+      open
+      onClose={() => !create.isPending && onClose()}
+      title="Add decision"
+      description={
+        sourceLine === null
+          ? undefined
+          : `From line ${sourceLine} of the transcript. It will sit beside that line.`
+      }
+    >
       <form
         className="space-y-3"
         onSubmit={(event) => {
           event.preventDefault();
-          create.mutate({ text }, { onSuccess: onClose });
+          create.mutate({ text, sourceLine }, { onSuccess: onClose });
         }}
       >
         <Input

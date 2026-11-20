@@ -19,6 +19,8 @@ import { usePageTitle } from '@/lib/usePageTitle';
 import { AnalysisStatusBadge } from '../AnalysisStatusBadge';
 import { useAnalyzeMeeting, useUpdateMeeting } from '../hooks';
 import { AskMeetingPanel } from './AskMeetingPanel';
+import { FindInTranscript } from './FindInTranscript';
+import type { TranscriptFind } from './useTranscriptFind';
 
 const sourceLabels: Record<Meeting['sourceType'], string> = {
   paste: 'Pasted text',
@@ -35,7 +37,7 @@ type Panel = 'summary' | 'ask';
  * transcript scrolls. Summary and Ask open as panels under the bar, one at a time, and the
  * transcript panel shrinks to make room. Mobile: the same bar at the top of the page.
  */
-export function MeetingBar({ meeting }: { meeting: Meeting }) {
+export function MeetingBar({ meeting, find }: { meeting: Meeting; find: TranscriptFind }) {
   usePageTitle(meeting.title);
   const analyze = useAnalyzeMeeting(meeting.id);
   const [open, setOpen] = useState<Panel | null>(null);
@@ -46,7 +48,12 @@ export function MeetingBar({ meeting }: { meeting: Meeting }) {
 
   const running = meeting.analysisStatus === 'pending' || meeting.analysisStatus === 'processing';
   const analysed = meeting.summary !== null;
-  const toggle = (panel: Panel) => setOpen((current) => (current === panel ? null : panel));
+  // Find's highlights belong to the Ask panel: closing it clears them.
+  const show = (panel: Panel | null) => {
+    if (open === 'ask' && panel !== 'ask') find.clear();
+    setOpen(panel);
+  };
+  const toggle = (panel: Panel) => show(open === panel ? null : panel);
   const rerun = () => analyze.mutate(undefined, { onSuccess: () => setConfirmRerun(false) });
 
   // Esc closes the open panel and returns focus to its button (the panel becomes inert, so
@@ -54,7 +61,7 @@ export function MeetingBar({ meeting }: { meeting: Meeting }) {
   const closeOnEscape = (event: KeyboardEvent) => {
     if (event.key !== 'Escape' || open === null || confirmRerun) return;
     toggles.current[open]?.focus();
-    setOpen(null);
+    show(null);
   };
 
   return (
@@ -157,7 +164,11 @@ export function MeetingBar({ meeting }: { meeting: Meeting }) {
         </section>
       </Collapsible>
       <Collapsible id={askId} open={open === 'ask'}>
-        <AskMeetingPanel key={meeting.id} meetingId={meeting.id} />
+        {/* Ask (AI) and Find (exact words) side by side on desktop, stacked on mobile. */}
+        <div className="space-y-8 px-1 lg:scrollbar-panel lg:grid lg:max-h-[40vh] lg:grid-cols-[minmax(0,40rem)_minmax(0,24rem)] lg:space-y-0 lg:gap-x-12 lg:overflow-y-auto lg:pr-3 lg:text-sidebar-fg xl:gap-x-16">
+          <AskMeetingPanel key={meeting.id} meetingId={meeting.id} />
+          <FindInTranscript find={find} />
+        </div>
       </Collapsible>
 
       <Dialog

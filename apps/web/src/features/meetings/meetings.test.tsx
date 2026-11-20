@@ -441,6 +441,99 @@ describe('meeting detail', () => {
     expect(toggle).toHaveFocus();
   });
 
+  it('finds exact words in the transcript and steps through the matches', async () => {
+    const withText = {
+      ...meeting,
+      transcriptLines: [
+        { n: 1, speaker: 'Ann', text: 'The deck is ready.' },
+        { n: 2, speaker: 'Ben', text: 'Send the deck to the team.' },
+      ],
+    };
+    mockApi({ ...me, [`GET ${detailUrl}`]: { status: 200, body: { meeting: withText } } });
+    const user = userEvent.setup();
+    renderApp(`/meetings/${meeting.id}`);
+
+    await user.click(await screen.findByRole('button', { name: 'Ask this meeting' }));
+    const find = screen.getByRole('searchbox', { name: 'Find in transcript' });
+    await user.type(find, 'deck');
+    const status = within(screen.getByRole('region', { name: 'Find in transcript' })).getByRole(
+      'status',
+    );
+    expect(status).toHaveTextContent('1 of 2 matches');
+    expect(document.querySelectorAll('mark[data-kind="find"]')).toHaveLength(2);
+
+    await user.keyboard('{Enter}');
+    expect(status).toHaveTextContent('2 of 2 matches');
+    await user.keyboard('{Shift>}{Enter}{/Shift}');
+    expect(status).toHaveTextContent('1 of 2 matches');
+
+    // Closing the panel clears the highlights.
+    await user.click(screen.getByRole('button', { name: 'Ask this meeting' }));
+    expect(document.querySelectorAll('mark[data-kind="find"]')).toHaveLength(0);
+  });
+
+  it('turns a transcript line into an action item linked to that line', async () => {
+    const withText = {
+      ...meeting,
+      transcriptLines: [
+        { n: 1, speaker: 'Ann', text: 'Hello all.' },
+        { n: 2, speaker: 'Ben', text: 'I will send the deck to Lerato.' },
+      ],
+    };
+    let sent: unknown;
+    mockApi({
+      ...me,
+      [`GET ${detailUrl}`]: { status: 200, body: { meeting: withText } },
+      [`POST ${detailUrl}/action-items`]: (body) => {
+        sent = body;
+        return {
+          status: 201,
+          body: {
+            actionItem: {
+              id: crypto.randomUUID(),
+              meetingId: meeting.id,
+              text: 'Send the deck to Lerato',
+              owner: null,
+              dueDate: null,
+              dueDateText: null,
+              status: 'todo',
+              needsReview: false,
+              reviewReason: null,
+              sourceLine: 2,
+              sourceQuote: 'I will send the deck to Lerato.',
+              contextSummary: null,
+              inCalendar: false,
+              origin: 'manual',
+              position: 0,
+            },
+          },
+        };
+      },
+    });
+    const user = userEvent.setup();
+    renderApp(`/meetings/${meeting.id}`);
+
+    await user.click(await screen.findByRole('button', { name: 'Make an item from line 2' }));
+    const toolbar = screen.getByRole('toolbar', { name: 'Create from the transcript' });
+    await user.click(within(toolbar).getByRole('button', { name: 'Action item' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Add an action item' });
+    expect(dialog).toHaveTextContent('From line 2 of the transcript');
+    const task = within(dialog).getByRole('textbox', { name: 'Task' });
+    expect(task).toHaveValue('I will send the deck to Lerato.');
+    await user.clear(task);
+    await user.type(task, 'Send the deck to Lerato');
+    await user.click(within(dialog).getByRole('button', { name: 'Add item' }));
+
+    await waitFor(() =>
+      expect(sent).toMatchObject({
+        text: 'Send the deck to Lerato',
+        sourceLine: 2,
+        sourceQuote: 'I will send the deck to Lerato.',
+      }),
+    );
+  });
+
   it('confirms a re-analysis and keeps existing results visible while it runs', async () => {
     let current: Meeting = { ...meeting, analysisStatus: 'done', summary: 'Original summary' };
     const fetchMock = mockApi({
