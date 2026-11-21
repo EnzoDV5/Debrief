@@ -16,6 +16,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router';
 import { Alert } from '@/components/ui/Alert';
 import { cn } from '@/lib/cn';
+import { fixedFrame } from '@/lib/floating';
 import { DeleteMeetingDialog } from './DeleteMeetingDialog';
 import { EditMeetingDialog } from './EditMeetingDialog';
 import { useProjects, useUpdateMeeting } from './hooks';
@@ -41,15 +42,17 @@ export function MeetingMenu({ meeting }: { meeting: MeetingListItem }) {
   const toggle = () => {
     const box = button.current?.getBoundingClientRect();
     if (menu || !button.current || !box) return close();
-    const right = window.innerWidth - box.right;
+    // Inside the mobile drawer (a modal dialog) the menu must live in the dialog to show.
+    const container = button.current.closest('dialog') ?? document.body;
+    const frame = fixedFrame(container);
+    const right = frame.right - box.right;
     const roomBelow = window.innerHeight - box.bottom;
     setMenu({
       style:
         roomBelow < MENU_HEIGHT
-          ? { right, bottom: window.innerHeight - box.top + 4 }
-          : { right, top: box.bottom + 4 },
-      // Inside the mobile drawer (a modal dialog) the menu must live in the dialog to show.
-      container: button.current.closest('dialog') ?? document.body,
+          ? { right, bottom: frame.bottom - box.top + 4 }
+          : { right, top: box.bottom - frame.top + 4 },
+      container,
     });
   };
 

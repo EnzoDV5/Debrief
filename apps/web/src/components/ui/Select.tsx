@@ -5,6 +5,7 @@ import { Check, ChevronDown } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/cn';
+import { fixedFrame } from '@/lib/floating';
 
 export type SelectOption<T extends string> = { value: T; label: string; icon?: ReactNode };
 
@@ -60,16 +61,19 @@ export function Select<T extends string>({
     const box = button.current?.getBoundingClientRect();
     if (!button.current || !box) return;
     const below = window.innerHeight - box.bottom;
+    // Inside a pop-up the list must live in it to show; "frame" is what fixed is measured from.
+    const container = button.current.closest('dialog') ?? document.body;
+    const frame = fixedFrame(container);
     setActive(selectedIndex);
     setPopup({
       style: {
-        left: box.left,
+        left: box.left - frame.left,
         minWidth: box.width,
         ...(below < LIST_MAX_HEIGHT && box.top > below
-          ? { bottom: window.innerHeight - box.top + 6 }
-          : { top: box.bottom + 6 }),
+          ? { bottom: frame.bottom - box.top + 6 }
+          : { top: box.bottom - frame.top + 6 }),
       },
-      container: button.current.closest('dialog') ?? document.body,
+      container,
     });
   };
   const choose = (index: number) => {

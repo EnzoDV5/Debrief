@@ -219,15 +219,15 @@
   }
 
   --animate-logo-glow: logo-glow 2.2s ease-in-out infinite;
-  --animate-loader-in: loader-in 600ms var(--ease-panel) both;
-  --animate-step-in: step-in 400ms var(--ease-panel) both;
+  --animate-loader-in: loader-in 600ms var(--ease-panel) backwards;
+  --animate-step-in: step-in 400ms var(--ease-panel) backwards;
   @keyframes step-in {
     from {
       opacity: 0;
       transform: translateY(6px);
     }
   }
-  --animate-search-in: search-in 280ms var(--ease-panel) both;
+  --animate-search-in: search-in 280ms var(--ease-panel) backwards;
   --animate-fade-in: fade-in 220ms ease-out both;
   @keyframes search-in {
     from {
@@ -253,10 +253,10 @@
       opacity: 0;
     }
   }
-  --animate-dialog-in: dialog-in 340ms var(--ease-panel) both;
+  --animate-dialog-in: dialog-in 340ms var(--ease-panel) backwards;
   --animate-dialog-out: dialog-out 200ms ease-in both;
-  --animate-dialog-body: dialog-body 380ms var(--ease-panel) 90ms both;
-  --animate-drawer-in: drawer-in 340ms var(--ease-panel) both;
+  --animate-dialog-body: dialog-body 380ms var(--ease-panel) 90ms backwards;
+  --animate-drawer-in: drawer-in 340ms var(--ease-panel) backwards;
   @keyframes dialog-in {
     from {
       opacity: 0;
@@ -280,7 +280,7 @@
       transform: translateX(-100%);
     }
   }
-  --animate-card-grow: card-grow 560ms var(--ease-panel) both;
+  --animate-card-grow: card-grow 560ms var(--ease-panel) backwards;
   @keyframes card-grow {
     from {
       grid-template-rows: 0fr;
@@ -288,7 +288,7 @@
       transform: translateY(10px) scale(0.98);
     }
   }
-  --animate-card-in: card-in 520ms var(--ease-panel) both;
+  --animate-card-in: card-in 520ms var(--ease-panel) backwards;
   @keyframes card-in {
     from {
       opacity: 0;
