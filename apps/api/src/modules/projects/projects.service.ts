@@ -25,7 +25,17 @@ async function withNameConflict<T>(operation: () => Promise<T>): Promise<T> {
 
 export const projectsService = {
   async list(userId: string) {
-    return (await projectsRepository.list(userId)).map(toProject);
+    const [rows, counts] = await Promise.all([
+      projectsRepository.list(userId),
+      projectsRepository.meetingCounts(userId),
+    ]);
+    const countByProject = new Map(
+      counts.map(({ projectId, meetingCount }) => [projectId, meetingCount]),
+    );
+    return rows.map((row) => ({
+      ...toProject(row),
+      meetingCount: countByProject.get(row.id) ?? 0,
+    }));
   },
   async create(userId: string, name: string) {
     return withNameConflict(async () => toProject(await projectsRepository.create(userId, name)));

@@ -102,6 +102,14 @@ describe('meeting organisation', () => {
     expect(
       (await request(app).get(`/api/meetings?projectId=${id}`).set('Cookie', alice)).body.meetings,
     ).toHaveLength(1);
+    const projects = await request(app).get('/api/projects').set('Cookie', alice);
+    expect(projects.body.projects).toMatchObject([{ id, name: 'Launch', meetingCount: 1 }]);
+    expect(projects.body.projects[0].createdAt).toBeTruthy();
+    await write(alice, 'patch', `/api/meetings/${ownId}`, { archived: true });
+    expect(
+      (await request(app).get('/api/projects').set('Cookie', alice)).body.projects[0].meetingCount,
+    ).toBe(0);
+    await write(alice, 'patch', `/api/meetings/${ownId}`, { archived: false });
     expect((await write(alice, 'delete', `/api/projects/${id}`)).status).toBe(204);
     expect(
       (await request(app).get(`/api/meetings/${ownId}`).set('Cookie', alice)).body.meeting

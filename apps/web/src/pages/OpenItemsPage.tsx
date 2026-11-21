@@ -83,7 +83,7 @@ export function OpenItemsPage() {
   const navigate = useNavigate();
 
   return (
-    <>
+    <div className="lg:flex lg:min-h-full lg:flex-col">
       <PageHeader
         title="Actions"
         description="Every action item from your meetings, grouped by meeting."
@@ -123,6 +123,9 @@ export function OpenItemsPage() {
                 Clear filters
               </Button>
             }
+            variant="plain"
+            size="large"
+            className="lg:flex-1 lg:justify-center"
           />
         ) : (
           <EmptyState
@@ -130,6 +133,9 @@ export function OpenItemsPage() {
             title="Nothing open right now"
             description="Action items from your meetings collect here. Tick them off as they get done."
             action={<Button to="/meetings">Add a meeting</Button>}
+            variant="plain"
+            size="large"
+            className="lg:flex-1 lg:justify-center"
           />
         )
       ) : (
@@ -211,7 +217,7 @@ export function OpenItemsPage() {
         />
       )}
       <DeleteActionItemDialog item={deleting} onClose={() => setDeleting(null)} />
-    </>
+    </div>
   );
 }
 

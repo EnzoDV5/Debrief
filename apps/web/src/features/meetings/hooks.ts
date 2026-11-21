@@ -21,6 +21,7 @@ export const meetingKeys = {
   filtered: (filter: MeetingFilter) => ['meetings', 'filter', filter] as const,
   detail: (id: string) => ['meetings', id] as const,
 };
+const projectKeys = ['projects'] as const;
 
 function invalidateMeetingLists(client: ReturnType<typeof useQueryClient>) {
   return client.invalidateQueries({
@@ -31,19 +32,29 @@ function invalidateMeetingLists(client: ReturnType<typeof useQueryClient>) {
 
 export type MeetingFilter = { archived?: boolean; q?: string; projectId?: string };
 
-export function useMeetings(filter: MeetingFilter = {}) {
+export function useMeetings(filter: MeetingFilter = {}, enabled = true) {
   const params = new URLSearchParams();
   if (filter.archived) params.set('archived', 'true');
   if (filter.q) params.set('q', filter.q);
   if (filter.projectId) params.set('projectId', filter.projectId);
   return useQuery({
     queryKey: Object.keys(filter).length ? meetingKeys.filtered(filter) : meetingKeys.list,
+    enabled,
     queryFn: async () =>
       (
         await request(`/meetings${params.size ? `?${params}` : ''}`, {
           schema: meetingListResponseSchema,
         })
       ).meetings,
+    // While any meeting is being analysed, keep checking, wherever you are in the app, so the
+    // sidebar and the "done" notification update without you staying on that meeting.
+    refetchInterval: (query) =>
+      query.state.data?.some(
+        (meeting) =>
+          meeting.analysisStatus === 'pending' || meeting.analysisStatus === 'processing',
+      )
+        ? 3_000
+        : false,
   });
 }
 
@@ -183,9 +194,11 @@ export function useUpdateMeeting(id: string) {
           schema: meetingResponseSchema,
         })
       ).meeting,
-    onSuccess: (meeting) => {
+    onSuccess: (meeting, patch) => {
       queryClient.setQueryData(meetingKeys.detail(id), meeting);
       void invalidateMeetingLists(queryClient);
+      if (patch.projectId !== undefined || patch.archived !== undefined)
+        void queryClient.invalidateQueries({ queryKey: projectKeys });
     },
   });
 }
@@ -197,11 +210,10 @@ export function useDeleteMeeting(id: string) {
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: meetingKeys.detail(id) });
       void invalidateMeetingLists(queryClient);
+      void queryClient.invalidateQueries({ queryKey: projectKeys });
     },
   });
 }
-
-const projectKeys = ['projects'] as const;
 
 export function useProjects() {
   return useQuery({

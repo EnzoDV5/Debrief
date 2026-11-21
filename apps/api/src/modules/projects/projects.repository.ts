@@ -1,7 +1,7 @@
 // All the database work for projects. Every query is filtered by the logged-in user.
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, count, eq, isNotNull, isNull } from 'drizzle-orm';
 import { db } from '../../db/client';
-import { projects } from '../../db/schema';
+import { meetings, projects } from '../../db/schema';
 
 export const projectsRepository = {
   list(userId: string) {
@@ -10,6 +10,19 @@ export const projectsRepository = {
       .from(projects)
       .where(eq(projects.userId, userId))
       .orderBy(asc(projects.name));
+  },
+  meetingCounts(userId: string) {
+    return db
+      .select({ projectId: meetings.projectId, meetingCount: count() })
+      .from(meetings)
+      .where(
+        and(
+          eq(meetings.userId, userId),
+          isNotNull(meetings.projectId),
+          isNull(meetings.archivedAt),
+        ),
+      )
+      .groupBy(meetings.projectId);
   },
   async create(userId: string, name: string) {
     const [row] = await db.insert(projects).values({ userId, name }).returning();

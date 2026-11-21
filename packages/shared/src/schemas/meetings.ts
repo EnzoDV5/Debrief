@@ -112,7 +112,11 @@ export const projectSchema = z.object({
   createdAt: z.iso.datetime(),
 });
 export type Project = z.infer<typeof projectSchema>;
-export const projectsResponseSchema = z.object({ projects: z.array(projectSchema) });
+export const projectWithCountSchema = projectSchema.extend({
+  meetingCount: z.number().int().nonnegative(),
+});
+export type ProjectWithCount = z.infer<typeof projectWithCountSchema>;
+export const projectsResponseSchema = z.object({ projects: z.array(projectWithCountSchema) });
 export const createProjectSchema = z.object({
   name: z.string().trim().min(1, 'Give the project a name').max(80, 'Use 80 characters or fewer'),
 });

@@ -8,31 +8,48 @@ export function EmptyState({
   description,
   action,
   className,
+  variant = 'card',
+  size = 'normal',
 }: {
   icon?: ReactNode;
   title: string;
   description?: ReactNode;
   action?: ReactNode;
   className?: string;
+  variant?: 'card' | 'plain';
+  size?: 'normal' | 'large';
 }) {
   return (
     <div
       className={cn(
-        'flex flex-col items-center rounded-card border border-dashed border-line-strong/50 glass px-6 py-14 text-center',
+        'flex flex-col items-center px-6 py-14 text-center',
+        variant === 'card' && 'rounded-card border border-dashed border-line-strong/50 glass',
         className,
       )}
     >
       {icon && (
         <div
           aria-hidden="true"
-          className="mb-4 grid size-12 place-items-center rounded-pill bg-accent-soft text-accent [&_svg]:size-6"
+          className={cn(
+            'grid place-items-center rounded-pill bg-accent-soft text-accent',
+            size === 'large' ? 'mb-6 size-20 [&_svg]:size-10' : 'mb-4 size-12 [&_svg]:size-6',
+          )}
         >
           {icon}
         </div>
       )}
-      <h2 className="text-lg font-bold">{title}</h2>
-      {description && <p className="mt-1.5 max-w-md text-sm text-muted">{description}</p>}
-      {action && <div className="mt-6">{action}</div>}
+      <h2 className={cn('font-bold', size === 'large' ? 'text-3xl' : 'text-lg')}>{title}</h2>
+      {description && (
+        <p
+          className={cn(
+            'text-muted',
+            size === 'large' ? 'mt-3 max-w-xl text-lg' : 'mt-1.5 max-w-md text-sm',
+          )}
+        >
+          {description}
+        </p>
+      )}
+      {action && <div className={size === 'large' ? 'mt-8' : 'mt-6'}>{action}</div>}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import {
   ChevronDown,
   Folder,
   ListChecks,
+  LoaderCircle,
   LogOut,
   Menu,
   PanelLeftClose,
@@ -25,6 +26,8 @@ import { useCurrentUser, useLogout } from '@/features/auth/hooks';
 import { useMeetings, usePrefetchMeeting } from '@/features/meetings/hooks';
 import { MeetingMenu } from '@/features/meetings/MeetingMenu';
 import { SearchDialog } from '@/features/meetings/SearchDialog';
+import { AnalysisWatchProvider, useFreshMeetings } from '@/features/meetings/analysisWatch';
+import { useListMotion } from '@/features/meetings/useListMotion';
 import { cn } from '@/lib/cn';
 import { AUTH_PANEL_LEFT, type EntranceState } from './authExit';
 import { PageBarSlot, PanelOverlaySlot } from './PageBar';
@@ -96,128 +99,138 @@ export function AppShell() {
   const { pathname } = useLocation();
   // Moving between meetings keeps the page mounted, so the bar and Ask card stay in place.
   const pageKey = /^\/meetings\/[^/]+$/.test(pathname) ? 'meeting' : pathname;
+  const fullHeightPage = pathname === '/items' || pathname === '/projects';
 
   return (
-    <div className="min-h-dvh bg-bg lg:flex lg:h-dvh lg:bg-sidebar">
-      <SkipLink />
-      <aside
-        id="workspace-sidebar"
-        aria-label="Workspace sidebar"
-        className={cn(
-          'hidden shrink-0 flex-col overflow-hidden bg-sidebar text-sidebar-fg transition-[width] duration-300 ease-out-3 lg:flex',
-          collapsed ? 'w-rail' : 'w-sidebar',
-          entering && 'lg:animate-sidebar-in',
-        )}
-      >
-        <SidebarContent
-          collapsed={collapsed}
-          onToggleCollapsed={toggle}
-          onOpenSearch={() => setSearchOpen(true)}
-        />
-      </aside>
-      <MobileSidebar
-        open={menuOpen}
-        onClose={() => setMenuOpen(false)}
-        onOpenSearch={() => {
-          setMenuOpen(false);
-          setSearchOpen(true);
-        }}
-      />
-      <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
-
-      <header className="sticky top-0 z-20 flex h-topbar items-center justify-between border-b border-line bg-bg/95 px-4 backdrop-blur lg:hidden">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            aria-label="Open sidebar"
-            onClick={() => setMenuOpen(true)}
-            className="grid size-10 place-items-center rounded-md text-fg hover:bg-surface-2"
-          >
-            <Menu aria-hidden="true" className="size-5" />
-          </button>
-          <Link to="/meetings" aria-label="Workspace home">
-            <Logo />
-          </Link>
-        </div>
-        <Button
-          to="/meetings"
-          size="sm"
-          icon={<Plus aria-hidden="true" className="size-4" />}
-          aria-label="New meeting"
-        >
-          New
-        </Button>
-      </header>
-
-      <main
-        id="main"
-        ref={mainRef}
-        tabIndex={-1}
-        className={cn(
-          'min-w-0 outline-none lg:my-5 lg:mr-5 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col',
-          entering && 'lg:animate-panel-expand',
-        )}
-        style={
-          {
-            '--panel-from': `max(0px, calc(${AUTH_PANEL_LEFT} - var(${collapsed ? '--spacing-rail' : '--spacing-sidebar'})))`,
-          } as CSSProperties
-        }
-      >
-        <div ref={setPageBarSlot} className="relative z-30" />
-        <div
+    <AnalysisWatchProvider>
+      <div className="min-h-dvh bg-bg lg:flex lg:h-dvh lg:bg-sidebar">
+        <SkipLink />
+        <aside
+          id="workspace-sidebar"
+          aria-label="Workspace sidebar"
           className={cn(
-            'relative lg:min-h-0 lg:flex-1',
-            !panelInset && 'lg:overflow-hidden lg:rounded-panel',
+            'hidden shrink-0 flex-col overflow-hidden bg-sidebar text-sidebar-fg transition-[width] duration-300 ease-out-3 lg:flex',
+            collapsed ? 'w-rail' : 'w-sidebar',
+            entering && 'lg:animate-sidebar-in',
           )}
         >
-          <div
-            aria-hidden="true"
-            className={cn(
-              'pointer-events-none absolute inset-0 hidden overflow-hidden rounded-panel bg-bg transition-[right] duration-500 ease-panel lg:block',
-              panelInset,
-            )}
+          <SidebarContent
+            collapsed={collapsed}
+            onToggleCollapsed={toggle}
+            onOpenSearch={() => setSearchOpen(true)}
+          />
+        </aside>
+        <MobileSidebar
+          open={menuOpen}
+          onClose={() => setMenuOpen(false)}
+          onOpenSearch={() => {
+            setMenuOpen(false);
+            setSearchOpen(true);
+          }}
+        />
+        <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
+
+        <header className="sticky top-0 z-20 flex h-topbar items-center justify-between border-b border-line bg-bg/95 px-4 backdrop-blur lg:hidden">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              aria-label="Open sidebar"
+              onClick={() => setMenuOpen(true)}
+              className="grid size-10 place-items-center rounded-md text-fg hover:bg-surface-2"
+            >
+              <Menu aria-hidden="true" className="size-5" />
+            </button>
+            <Link to="/meetings" aria-label="Workspace home">
+              <Logo />
+            </Link>
+          </div>
+          <Button
+            to="/meetings"
+            size="sm"
+            icon={<Plus aria-hidden="true" className="size-4" />}
+            aria-label="New meeting"
           >
-            <PanelBackdrop contained />
-          </div>
-          <div className="lg:hidden">
-            <PanelBackdrop />
-          </div>
+            New
+          </Button>
+        </header>
+
+        <main
+          id="main"
+          ref={mainRef}
+          tabIndex={-1}
+          className={cn(
+            'min-w-0 outline-none lg:my-5 lg:mr-5 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col',
+            entering && 'lg:animate-panel-expand',
+          )}
+          style={
+            {
+              '--panel-from': `max(0px, calc(${AUTH_PANEL_LEFT} - var(${collapsed ? '--spacing-rail' : '--spacing-sidebar'})))`,
+            } as CSSProperties
+          }
+        >
+          <div ref={setPageBarSlot} className="relative z-30" />
           <div
-            ref={scrollRef}
-            data-scroller=""
             className={cn(
-              'relative lg:scrollbar-panel lg:h-full lg:overflow-y-auto',
-              panelInset && 'lg:[scrollbar-gutter:stable] lg:text-sidebar-muted',
-              frame?.scroller,
+              'relative lg:min-h-0 lg:flex-1',
+              !panelInset && 'lg:overflow-hidden lg:rounded-panel',
             )}
           >
             <div
-              className={cn('w-full', !panelInset && 'mx-auto px-4 py-7 sm:px-8 lg:px-8 lg:py-10')}
+              aria-hidden="true"
+              className={cn(
+                'pointer-events-none absolute inset-0 hidden overflow-hidden rounded-panel bg-bg transition-[right] duration-500 ease-panel lg:block',
+                panelInset,
+              )}
             >
-              <ShellFrameContext.Provider value={setFrame}>
-                <PageBarSlot.Provider value={pageBarSlot}>
-                  <PanelOverlaySlot.Provider value={panelOverlay}>
-                    <div
-                      key={pageKey}
-                      className={entering ? 'animate-page-enter' : 'animate-page-in'}
-                    >
-                      <Outlet />
-                    </div>
-                  </PanelOverlaySlot.Provider>
-                </PageBarSlot.Provider>
-              </ShellFrameContext.Provider>
+              <PanelBackdrop contained />
             </div>
+            <div className="lg:hidden">
+              <PanelBackdrop />
+            </div>
+            <div
+              ref={scrollRef}
+              data-scroller=""
+              className={cn(
+                'relative lg:scrollbar-panel lg:h-full lg:overflow-y-auto',
+                panelInset && 'lg:[scrollbar-gutter:stable] lg:text-sidebar-muted',
+                frame?.scroller,
+              )}
+            >
+              <div
+                className={cn(
+                  'w-full',
+                  !panelInset && 'mx-auto px-4 py-7 sm:px-8 lg:px-8 lg:py-10',
+                  fullHeightPage && 'lg:h-full',
+                )}
+              >
+                <ShellFrameContext.Provider value={setFrame}>
+                  <PageBarSlot.Provider value={pageBarSlot}>
+                    <PanelOverlaySlot.Provider value={panelOverlay}>
+                      <div
+                        key={pageKey}
+                        className={cn(
+                          entering ? 'animate-page-enter' : 'animate-page-in',
+                          fullHeightPage && 'lg:h-full',
+                        )}
+                      >
+                        <Outlet />
+                      </div>
+                    </PanelOverlaySlot.Provider>
+                  </PageBarSlot.Provider>
+                </ShellFrameContext.Provider>
+              </div>
+            </div>
+            <div
+              ref={setPanelOverlay}
+              className={cn(
+                'pointer-events-none absolute inset-0 z-10 hidden transition-[right] duration-500 ease-panel lg:block',
+                panelInset,
+              )}
+            />
           </div>
-          <div
-            ref={setPanelOverlay}
-            className={cn(
-              'pointer-events-none absolute inset-0 z-10 hidden transition-[right] duration-500 ease-panel lg:block',
-              panelInset,
-            )}
-          />
-        </div>
-      </main>
-    </div>
+        </main>
+      </div>
+    </AnalysisWatchProvider>
   );
 }
 
@@ -308,7 +321,7 @@ function SidebarContent({
   const label = (text: string) => <span className={cn(collapsed && 'sr-only')}>{text}</span>;
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div data-sidebar-root="" className="relative flex h-full min-h-0 flex-col">
       <div
         className={cn(
           'flex shrink-0',
@@ -577,7 +590,10 @@ function SectionHeading({
   );
 }
 
-// Hovering or focusing a meeting starts loading it, so opening it feels instant.
+// Hovering or focusing a meeting starts loading it, so opening it feels instant. Changes to the
+// list animate: moved rows glide, new ones slide in, removed ones fold shut.
+const LEAVE_MS = 320;
+
 function MeetingLinks({
   meetings,
   onNavigate,
@@ -586,31 +602,141 @@ function MeetingLinks({
   onNavigate?: () => void;
 }) {
   const prefetch = usePrefetchMeeting();
+  const rowRef = useListMotion();
+  const fresh = useFreshMeetings();
+
+  // A meeting that leaves this list (deleted, archived, pinned elsewhere) stays a moment as a
+  // "ghost" row that folds shut, so the rows below close the gap smoothly.
+  const [previous, setPrevious] = useState(meetings);
+  const [leaving, setLeaving] = useState<{ meeting: MeetingListItem; index: number }[]>([]);
+  if (previous !== meetings) {
+    const gone = previous
+      .map((meeting, index) => ({ meeting, index }))
+      .filter(({ meeting }) => !meetings.some((m) => m.id === meeting.id));
+    if (gone.length) setLeaving((current) => [...current, ...gone]);
+    setPrevious(meetings);
+  }
+  useEffect(() => {
+    if (!leaving.length) return;
+    const timer = window.setTimeout(() => setLeaving([]), LEAVE_MS);
+    return () => window.clearTimeout(timer);
+  }, [leaving]);
+
+  const rows: (
+    { kind: 'row'; meeting: MeetingListItem } | { kind: 'ghost'; meeting: MeetingListItem }
+  )[] = meetings.map((meeting) => ({ kind: 'row', meeting }));
+  for (const { meeting, index } of leaving) {
+    if (!meetings.some((m) => m.id === meeting.id))
+      rows.splice(Math.min(index, rows.length), 0, { kind: 'ghost', meeting });
+  }
+
   return (
     <ul className="space-y-0.5">
-      {meetings.map((meeting) => (
-        <li key={meeting.id} className="flex items-center rounded-md hover:bg-sidebar-hover">
-          <NavLink
-            to={`/meetings/${meeting.id}`}
-            onClick={onNavigate}
-            onPointerEnter={() => prefetch(meeting.id)}
-            onFocus={() => prefetch(meeting.id)}
-            title={meeting.title}
-            className={({ isActive }) =>
-              cn(
-                'flex min-h-10 min-w-0 flex-1 items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
-                isActive
-                  ? 'bg-sidebar-active text-white'
-                  : 'text-sidebar-fg hover:bg-sidebar-hover',
-              )
-            }
+      {rows.map(({ kind, meeting }) =>
+        kind === 'ghost' ? (
+          <li
+            key={`ghost-${meeting.id}`}
+            aria-hidden="true"
+            inert
+            className="grid grid-rows-[1fr] motion-safe:animate-row-out"
           >
-            <span className="min-w-0 flex-1 truncate">{meeting.title}</span>
-          </NavLink>
-          <MeetingMenu meeting={meeting} />
-        </li>
-      ))}
+            <div className="min-h-0 overflow-hidden">
+              <span className="block truncate rounded-md px-3 py-2 text-sm text-sidebar-fg">
+                {meeting.title}
+              </span>
+            </div>
+          </li>
+        ) : (
+          <MeetingRow
+            key={meeting.id}
+            ref={rowRef(meeting.id)}
+            meeting={meeting}
+            isNew={fresh.has(meeting.id)}
+            onNavigate={onNavigate}
+            onPrefetch={() => prefetch(meeting.id)}
+          />
+        ),
+      )}
     </ul>
+  );
+}
+
+// One meeting in the sidebar. While it's being analysed it shows a spinner and a shimmering
+// title (you can keep using the app meanwhile); when it's done it stands out with a "New" tag
+// until you open it.
+function MeetingRow({
+  ref,
+  meeting,
+  isNew,
+  onNavigate,
+  onPrefetch,
+}: {
+  ref: (el: HTMLElement | null) => void;
+  meeting: MeetingListItem;
+  isNew: boolean;
+  onNavigate?: () => void;
+  onPrefetch: () => void;
+}) {
+  const analysing = meeting.analysisStatus === 'pending' || meeting.analysisStatus === 'processing';
+  const statusId = useId();
+  const status = analysing ? 'Analysing' : isNew ? 'New results' : null;
+  return (
+    <li
+      ref={ref}
+      className={cn(
+        'flex items-center rounded-md transition-colors duration-500 hover:bg-sidebar-hover',
+        isNew && 'bg-spark/10 ring-1 ring-spark/30 ring-inset',
+      )}
+    >
+      <NavLink
+        to={`/meetings/${meeting.id}`}
+        onClick={onNavigate}
+        onPointerEnter={onPrefetch}
+        onFocus={onPrefetch}
+        title={meeting.title}
+        aria-describedby={status ? statusId : undefined}
+        className={({ isActive }) =>
+          cn(
+            'flex min-h-10 min-w-0 flex-1 items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
+            isActive ? 'bg-sidebar-active text-white' : 'text-sidebar-fg hover:bg-sidebar-hover',
+            isNew && 'font-semibold text-white',
+          )
+        }
+      >
+        {analysing && (
+          <LoaderCircle aria-hidden="true" className="size-4 shrink-0 animate-spin text-spark" />
+        )}
+        {isNew && !analysing && (
+          <span
+            aria-hidden="true"
+            className="size-2 shrink-0 rounded-pill bg-spark motion-safe:animate-pulse"
+          />
+        )}
+        <span
+          className={cn(
+            'min-w-0 flex-1 truncate',
+            analysing &&
+              'ai-shimmer-text [--shimmer-base:var(--color-sidebar-muted)] [--shimmer-hi:#fff]',
+          )}
+        >
+          {meeting.title}
+        </span>
+        {isNew && !analysing && (
+          <span
+            aria-hidden="true"
+            className="shrink-0 rounded-pill bg-spark px-1.5 text-[0.6875rem] leading-5 font-bold text-fg"
+          >
+            New
+          </span>
+        )}
+      </NavLink>
+      {status && (
+        <span id={statusId} className="sr-only">
+          {status}
+        </span>
+      )}
+      <MeetingMenu meeting={meeting} />
+    </li>
   );
 }
 

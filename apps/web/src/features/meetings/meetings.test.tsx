@@ -290,6 +290,42 @@ describe('new meeting: drop, review, then analyse', () => {
   });
 });
 
+describe('analysis in the background', () => {
+  it('keeps working while you move around, then notifies you and marks the meeting new', async () => {
+    let calls = 0;
+    mockApi({
+      ...me,
+      'GET /api/meetings': () => {
+        calls += 1;
+        const analysisStatus = calls === 1 ? 'processing' : 'done';
+        return { status: 200, body: { meetings: [{ ...listItem, analysisStatus }] } };
+      },
+      [`GET ${detailUrl}`]: {
+        status: 200,
+        body: { meeting: { ...meeting, analysisStatus: 'done' } },
+      },
+    });
+    const user = userEvent.setup();
+    renderApp('/items');
+
+    const sidebar = await screen.findByRole('complementary');
+    const link = await within(sidebar).findByRole('link', { name: 'Weekly sync' });
+    expect(link).toHaveAccessibleDescription('Analysing');
+
+    expect(await screen.findByText('Analysis finished', {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(within(sidebar).getByRole('link', { name: 'Weekly sync' })).toHaveAccessibleDescription(
+      'New results',
+    );
+
+    await user.click(screen.getByRole('link', { name: 'Open meeting' }));
+    await waitFor(() =>
+      expect(within(sidebar).getByRole('link', { name: 'Weekly sync' })).not.toHaveAttribute(
+        'aria-describedby',
+      ),
+    );
+  }, 10_000);
+});
+
 describe('search and archive in the sidebar', () => {
   const searchResults = {
     meetings: [listItem],
@@ -880,7 +916,14 @@ describe('meeting detail', () => {
       'GET /api/projects': {
         status: 200,
         body: {
-          projects: [{ id: projectId, name: 'Launch', createdAt: '2026-11-01T08:00:00.000Z' }],
+          projects: [
+            {
+              id: projectId,
+              name: 'Launch',
+              createdAt: '2026-11-01T08:00:00.000Z',
+              meetingCount: 0,
+            },
+          ],
         },
       },
       [`PATCH ${detailUrl}`]: (body) => {
