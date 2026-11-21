@@ -1,4 +1,4 @@
-// Projects as expandable rows, with their meetings and controls kept together.
+// Project rows expand in place to show their meetings and controls.
 import type { ProjectWithCount } from '@debrief/shared';
 import { CalendarDays, ChevronDown, Folder, ListChecks, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -20,41 +20,14 @@ import {
 } from '@/features/meetings/hooks';
 import { cn } from '@/lib/cn';
 import { formatDate, plural } from '@/lib/format';
+import { useLingering } from '@/lib/useLingering';
 
 export function ProjectsPage() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const { data: projects, isPending, error, refetch } = useProjects();
-  const selected = projects?.find((project) => project.id === projectId);
-  const {
-    data: meetings,
-    isPending: meetingsPending,
-    error: meetingError,
-    refetch: refetchMeetings,
-  } = useMeetings(projectId ? { projectId } : {}, Boolean(projectId));
   const create = useCreateProject();
-  const update = useUpdateProject();
-  const remove = useDeleteProject();
   const [newName, setNewName] = useState('');
-  const [editing, setEditing] = useState<{ id: string; name: string } | null>(null);
-
-  const toggleProject = (project: ProjectWithCount) => {
-    setEditing(null);
-    navigate(projectId === project.id ? '/projects' : `/projects/${project.id}`);
-  };
-  const deleteProject = (project: ProjectWithCount) => {
-    if (
-      !window.confirm(
-        `Delete project “${project.name}”? Its meetings will stay in Recent meetings.`,
-      )
-    )
-      return;
-    remove.mutate(project.id, {
-      onSuccess: () => {
-        if (projectId === project.id) navigate('/projects');
-      },
-    });
-  };
 
   return (
     <div className={cn('mx-auto w-full', !projects?.length && 'lg:flex lg:min-h-full lg:flex-col')}>
@@ -114,148 +87,187 @@ export function ProjectsPage() {
               className="lg:flex-1 lg:justify-center"
             />
           ) : (
-            <div className="space-y-4">
-              {projects.map((project) => {
-                const open = project.id === projectId;
-                const isEditing = editing?.id === project.id;
-                const contentId = `project-${project.id}-meetings`;
-                return (
-                  <section
-                    key={project.id}
-                    aria-label={project.name}
-                    className={cn(
-                      'overflow-hidden rounded-card border border-white/70 glass shadow-card transition-colors',
-                      open && 'border-accent/40',
-                    )}
-                  >
-                    <div className="flex flex-wrap items-center gap-4 p-5 sm:gap-5 sm:p-6">
-                      <button
-                        type="button"
-                        aria-label={`${open ? 'Collapse' : 'Expand'} ${project.name} meetings`}
-                        aria-expanded={open}
-                        aria-controls={contentId}
-                        onClick={() => toggleProject(project)}
-                        className="group flex min-w-0 flex-1 items-center gap-4 rounded-md text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
-                      >
-                        <span className="grid size-14 shrink-0 place-items-center rounded-card bg-accent-soft text-accent sm:size-16">
-                          <Folder aria-hidden="true" className="size-7 sm:size-8" />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-xl font-bold sm:text-2xl">
-                            {project.name}
-                          </span>
-                          <span className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-muted">
-                            <span className="inline-flex items-center gap-1.5">
-                              <ListChecks aria-hidden="true" className="size-4" />
-                              {plural(project.meetingCount, 'meeting')}
-                            </span>
-                            <span className="inline-flex items-center gap-1.5">
-                              <CalendarDays aria-hidden="true" className="size-4" />
-                              Created {formatDate(project.createdAt)}
-                            </span>
-                          </span>
-                        </span>
-                        <ChevronDown
-                          aria-hidden="true"
-                          className={cn(
-                            'size-5 shrink-0 text-muted transition-transform duration-300 group-hover:text-fg',
-                            open && 'rotate-180',
-                          )}
-                        />
-                      </button>
-                      <div className="flex shrink-0 items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          icon={<Pencil aria-hidden="true" className="size-4" />}
-                          onClick={() => setEditing({ id: project.id, name: project.name })}
-                        >
-                          Edit name
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="dangerOutline"
-                          icon={<Trash2 aria-hidden="true" className="size-4" />}
-                          loading={remove.isPending && remove.variables === project.id}
-                          disabled={remove.isPending}
-                          onClick={() => deleteProject(project)}
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
-
-                    {isEditing && (
-                      <form
-                        className="flex flex-wrap items-center gap-2 px-5 pb-5 sm:px-6"
-                        onSubmit={(event) => {
-                          event.preventDefault();
-                          update.mutate(editing, { onSuccess: () => setEditing(null) });
-                        }}
-                      >
-                        <Input
-                          aria-label={`New name for ${project.name}`}
-                          value={editing.name}
-                          onChange={(event) => setEditing({ ...editing, name: event.target.value })}
-                          className="w-auto min-w-64 flex-1"
-                          maxLength={80}
-                          required
-                          autoFocus
-                        />
-                        <Button type="submit" size="sm" loading={update.isPending}>
-                          Save
-                        </Button>
-                        <Button size="sm" variant="secondary" onClick={() => setEditing(null)}>
-                          Cancel
-                        </Button>
-                        {update.error && update.variables?.id === project.id && (
-                          <Alert tone="danger" className="w-full">
-                            {update.error.message}
-                          </Alert>
-                        )}
-                      </form>
-                    )}
-                    {remove.error && remove.variables === project.id && (
-                      <Alert tone="danger" className="mx-5 mb-4 sm:mx-6">
-                        {remove.error.message}
-                      </Alert>
-                    )}
-
-                    <Collapsible id={contentId} open={open}>
-                      {open && (
-                        <div className="px-5 pb-5 sm:px-6 sm:pb-6">
-                          {meetingError ? (
-                            <ErrorState
-                              title="Couldn't load project meetings"
-                              message={meetingError.message}
-                              onRetry={() => void refetchMeetings()}
-                            />
-                          ) : meetingsPending ? (
-                            <p role="status" className="py-8 text-center text-muted">
-                              Loading meetings…
-                            </p>
-                          ) : meetings?.length ? (
-                            <MeetingResults meetings={meetings} />
-                          ) : (
-                            <EmptyState
-                              icon={<Folder />}
-                              title="No meetings in this project"
-                              description="Use a meeting's menu to add it here."
-                              variant="plain"
-                              className="py-10"
-                            />
-                          )}
-                        </div>
-                      )}
-                    </Collapsible>
-                  </section>
-                );
-              })}
-              {projectId && !selected && <EmptyState icon={<Folder />} title="Project not found" />}
+            <div>
+              {projects.map((project) => (
+                <ProjectRow
+                  key={project.id}
+                  project={project}
+                  open={project.id === projectId}
+                  onToggle={() =>
+                    navigate(project.id === projectId ? '/projects' : `/projects/${project.id}`)
+                  }
+                  onDeleted={() => {
+                    if (project.id === projectId) navigate('/projects');
+                  }}
+                />
+              ))}
+              {projectId && !projects.some((project) => project.id === projectId) && (
+                <EmptyState icon={<Folder />} title="Project not found" />
+              )}
             </div>
           )}
         </>
       )}
     </div>
+  );
+}
+
+function ProjectRow({
+  project,
+  open,
+  onToggle,
+  onDeleted,
+}: {
+  project: ProjectWithCount;
+  open: boolean;
+  onToggle: () => void;
+  onDeleted: () => void;
+}) {
+  const update = useUpdateProject();
+  const remove = useDeleteProject();
+  const [editName, setEditName] = useState<string | null>(null);
+  const {
+    data: meetings,
+    isPending: meetingsPending,
+    error: meetingError,
+    refetch: refetchMeetings,
+  } = useMeetings({ projectId: project.id }, open);
+  // Keep the closing content mounted until the row has finished folding shut.
+  const shown = useLingering(open ? project.id : null, 320) !== null;
+  const contentId = `project-${project.id}-meetings`;
+
+  const deleteProject = () => {
+    if (
+      !window.confirm(
+        `Delete project “${project.name}”? Its meetings will stay in Recent meetings.`,
+      )
+    )
+      return;
+    remove.mutate(project.id, { onSuccess: onDeleted });
+  };
+
+  return (
+    <section aria-label={project.name} className="border-b border-line/70">
+      <div className="flex flex-wrap items-center gap-3 py-4 sm:py-5">
+        <button
+          type="button"
+          aria-label={`${open ? 'Collapse' : 'Expand'} ${project.name} meetings`}
+          aria-expanded={open}
+          aria-controls={contentId}
+          onClick={onToggle}
+          className="group flex min-w-0 flex-1 items-center gap-3 rounded-md text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+        >
+          <Folder aria-hidden="true" className="size-6 shrink-0 text-accent" />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-lg font-bold sm:text-xl">{project.name}</span>
+            <span className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
+              <span className="inline-flex items-center gap-1.5">
+                <ListChecks aria-hidden="true" className="size-4" />
+                {plural(project.meetingCount, 'meeting')}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <CalendarDays aria-hidden="true" className="size-4" />
+                Created {formatDate(project.createdAt)}
+              </span>
+            </span>
+          </span>
+          <ChevronDown
+            aria-hidden="true"
+            className={cn(
+              'size-5 shrink-0 text-muted transition-transform duration-300 group-hover:text-fg',
+              open && 'rotate-180',
+            )}
+          />
+        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            aria-label={`Edit name of ${project.name}`}
+            title="Edit name"
+            onClick={() => setEditName(project.name)}
+            className="grid size-9 place-items-center rounded-md text-muted transition-colors hover:bg-surface-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
+          >
+            <Pencil aria-hidden="true" className="size-4" />
+          </button>
+          <button
+            type="button"
+            aria-label={`Delete ${project.name}`}
+            title="Delete project"
+            disabled={remove.isPending}
+            onClick={deleteProject}
+            className="grid size-9 place-items-center rounded-md text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-danger disabled:opacity-60"
+          >
+            <Trash2 aria-hidden="true" className="size-4" />
+          </button>
+        </div>
+      </div>
+
+      {editName !== null && (
+        <form
+          className="flex flex-wrap items-center gap-2 pb-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            update.mutate(
+              { id: project.id, name: editName },
+              { onSuccess: () => setEditName(null) },
+            );
+          }}
+        >
+          <Input
+            aria-label={`New name for ${project.name}`}
+            value={editName}
+            onChange={(event) => setEditName(event.target.value)}
+            className="w-auto min-w-64 flex-1"
+            maxLength={80}
+            required
+            autoFocus
+          />
+          <Button type="submit" size="sm" loading={update.isPending}>
+            Save
+          </Button>
+          <Button size="sm" variant="secondary" onClick={() => setEditName(null)}>
+            Cancel
+          </Button>
+          {update.error && (
+            <Alert tone="danger" className="w-full">
+              {update.error.message}
+            </Alert>
+          )}
+        </form>
+      )}
+      {remove.error && (
+        <Alert tone="danger" className="mb-4">
+          {remove.error.message}
+        </Alert>
+      )}
+
+      <Collapsible id={contentId} open={open} flush>
+        {shown && (
+          <div className="border-t border-line/70 py-5">
+            {meetingError ? (
+              <ErrorState
+                title="Couldn't load project meetings"
+                message={meetingError.message}
+                onRetry={() => void refetchMeetings()}
+              />
+            ) : meetingsPending ? (
+              <p role="status" className="py-8 text-center text-muted">
+                Loading meetings…
+              </p>
+            ) : meetings?.length ? (
+              <MeetingResults meetings={meetings} />
+            ) : (
+              <EmptyState
+                icon={<Folder />}
+                title="No meetings in this project"
+                description="Use a meeting's menu to add it here."
+                variant="plain"
+                className="py-10"
+              />
+            )}
+          </div>
+        )}
+      </Collapsible>
+    </section>
   );
 }

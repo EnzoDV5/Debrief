@@ -98,8 +98,13 @@ export function AppShell() {
   const panelInset = frame?.panel ?? null;
   const { pathname } = useLocation();
   // Moving between meetings keeps the page mounted, so the bar and Ask card stay in place.
-  const pageKey = /^\/meetings\/[^/]+$/.test(pathname) ? 'meeting' : pathname;
-  const fullHeightPage = pathname === '/items' || pathname === '/projects';
+  const isProjectPage = /^\/projects(?:\/[^/]+)?$/.test(pathname);
+  const pageKey = /^\/meetings\/[^/]+$/.test(pathname)
+    ? 'meeting'
+    : isProjectPage
+      ? 'projects'
+      : pathname;
+  const fullHeightPage = pathname === '/items' || isProjectPage;
 
   return (
     <AnalysisWatchProvider>

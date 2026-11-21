@@ -97,13 +97,18 @@ it('expands a large project row and lets its name be edited or deleted', async (
     'aria-expanded',
     'true',
   );
+  expect(screen.getByRole('region', { name: 'Launch' })).toBe(row);
   expect(
-    await within(screen.getByRole('region', { name: 'Launch' })).findByRole('link', {
-      name: /Launch sync/,
+    await within(screen.getByRole('region', { name: 'Launch' })).findByRole('heading', {
+      name: 'Launch sync',
     }),
   ).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Open meeting' })).toHaveAttribute(
+    'href',
+    `/meetings/${meetingId}`,
+  );
 
-  await user.click(screen.getByRole('button', { name: 'Edit name' }));
+  await user.click(screen.getByRole('button', { name: 'Edit name of Launch' }));
   const nameInput = screen.getByRole('textbox', { name: 'New name for Launch' });
   await user.clear(nameInput);
   await user.type(nameInput, 'Release');
@@ -111,10 +116,76 @@ it('expands a large project row and lets its name be edited or deleted', async (
   expect(await screen.findByRole('region', { name: 'Release' })).toBeInTheDocument();
 
   const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
-  await user.click(screen.getByRole('button', { name: 'Delete' }));
+  await user.click(screen.getByRole('button', { name: 'Delete Release' }));
   await waitFor(() =>
     expect(screen.getByRole('heading', { name: 'No projects yet' })).toBeInTheDocument(),
   );
   expect(confirm).toHaveBeenCalledOnce();
   confirm.mockRestore();
+});
+
+it('removes a meeting from its project and updates the count', async () => {
+  let assigned = true;
+  const meeting = {
+    id: meetingId,
+    title: 'Launch sync',
+    meetingDate: '2026-11-02',
+    sourceType: 'paste',
+    analysisStatus: 'done',
+    lineCount: 2,
+    createdAt: '2026-11-02T08:00:00.000Z',
+    pinnedAt: null,
+    archivedAt: null,
+    projectId,
+  };
+  mockApi({
+    'GET /api/auth/me': { status: 200, body: { user: testUser } },
+    'GET /api/projects': () => ({
+      status: 200,
+      body: {
+        projects: [
+          {
+            id: projectId,
+            name: 'Launch',
+            createdAt: '2026-11-01T08:00:00.000Z',
+            meetingCount: assigned ? 1 : 0,
+          },
+        ],
+      },
+    }),
+    [`GET /api/meetings?projectId=${projectId}`]: () => ({
+      status: 200,
+      body: { meetings: assigned ? [meeting] : [] },
+    }),
+    [`PATCH /api/meetings/${meetingId}`]: () => {
+      assigned = false;
+      return {
+        status: 200,
+        body: {
+          meeting: {
+            ...meeting,
+            projectId: null,
+            updatedAt: '2026-11-02T09:00:00.000Z',
+            transcriptLines: [
+              { n: 1, speaker: 'Ann', text: 'Hello' },
+              { n: 2, speaker: 'Ben', text: 'Hi' },
+            ],
+            summary: null,
+            analysisError: null,
+            decisions: [],
+            actionItems: [],
+          },
+        },
+      };
+    },
+  });
+  const user = userEvent.setup();
+  renderApp(`/projects/${projectId}`);
+
+  await screen.findByRole('heading', { name: 'Launch sync' });
+  await user.click(screen.getByRole('button', { name: 'Remove from project' }));
+  expect(
+    await screen.findByRole('heading', { name: 'No meetings in this project' }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('region', { name: 'Launch' })).toHaveTextContent('0 meetings');
 });

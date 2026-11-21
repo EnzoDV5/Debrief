@@ -6,10 +6,12 @@ export function Collapsible({
   id,
   open,
   children,
+  flush = false,
 }: {
   id: string;
   open: boolean;
   children: ReactNode;
+  flush?: boolean;
 }) {
   return (
     <div
@@ -20,8 +22,8 @@ export function Collapsible({
         open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
       )}
     >
-      <div className="min-h-0 overflow-hidden px-px pb-1">
-        <div className="pt-4">{children}</div>
+      <div className={cn('min-h-0 overflow-hidden', !flush && 'px-px pb-1')}>
+        <div className={cn(!flush && 'pt-4')}>{children}</div>
       </div>
     </div>
   );
