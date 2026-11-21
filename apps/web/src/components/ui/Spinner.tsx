@@ -1,6 +1,8 @@
-// Loading spinners, inline and full page.
+// Loading indicators: a small inline spinner, and the full-page Debrief loader.
 import { LoaderCircle } from 'lucide-react';
+import { PanelBackdrop } from '@/components/layout/PanelBackdrop';
 import { cn } from '@/lib/cn';
+import { Logo } from './Logo';
 
 export function Spinner({ label, className }: { label?: string; className?: string }) {
   return (
@@ -11,10 +13,22 @@ export function Spinner({ label, className }: { label?: string; className?: stri
   );
 }
 
+// The logo's lines draw themselves over the drifting blobs. Kept in step with the static
+// version in index.html, which shows before the JavaScript has loaded.
 export function FullPageSpinner({ label = 'Loading' }: { label?: string }) {
   return (
-    <div role="status" className="grid min-h-dvh place-items-center text-muted">
-      <Spinner label={label} className="[&_svg]:size-6" />
+    <div role="status" className="relative grid min-h-dvh place-items-center overflow-hidden bg-bg">
+      <PanelBackdrop contained />
+      <div className="relative flex flex-col items-center motion-safe:animate-loader-in">
+        <Logo markOnly bare size="xl" animated />
+        <span aria-hidden="true" className="mt-5 text-3xl font-bold tracking-tight text-fg">
+          Debrief
+        </span>
+        <span aria-hidden="true" className="mt-4 h-1 w-24 overflow-hidden rounded-pill bg-fg/10">
+          <span className="block h-full w-2/5 rounded-pill bg-accent motion-safe:animate-loader-bar" />
+        </span>
+        <span className="sr-only">{label}</span>
+      </div>
     </div>
   );
 }

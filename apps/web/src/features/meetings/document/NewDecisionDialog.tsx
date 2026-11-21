@@ -8,11 +8,13 @@ import { useCreateDecision } from '@/features/actionItems/hooks';
 
 export function NewDecisionDialog({
   meetingId,
+  open = true,
   onClose,
   initialText = '',
   sourceLine = null,
 }: {
   meetingId: string;
+  open?: boolean;
   onClose: () => void;
   initialText?: string;
   sourceLine?: number | null;
@@ -21,7 +23,7 @@ export function NewDecisionDialog({
   const [text, setText] = useState(initialText);
   return (
     <Dialog
-      open
+      open={open}
       onClose={() => !create.isPending && onClose()}
       title="Add decision"
       description={

@@ -1,23 +1,36 @@
-// "My open items" across all meetings, filtered by status, owner and overdue.
+// "Actions": every action item, filtered by status, owner and overdue, with a scrollable row of
+// cards per meeting.
 import {
   ACTION_ITEM_STATUS_FILTERS,
   UNASSIGNED_OWNER,
   type ActionItem,
   type ActionItemStatusFilter,
+  type ActionItemWithMeeting,
 } from '@debrief/shared';
-import { ListChecks, SearchX } from 'lucide-react';
+import {
+  AlarmClock,
+  ArrowUpRight,
+  ListChecks,
+  SearchX,
+  TextQuote,
+  Users,
+  UserX,
+} from 'lucide-react';
 import { useState } from 'react';
-import { Link, useLocation, useNavigation, useSearchParams } from 'react-router';
+import { Link, useLocation, useNavigate, useNavigation, useSearchParams } from 'react-router';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/Button';
+import { Carousel } from '@/components/ui/Carousel';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
+import { Select, type SelectOption } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { ActionItemCard, isOverdue } from '@/features/actionItems/ActionItemCard';
+import { ActionItemCard, Initials, isOverdue } from '@/features/actionItems/ActionItemCard';
 import { ActionItemDialog } from '@/features/actionItems/ActionItemDialog';
 import { DeleteActionItemDialog } from '@/features/actionItems/DeleteActionItemDialog';
 import { useActionItems, type ActionItemFilters } from '@/features/actionItems/hooks';
 import { cn } from '@/lib/cn';
+import { useLingering } from '@/lib/useLingering';
 import { formatCalendarDate, plural } from '@/lib/format';
 
 const STATUS_FILTER_LABELS: Record<ActionItemStatusFilter, string> = {
@@ -61,29 +74,38 @@ export function OpenItemsPage() {
   const { data, isPending, error, refetch } = useActionItems(filters);
   const [editing, setEditing] = useState<ActionItem | null>(null);
   const [deleting, setDeleting] = useState<ActionItem | null>(null);
+  const shownEditing = useLingering(editing);
 
   const items = data?.actionItems ?? [];
   const filtered = filters.status !== 'open' || Boolean(filters.owner) || filters.overdue;
   const overdueCount = items.filter((item) => isOverdue(item)).length;
+  const groups = groupByMeeting(items);
+  const navigate = useNavigate();
 
   return (
     <>
       <PageHeader
-        title="Action items"
-        description="Every action item from all your meetings, in one list."
-      />
-
-      <Filters filters={filters} owners={data?.owners ?? []} onChange={setFilters} />
+        title="Actions"
+        description="Every action item from your meetings, grouped by meeting."
+      >
+        <Filters filters={filters} owners={data?.owners ?? []} onChange={setFilters} />
+      </PageHeader>
 
       {isPending ? (
-        <div role="status" aria-label="Loading action items" className="mt-6 space-y-3">
-          {[0, 1, 2].map((i) => (
-            <Skeleton key={i} className="h-24 rounded-md" />
+        <div role="status" aria-label="Loading action items" className="space-y-8">
+          {[0, 1].map((i) => (
+            <div key={i}>
+              <Skeleton className="h-6 w-56" />
+              <div className="mt-4 flex gap-4 overflow-hidden">
+                {[0, 1, 2].map((j) => (
+                  <Skeleton key={j} className="h-40 w-80 shrink-0 rounded-card" />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       ) : error ? (
         <ErrorState
-          className="mt-6"
           title="Couldn't load your action items"
           message={error.message}
           onRetry={() => void refetch()}
@@ -91,7 +113,6 @@ export function OpenItemsPage() {
       ) : items.length === 0 ? (
         filtered ? (
           <EmptyState
-            className="mt-6"
             icon={<SearchX />}
             title="No items match these filters"
             action={
@@ -105,60 +126,117 @@ export function OpenItemsPage() {
           />
         ) : (
           <EmptyState
-            className="mt-6"
             icon={<ListChecks />}
             title="Nothing open right now"
             description="Action items from your meetings collect here. Tick them off as they get done."
-            action={<Button to="/meetings/new">Add a meeting</Button>}
+            action={<Button to="/meetings">Add a meeting</Button>}
           />
         )
       ) : (
         <>
-          <p role="status" className="mt-6 text-sm text-muted">
-            {plural(items.length, 'item')}
+          <p role="status" className="text-sm text-muted">
+            {plural(items.length, 'item')} in {plural(groups.length, 'meeting')}
             {overdueCount > 0 && filters.status !== 'done' && (
               <span className="font-semibold text-danger"> · {overdueCount} overdue</span>
             )}
           </p>
-          <ol className="mt-3 space-y-3">
-            {items.map((item) => (
-              <li key={item.id}>
-                <ActionItemCard
-                  item={item}
-                  onEdit={() => setEditing(item)}
-                  onDelete={() => setDeleting(item)}
-                  source={
-                    <Link
-                      to={`/meetings/${item.meetingId}${item.sourceLine ? `#L${item.sourceLine}` : ''}`}
-                      className="font-semibold text-accent hover:underline"
+          <div className="mt-6 space-y-10">
+            {groups.map((group) => (
+              <section key={group.meetingId} aria-label={group.meetingTitle}>
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                  <div className="flex min-w-0 flex-wrap items-center gap-3">
+                    <h2 className="min-w-0 text-lg font-bold">{group.meetingTitle}</h2>
+                    <Button
+                      to={`/meetings/${group.meetingId}`}
+                      variant="secondary"
+                      size="sm"
+                      icon={<ArrowUpRight aria-hidden="true" className="size-4" />}
+                      aria-label={`Open ${group.meetingTitle}`}
                     >
-                      {item.meetingTitle}
-                      <span className="font-normal text-muted">
-                        {' '}
-                        · {formatCalendarDate(item.meetingDate)}
-                        {item.sourceLine && ` · Line ${item.sourceLine}`}
-                      </span>
-                    </Link>
-                  }
-                />
-              </li>
+                      Open meeting
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted">
+                    {formatCalendarDate(group.meetingDate)} · {plural(group.items.length, 'item')}
+                  </p>
+                </div>
+                <div className="-mx-4 mt-3 sm:-mx-8">
+                  <Carousel label={`Actions from ${group.meetingTitle}`}>
+                    {group.items.map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={(event) => {
+                          if ((event.target as HTMLElement).closest(INTERACTIVE)) return;
+                          navigate(lineLink(item));
+                        }}
+                        className="h-76 w-[min(82vw,22rem)] shrink-0 cursor-pointer snap-start"
+                      >
+                        <ActionItemCard
+                          fixed
+                          item={item}
+                          onEdit={() => setEditing(item)}
+                          onDelete={() => setDeleting(item)}
+                          source={
+                            item.sourceLine ? (
+                              <Link
+                                to={lineLink(item)}
+                                className="inline-flex items-center gap-1 font-semibold text-accent hover:underline"
+                              >
+                                <TextQuote aria-hidden="true" className="size-3.5" />
+                                Line {item.sourceLine} in the transcript
+                              </Link>
+                            ) : (
+                              <span className="text-muted">Added by hand</span>
+                            )
+                          }
+                        />
+                      </div>
+                    ))}
+                  </Carousel>
+                </div>
+              </section>
             ))}
-          </ol>
+          </div>
         </>
       )}
 
-      {editing && (
+      {shownEditing && (
         <ActionItemDialog
-          open
+          key={shownEditing.id}
+          open={editing !== null}
           onClose={() => setEditing(null)}
-          meetingId={editing.meetingId}
-          item={editing}
+          meetingId={shownEditing.meetingId}
+          item={shownEditing}
           ownerSuggestions={data?.owners ?? []}
         />
       )}
       <DeleteActionItemDialog item={deleting} onClose={() => setDeleting(null)} />
     </>
   );
+}
+
+// Clicking a card opens its transcript line, unless the click was on one of its own controls.
+const INTERACTIVE = 'button, a, input, select, textarea, label';
+const lineLink = (item: ActionItemWithMeeting) =>
+  `/meetings/${item.meetingId}${item.sourceLine ? `#L${item.sourceLine}` : ''}`;
+
+// One group per meeting, newest meeting first; items keep the order the server sent.
+function groupByMeeting(items: ActionItemWithMeeting[]) {
+  const groups = new Map<
+    string,
+    { meetingId: string; meetingTitle: string; meetingDate: string; items: ActionItemWithMeeting[] }
+  >();
+  for (const item of items) {
+    const group = groups.get(item.meetingId) ?? {
+      meetingId: item.meetingId,
+      meetingTitle: item.meetingTitle,
+      meetingDate: item.meetingDate,
+      items: [],
+    };
+    group.items.push(item);
+    groups.set(item.meetingId, group);
+  }
+  return [...groups.values()].sort((a, b) => b.meetingDate.localeCompare(a.meetingDate));
 }
 
 function Filters({
@@ -170,9 +248,19 @@ function Filters({
   owners: string[];
   onChange: (next: Partial<ActionItemFilters>) => void;
 }) {
+  const ownerOptions: SelectOption<string>[] = [
+    { value: '', label: 'Everyone', icon: <Users /> },
+    { value: UNASSIGNED_OWNER, label: 'No owner', icon: <UserX /> },
+    ...owners.map((owner) => ({ value: owner, label: owner, icon: <Initials name={owner} /> })),
+  ];
+
   return (
-    <div className="flex flex-col gap-4 rounded-card border border-white/70 glass p-4 shadow-card lg:flex-row lg:items-center lg:justify-between">
-      <div role="group" aria-label="Status" className="flex flex-wrap gap-2">
+    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div
+        role="group"
+        aria-label="Status"
+        className="inline-flex w-fit flex-wrap gap-1 rounded-pill bg-surface p-1 shadow-card ring-1 ring-line lg:bg-sidebar-hover lg:shadow-none lg:ring-sidebar-line"
+      >
         {ACTION_ITEM_STATUS_FILTERS.map((status) => (
           <button
             key={status}
@@ -180,10 +268,10 @@ function Filters({
             aria-pressed={filters.status === status}
             onClick={() => onChange({ status })}
             className={cn(
-              'inline-flex min-h-10 items-center rounded-pill border px-4 text-sm font-semibold transition-colors',
+              'inline-flex min-h-8 items-center rounded-pill px-3.5 text-sm font-semibold transition-[background-color,color,box-shadow] duration-200',
               filters.status === status
-                ? 'border-fg bg-fg text-white'
-                : 'border-line-strong/60 text-fg hover:border-fg',
+                ? 'bg-fg text-white shadow-card lg:bg-white lg:text-fg'
+                : 'text-muted hover:text-fg lg:text-sidebar-muted lg:hover:text-white',
             )}
           >
             {STATUS_FILTER_LABELS[status]}
@@ -191,32 +279,29 @@ function Filters({
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-4">
-        <label className="flex items-center gap-2 text-sm font-semibold">
-          Owner
-          <select
-            value={filters.owner ?? ''}
-            onChange={(event) => onChange({ owner: event.target.value || undefined })}
-            className="min-h-10 rounded-md border border-line-strong bg-surface px-3 text-sm font-normal"
-          >
-            <option value="">Everyone</option>
-            <option value={UNASSIGNED_OWNER}>No owner</option>
-            {owners.map((owner) => (
-              <option key={owner} value={owner}>
-                {owner}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex min-h-10 cursor-pointer items-center gap-2 text-sm font-semibold">
-          <input
-            type="checkbox"
-            checked={filters.overdue}
-            onChange={(event) => onChange({ overdue: event.target.checked })}
-            className="size-4 accent-accent"
-          />
+      <div className="flex flex-wrap items-center gap-2">
+        <Select
+          label="Owner"
+          showLabel
+          tone="bar"
+          value={filters.owner ?? ''}
+          options={ownerOptions}
+          onChange={(owner) => onChange({ owner: owner || undefined })}
+        />
+        <button
+          type="button"
+          aria-pressed={filters.overdue}
+          onClick={() => onChange({ overdue: !filters.overdue })}
+          className={cn(
+            'inline-flex min-h-10 items-center gap-2 rounded-pill border px-4 text-sm font-semibold transition-[background-color,border-color,color] duration-200',
+            filters.overdue
+              ? 'border-danger bg-danger text-white shadow-card'
+              : 'border-line-strong/50 bg-surface text-fg shadow-card hover:border-danger/50 hover:text-danger lg:border-sidebar-line lg:bg-sidebar-hover lg:text-sidebar-fg lg:shadow-none lg:hover:text-danger-light',
+          )}
+        >
+          <AlarmClock aria-hidden="true" className="size-4" />
           Overdue only
-        </label>
+        </button>
       </div>
     </div>
   );

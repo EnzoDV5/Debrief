@@ -1,5 +1,5 @@
 // Click or select text in the transcript to turn it into an action item or decision.
-import { Gavel, ListChecks } from 'lucide-react';
+import { Gavel, ListChecks, Pencil } from 'lucide-react';
 import { useEffect, useRef, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -122,10 +122,12 @@ export function useTranscriptSelection(
 export function PickToolbar({
   state,
   onChoose,
+  onEdit,
   onClose,
 }: {
   state: PickToolbarState;
   onChoose: (kind: PickKind) => void;
+  onEdit?: () => void;
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -168,6 +170,20 @@ export function PickToolbar({
         <Gavel aria-hidden="true" className="size-4 text-success" />
         Decision
       </button>
+      {onEdit && (
+        <>
+          <span aria-hidden="true" className="my-1.5 w-px bg-line" />
+          <button
+            type="button"
+            className={button}
+            onPointerDown={(event) => event.preventDefault()}
+            onClick={onEdit}
+          >
+            <Pencil aria-hidden="true" className="size-4 text-muted" />
+            Edit line
+          </button>
+        </>
+      )}
     </div>,
     document.body,
   );

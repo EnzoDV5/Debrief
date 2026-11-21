@@ -1,7 +1,7 @@
 // Shown if a page crashes, so the user never gets a white screen.
 import { useEffect } from 'react';
 import { useRouteError } from 'react-router';
-import { ErrorState } from '@/components/ui/ErrorState';
+import { FullPageError } from '@/components/ui/FullPageError';
 
 export function RouteErrorPage() {
   const error = useRouteError();
@@ -10,12 +10,12 @@ export function RouteErrorPage() {
   }, [error]);
 
   return (
-    <main id="main" className="grid min-h-dvh place-items-center p-4">
-      <ErrorState
-        message="This page hit an unexpected problem. Reloading usually fixes it."
-        onRetry={() => window.location.reload()}
-        className="w-full max-w-md"
-      />
-    </main>
+    <FullPageError
+      title="This page hit a snag"
+      message="Something unexpected went wrong while showing this page. Reloading usually fixes it."
+      details={error instanceof Error ? error.message : undefined}
+      onRetry={() => window.location.reload()}
+      showHome
+    />
   );
 }

@@ -8,6 +8,7 @@ import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
 import { Field } from '@/components/ui/Field';
+import { GoogleLogo } from '@/components/ui/GoogleLogo';
 import { Input, PasswordInput } from '@/components/ui/Input';
 import { useDeleteAccount, useMe } from './hooks';
 
@@ -82,7 +83,14 @@ export function DeleteAccountDialog({
         ) : (
           <Field
             label="Type your email to confirm"
-            hint={`You sign in with Google, so type ${user?.email ?? 'your email'} to confirm.`}
+            hint={
+              <span className="inline-flex items-start gap-1.5">
+                <GoogleLogo className="mt-0.5 size-3.5" />
+                <span>
+                  You sign in with Google, so type {user?.email ?? 'your email'} to confirm.
+                </span>
+              </span>
+            }
             error={errors.confirm?.message}
           >
             {(control) => (

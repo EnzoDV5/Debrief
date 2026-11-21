@@ -1,24 +1,30 @@
 // The signed-in layout: sidebar, top bar and the page panel.
 import {
   Archive,
+  ChevronDown,
   Folder,
   ListChecks,
   LogOut,
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
+  Pin,
   Plus,
   Search,
   UserRound,
   X,
 } from 'lucide-react';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import type { MeetingListItem } from '@debrief/shared';
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { Button } from '@/components/ui/Button';
+import { Collapsible } from '@/components/ui/Collapsible';
 import { Logo } from '@/components/ui/Logo';
+import { useActionItems } from '@/features/actionItems/hooks';
 import { useCurrentUser, useLogout } from '@/features/auth/hooks';
-import { useMeetings } from '@/features/meetings/hooks';
+import { useMeetings, usePrefetchMeeting } from '@/features/meetings/hooks';
 import { MeetingMenu } from '@/features/meetings/MeetingMenu';
+import { SearchDialog } from '@/features/meetings/SearchDialog';
 import { cn } from '@/lib/cn';
 import { AUTH_PANEL_LEFT, type EntranceState } from './authExit';
 import { PageBarSlot, PanelOverlaySlot } from './PageBar';
@@ -79,6 +85,8 @@ function useEntrance() {
 export function AppShell() {
   const { mainRef, scrollRef } = useMainFocusOnNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  useSearchShortcut(setSearchOpen);
   const { collapsed, toggle } = useSidebarCollapsed();
   const entering = useEntrance();
   const [pageBarSlot, setPageBarSlot] = useState<HTMLDivElement | null>(null);
@@ -86,6 +94,8 @@ export function AppShell() {
   const [frame, setFrame] = useState<ShellFrameClasses | null>(null);
   const panelInset = frame?.panel ?? null;
   const { pathname } = useLocation();
+  // Moving between meetings keeps the page mounted, so the bar and Ask card stay in place.
+  const pageKey = /^\/meetings\/[^/]+$/.test(pathname) ? 'meeting' : pathname;
 
   return (
     <div className="min-h-dvh bg-bg lg:flex lg:h-dvh lg:bg-sidebar">
@@ -99,9 +109,21 @@ export function AppShell() {
           entering && 'lg:animate-sidebar-in',
         )}
       >
-        <SidebarContent collapsed={collapsed} onToggleCollapsed={toggle} />
+        <SidebarContent
+          collapsed={collapsed}
+          onToggleCollapsed={toggle}
+          onOpenSearch={() => setSearchOpen(true)}
+        />
       </aside>
-      <MobileSidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
+      <MobileSidebar
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        onOpenSearch={() => {
+          setMenuOpen(false);
+          setSearchOpen(true);
+        }}
+      />
+      <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
 
       <header className="sticky top-0 z-20 flex h-topbar items-center justify-between border-b border-line bg-bg/95 px-4 backdrop-blur lg:hidden">
         <div className="flex items-center gap-2">
@@ -176,7 +198,7 @@ export function AppShell() {
                 <PageBarSlot.Provider value={pageBarSlot}>
                   <PanelOverlaySlot.Provider value={panelOverlay}>
                     <div
-                      key={pathname}
+                      key={pageKey}
                       className={entering ? 'animate-page-enter' : 'animate-page-in'}
                     >
                       <Outlet />
@@ -199,6 +221,20 @@ export function AppShell() {
   );
 }
 
+// Ctrl+K (or Cmd+K on a Mac) opens search from anywhere.
+function useSearchShortcut(setOpen: (open: boolean) => void) {
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setOpen(true);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [setOpen]);
+}
+
 function useMainFocusOnNavigate() {
   const mainRef = useRef<HTMLElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -213,7 +249,15 @@ function useMainFocusOnNavigate() {
   return { mainRef, scrollRef };
 }
 
-function MobileSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
+function MobileSidebar({
+  open,
+  onClose,
+  onOpenSearch,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onOpenSearch: () => void;
+}) {
   const ref = useRef<HTMLDialogElement>(null);
   const { pathname } = useLocation();
   const previousPath = useRef(pathname);
@@ -236,9 +280,9 @@ function MobileSidebar({ open, onClose }: { open: boolean; onClose: () => void }
       ref={ref}
       aria-label="Workspace sidebar"
       onClose={onClose}
-      className="m-0 h-dvh max-h-dvh w-[min(88vw,21rem)] max-w-none bg-sidebar p-0 text-sidebar-fg shadow-raised lg:hidden"
+      className="m-0 h-dvh max-h-dvh w-[min(88vw,21rem)] max-w-none bg-sidebar p-0 text-sidebar-fg shadow-raised backdrop:bg-sidebar/50 backdrop:backdrop-blur-sm open:motion-safe:animate-drawer-in open:backdrop:motion-safe:animate-fade-in lg:hidden"
     >
-      <SidebarContent onNavigate={onClose} onClose={onClose} />
+      <SidebarContent onNavigate={onClose} onClose={onClose} onOpenSearch={onOpenSearch} />
     </dialog>
   );
 }
@@ -248,15 +292,19 @@ function SidebarContent({
   onClose,
   collapsed = false,
   onToggleCollapsed,
+  onOpenSearch,
 }: {
   onNavigate?: () => void;
   onClose?: () => void;
   collapsed?: boolean;
   onToggleCollapsed?: () => void;
+  onOpenSearch: () => void;
 }) {
   const { data: meetings, isPending, error, refetch } = useMeetings();
   const pinned = meetings?.filter((meeting) => meeting.pinnedAt) ?? [];
   const recent = meetings?.filter((meeting) => !meeting.pinnedAt) ?? [];
+  const openActions =
+    useActionItems({ status: 'open', overdue: false }).data?.actionItems.length ?? 0;
   const label = (text: string) => <span className={cn(collapsed && 'sr-only')}>{text}</span>;
 
   return (
@@ -317,99 +365,252 @@ function SidebarContent({
       </div>
 
       <nav aria-label="Workspace" className="space-y-1 px-3">
+        <button
+          type="button"
+          onClick={onOpenSearch}
+          title={collapsed ? 'Search (Ctrl+K)' : undefined}
+          aria-keyshortcuts="Control+K"
+          className={cn(navClass(false, collapsed), 'w-full')}
+        >
+          <Search aria-hidden="true" className="size-5 shrink-0" />
+          {label('Search')}
+          {!collapsed && (
+            <kbd
+              aria-hidden="true"
+              className="ml-auto rounded-sm border border-sidebar-line px-1.5 font-sans text-xs text-sidebar-muted"
+            >
+              Ctrl K
+            </kbd>
+          )}
+        </button>
         {(
           [
-            ['/search', Search, 'Search'],
-            ['/items', ListChecks, 'Action items'],
+            ['/items', ListChecks, 'Actions'],
             ['/projects', Folder, 'Projects'],
-            ['/archived', Archive, 'Archived'],
           ] as const
-        ).map(([to, Icon, text]) => (
-          <NavLink
-            key={to}
-            to={to}
-            onClick={onNavigate}
-            title={collapsed ? text : undefined}
-            className={({ isActive }) => navClass(isActive, collapsed)}
-          >
-            <Icon aria-hidden="true" className="size-5 shrink-0" />
-            {label(text)}
-          </NavLink>
-        ))}
+        ).map(([to, Icon, text]) => {
+          const count = to === '/items' ? openActions : 0;
+          return (
+            <NavLink
+              key={to}
+              to={to}
+              onClick={onNavigate}
+              title={collapsed ? text : undefined}
+              aria-label={count > 0 ? `${text}, ${count} open` : undefined}
+              className={({ isActive }) => navClass(isActive, collapsed)}
+            >
+              <span className="relative shrink-0">
+                <Icon aria-hidden="true" className="size-5" />
+                {collapsed && count > 0 && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute -top-1 -right-1 size-2.5 rounded-pill bg-spark ring-2 ring-sidebar"
+                  />
+                )}
+              </span>
+              {label(text)}
+              {count > 0 && (
+                <span
+                  className={cn(
+                    'ml-auto min-w-6 rounded-pill bg-spark px-1.5 text-center text-xs leading-5 font-bold text-fg tabular-nums',
+                    collapsed && 'sr-only',
+                  )}
+                >
+                  {count}
+                </span>
+              )}
+            </NavLink>
+          );
+        })}
+        <ArchivedDropdown
+          collapsed={collapsed}
+          onExpandSidebar={onToggleCollapsed}
+          onNavigate={onNavigate}
+        />
       </nav>
 
       {collapsed ? (
         <div className="flex-1" />
       ) : (
-        <div className="mt-6 flex min-h-0 flex-1 flex-col border-t border-sidebar-line pt-5">
-          <div className="flex items-center justify-between px-5">
-            <h2 className="text-xs font-bold tracking-label whitespace-nowrap text-sidebar-muted uppercase">
-              Recent meetings
-            </h2>
-            {meetings && (
-              <span className="text-xs text-sidebar-muted tabular-nums">{meetings.length}</span>
-            )}
-          </div>
-          <div className="mt-3 min-h-0 flex-1 overflow-y-auto px-2 pb-4">
-            {isPending ? (
-              <p className="px-3 py-2 text-sm text-sidebar-muted">Loading meetings…</p>
-            ) : error ? (
-              <div className="px-3 py-2 text-sm text-sidebar-muted">
-                <p>Couldn&apos;t load meeting history.</p>
-                <button
-                  type="button"
-                  onClick={() => void refetch()}
-                  className="mt-1 font-semibold text-white underline"
-                >
-                  Try again
-                </button>
+        <div className="mt-5 flex min-h-0 flex-1 flex-col">
+          <Divider />
+          {pinned.length > 0 && (
+            <section aria-label="Pinned meetings" className="flex max-h-[35%] shrink-0 flex-col">
+              <SectionHeading
+                icon={<Pin aria-hidden="true" className="size-3.5" />}
+                count={pinned.length}
+              >
+                Pinned
+              </SectionHeading>
+              <div className="scrollbar-panel mt-1 min-h-0 overflow-y-auto scroll-fade px-2 pt-3 pb-3">
+                <MeetingLinks meetings={pinned} onNavigate={onNavigate} />
               </div>
-            ) : meetings?.length ? (
-              <>
-                {pinned.length > 0 && (
-                  <p className="px-3 pb-1 text-xs font-bold tracking-wide text-sidebar-muted uppercase">
-                    Pinned
-                  </p>
-                )}
-                {[pinned, recent].map((group, index) => (
-                  <ul key={index} className="mb-3 space-y-0.5">
-                    {group.map((meeting) => (
-                      <li
-                        key={meeting.id}
-                        className="flex items-center rounded-md hover:bg-sidebar-hover"
-                      >
-                        <NavLink
-                          to={`/meetings/${meeting.id}`}
-                          onClick={onNavigate}
-                          title={meeting.title}
-                          className={({ isActive }) =>
-                            cn(
-                              'flex min-h-10 min-w-0 flex-1 items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
-                              isActive
-                                ? 'bg-sidebar-active text-white'
-                                : 'text-sidebar-fg hover:bg-sidebar-hover',
-                            )
-                          }
-                        >
-                          <span className="min-w-0 flex-1 truncate">{meeting.title}</span>
-                        </NavLink>
-                        <MeetingMenu meeting={meeting} />
-                      </li>
-                    ))}
-                  </ul>
-                ))}
-              </>
-            ) : (
-              <p className="px-3 py-2 text-sm text-sidebar-muted">
-                Your meetings will appear here.
-              </p>
-            )}
-          </div>
+            </section>
+          )}
+          {pinned.length > 0 && <Divider />}
+          <section aria-label="Recent meetings" className="flex min-h-0 flex-1 flex-col">
+            <SectionHeading count={meetings ? recent.length : undefined}>
+              Recent meetings
+            </SectionHeading>
+            <div className="scrollbar-panel mt-1 min-h-0 flex-1 overflow-y-auto scroll-fade px-2 pt-3 pb-4">
+              {isPending ? (
+                <p className="px-3 py-2 text-sm text-sidebar-muted">Loading meetings…</p>
+              ) : error ? (
+                <div className="px-3 py-2 text-sm text-sidebar-muted">
+                  <p>Couldn&apos;t load meeting history.</p>
+                  <button
+                    type="button"
+                    onClick={() => void refetch()}
+                    className="mt-1 font-semibold text-white underline"
+                  >
+                    Try again
+                  </button>
+                </div>
+              ) : recent.length > 0 ? (
+                <MeetingLinks meetings={recent} onNavigate={onNavigate} />
+              ) : (
+                <p className="px-3 py-2 text-sm text-sidebar-muted">
+                  {pinned.length > 0
+                    ? 'Every meeting is pinned.'
+                    : 'Your meetings will appear here.'}
+                </p>
+              )}
+            </div>
+          </section>
         </div>
       )}
 
       <AccountBlock onNavigate={onNavigate} collapsed={collapsed} />
     </div>
+  );
+}
+
+// A short line between sidebar sections, inset from both edges.
+function Divider() {
+  return <div aria-hidden="true" className="mx-5 h-px shrink-0 rounded-pill bg-sidebar-line" />;
+}
+
+// Archived meetings open in place: the list slides down and pushes the sections below it.
+function ArchivedDropdown({
+  collapsed,
+  onExpandSidebar,
+  onNavigate,
+}: {
+  collapsed: boolean;
+  onExpandSidebar?: () => void;
+  onNavigate?: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const listId = useId();
+  const { data: archived, isPending, error } = useMeetings({ archived: true });
+  const toggle = () => {
+    if (collapsed) {
+      onExpandSidebar?.();
+      setOpen(true);
+    } else setOpen((current) => !current);
+  };
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={!collapsed && open}
+        aria-controls={listId}
+        title={collapsed ? 'Archived' : undefined}
+        className={cn(navClass(false, collapsed), 'w-full')}
+      >
+        <Archive aria-hidden="true" className="size-5 shrink-0" />
+        <span className={cn(collapsed && 'sr-only')}>Archived</span>
+        {!collapsed && (
+          <span className="ml-auto flex items-center gap-2 text-xs text-sidebar-muted tabular-nums">
+            {archived && archived.length > 0 && archived.length}
+            <ChevronDown
+              aria-hidden="true"
+              className={cn('size-4 transition-transform duration-300', open && 'rotate-180')}
+            />
+          </span>
+        )}
+      </button>
+      {!collapsed && (
+        <Collapsible id={listId} open={open}>
+          <div className="scrollbar-panel max-h-56 overflow-y-auto py-1 pl-3">
+            {isPending ? (
+              <p className="px-3 py-2 text-sm text-sidebar-muted">Loading…</p>
+            ) : error ? (
+              <p className="px-3 py-2 text-sm text-sidebar-muted">
+                Couldn&apos;t load archived meetings.
+              </p>
+            ) : archived.length === 0 ? (
+              <p className="px-3 py-2 text-sm text-sidebar-muted">Nothing archived yet.</p>
+            ) : (
+              <div className="border-l border-sidebar-line pl-1">
+                <MeetingLinks meetings={archived} onNavigate={onNavigate} />
+              </div>
+            )}
+          </div>
+        </Collapsible>
+      )}
+    </div>
+  );
+}
+
+function SectionHeading({
+  icon,
+  count,
+  children,
+}: {
+  icon?: ReactNode;
+  count?: number;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex shrink-0 items-center justify-between px-5 pt-4">
+      <h2 className="flex items-center gap-1.5 text-xs font-bold tracking-label whitespace-nowrap text-sidebar-muted uppercase">
+        {icon}
+        {children}
+      </h2>
+      {count !== undefined && (
+        <span className="text-xs text-sidebar-muted tabular-nums">{count}</span>
+      )}
+    </div>
+  );
+}
+
+// Hovering or focusing a meeting starts loading it, so opening it feels instant.
+function MeetingLinks({
+  meetings,
+  onNavigate,
+}: {
+  meetings: MeetingListItem[];
+  onNavigate?: () => void;
+}) {
+  const prefetch = usePrefetchMeeting();
+  return (
+    <ul className="space-y-0.5">
+      {meetings.map((meeting) => (
+        <li key={meeting.id} className="flex items-center rounded-md hover:bg-sidebar-hover">
+          <NavLink
+            to={`/meetings/${meeting.id}`}
+            onClick={onNavigate}
+            onPointerEnter={() => prefetch(meeting.id)}
+            onFocus={() => prefetch(meeting.id)}
+            title={meeting.title}
+            className={({ isActive }) =>
+              cn(
+                'flex min-h-10 min-w-0 flex-1 items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
+                isActive
+                  ? 'bg-sidebar-active text-white'
+                  : 'text-sidebar-fg hover:bg-sidebar-hover',
+              )
+            }
+          >
+            <span className="min-w-0 flex-1 truncate">{meeting.title}</span>
+          </NavLink>
+          <MeetingMenu meeting={meeting} />
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -439,7 +640,8 @@ function AccountBlock({
   const logout = useLogout();
   const navigate = useNavigate();
   return (
-    <div className={cn('shrink-0 border-t border-sidebar-line p-3', collapsed && 'px-2')}>
+    <div className={cn('shrink-0 p-3 pt-0', collapsed && 'px-2')}>
+      <div aria-hidden="true" className="mx-2 mb-3 h-px rounded-pill bg-sidebar-line" />
       <NavLink
         to="/account"
         onClick={onNavigate}

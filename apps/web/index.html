@@ -10,9 +10,190 @@
     <meta name="theme-color" content="#eef0f4" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>Debrief</title>
+    <!-- Shown until the app's JavaScript loads; React replaces it. Matches FullPageSpinner. -->
+    <style>
+      .boot {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        background: #f7f8f7;
+        font-family:
+          'Satoshi',
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          sans-serif;
+      }
+      .boot-blob {
+        position: absolute;
+        border-radius: 42% 58% 63% 37% / 45% 40% 60% 55%;
+        filter: blur(72px);
+        will-change: transform;
+        animation: boot-drift 18s ease-in-out infinite alternate;
+      }
+      .boot-blob.a {
+        top: -10rem;
+        right: -8rem;
+        width: 34rem;
+        height: 34rem;
+        background: rgb(212 255 60 / 0.45);
+      }
+      .boot-blob.b {
+        bottom: -14rem;
+        right: -6rem;
+        width: 40rem;
+        height: 40rem;
+        background: rgb(43 54 245 / 0.25);
+        animation-duration: 22s;
+        animation-direction: alternate-reverse;
+      }
+      .boot-blob.c {
+        top: 20%;
+        left: -10rem;
+        width: 32rem;
+        height: 32rem;
+        background: rgb(143 123 255 / 0.25);
+        animation-duration: 20s;
+      }
+      .boot-inner {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .boot svg {
+        position: relative;
+        width: 4rem;
+        height: 4rem;
+      }
+      .boot-line {
+        transform-box: fill-box;
+        transform-origin: left center;
+        animation: boot-line 2.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+      }
+      .boot-dot {
+        transform-box: fill-box;
+        transform-origin: center;
+        animation: boot-dot 2.2s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+      }
+      .boot-word {
+        margin-top: 1.25rem;
+        font-size: 1.75rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: #0c0e16;
+      }
+      .boot-bar {
+        margin-top: 1rem;
+        width: 6rem;
+        height: 0.25rem;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgb(12 14 22 / 0.1);
+      }
+      .boot-bar span {
+        display: block;
+        width: 40%;
+        height: 100%;
+        border-radius: 999px;
+        background: #2b36f5;
+        animation: boot-bar 1.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+      }
+      @keyframes boot-drift {
+        50% {
+          transform: translate3d(-30%, 30%, 0) scale(1.2) rotate(60deg);
+        }
+        100% {
+          transform: translate3d(-50%, 10%, 0) scale(0.9) rotate(120deg);
+        }
+      }
+      @keyframes boot-line {
+        0% {
+          transform: scaleX(0);
+          opacity: 0;
+        }
+        22%,
+        72% {
+          transform: scaleX(1);
+          opacity: 1;
+        }
+        92%,
+        100% {
+          transform: scaleX(0);
+          opacity: 0;
+        }
+      }
+      @keyframes boot-dot {
+        0%,
+        28% {
+          transform: scale(0);
+        }
+        42% {
+          transform: scale(1.4);
+        }
+        52%,
+        74% {
+          transform: scale(1);
+        }
+        90%,
+        100% {
+          transform: scale(0);
+        }
+      }
+      @keyframes boot-bar {
+        from {
+          transform: translateX(-100%);
+        }
+        to {
+          transform: translateX(250%);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .boot * {
+          animation: none !important;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot" role="status" aria-label="Loading Debrief">
+        <div class="boot-blob a"></div>
+        <div class="boot-blob b"></div>
+        <div class="boot-blob c"></div>
+        <div class="boot-inner">
+          <svg viewBox="7 8 18 16" aria-hidden="true">
+            <rect class="boot-line" x="8" y="9" width="16" height="2.5" rx="1.25" fill="#2b36f5" />
+            <rect
+              class="boot-line"
+              x="8"
+              y="14.75"
+              width="12"
+              height="2.5"
+              rx="1.25"
+              fill="#2b36f5"
+              style="animation-delay: 120ms"
+            />
+            <rect
+              class="boot-line"
+              x="8"
+              y="20.5"
+              width="8"
+              height="2.5"
+              rx="1.25"
+              fill="#d4ff3c"
+              style="animation-delay: 240ms"
+            />
+            <circle class="boot-dot" cx="21.5" cy="21.75" r="2.25" fill="#d4ff3c" />
+          </svg>
+          <div class="boot-word">Debrief</div>
+          <div class="boot-bar"><span></span></div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

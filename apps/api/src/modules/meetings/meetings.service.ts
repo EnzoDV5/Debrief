@@ -108,6 +108,19 @@ export const meetingsService = {
     return withResults(userId, row);
   },
 
+  // The fixed line is marked as edited so the page can say it isn't word for word any more.
+  async updateLine(userId: string, meetingId: string, n: number, text: string): Promise<Meeting> {
+    const row = await meetingsRepository.findForUser(userId, meetingId);
+    if (!row) throw notFound('Meeting');
+    if (!row.transcriptLines.some((line) => line.n === n)) throw notFound('Line');
+    const lines = row.transcriptLines.map((line) =>
+      line.n === n ? { ...line, text, edited: true } : line,
+    );
+    const updated = await meetingsRepository.updateLinesForUser(userId, meetingId, lines);
+    if (!updated) throw notFound('Meeting');
+    return withResults(userId, updated);
+  },
+
   async remove(userId: string, meetingId: string): Promise<void> {
     if (!(await meetingsRepository.deleteForUser(userId, meetingId))) throw notFound('Meeting');
   },

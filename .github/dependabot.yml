@@ -12,6 +12,9 @@ updates:
       # typescript-eslint doesn't support TypeScript 6.1+ yet.
       - dependency-name: typescript
         versions: ['>=6.1.0']
+      # Node stays on 24 (see .nvmrc) everywhere until we move all of it at once.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: github-actions
     directory: /
@@ -25,3 +28,6 @@ updates:
     directories: [/apps/api, /apps/web]
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: node
+        update-types: ['version-update:semver-major']

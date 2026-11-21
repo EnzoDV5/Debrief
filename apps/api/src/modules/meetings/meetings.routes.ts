@@ -20,6 +20,7 @@ export function createMeetingsRouter(deps: AppDeps) {
   router.post('/:id/ask', createAskRateLimiter(), createAskController(deps.ask));
   router.post('/:id/analyze', meetingsController.analyze);
   router.patch('/:id', meetingsController.update);
+  router.patch('/:id/lines/:n', meetingsController.updateLine);
   router.delete('/:id', meetingsController.remove);
 
   router.post('/:id/action-items', actionItemsController.create);

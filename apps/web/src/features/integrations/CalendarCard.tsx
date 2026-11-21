@@ -1,8 +1,9 @@
 // The Google Calendar section on the account page.
-import { CalendarCheck, CalendarDays } from 'lucide-react';
+import { CalendarCheck } from 'lucide-react';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { GoogleLogo } from '@/components/ui/GoogleLogo';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { formatDate } from '@/lib/format';
 import { CONNECT_CALENDAR_URL, useCalendarStatus, useDisconnectCalendar } from './hooks';
@@ -24,12 +25,13 @@ export function CalendarCard({ result }: { result: string | null }) {
       <div className="flex items-start gap-4">
         <div
           aria-hidden="true"
-          className="grid size-10 shrink-0 place-items-center rounded-md bg-accent-soft text-accent"
+          className="relative grid size-10 shrink-0 place-items-center rounded-md bg-white shadow-card ring-1 ring-line"
         >
-          {status?.connected ? (
-            <CalendarCheck className="size-5" />
-          ) : (
-            <CalendarDays className="size-5" />
+          <GoogleLogo className="size-5" />
+          {status?.connected && (
+            <span className="absolute -right-1.5 -bottom-1.5 grid size-5 place-items-center rounded-pill bg-success text-white ring-2 ring-surface">
+              <CalendarCheck className="size-3" />
+            </span>
           )}
         </div>
         <div className="min-w-0 flex-1">
@@ -83,7 +85,9 @@ export function CalendarCard({ result }: { result: string | null }) {
                 href={CONNECT_CALENDAR_URL}
                 className="inline-flex min-h-11 items-center gap-2 rounded-md bg-accent px-4 text-sm font-semibold text-accent-fg transition-colors hover:bg-accent-hover"
               >
-                <CalendarDays aria-hidden="true" className="size-4" />
+                <span className="grid size-6 place-items-center rounded-sm bg-white">
+                  <GoogleLogo className="size-4" />
+                </span>
                 Connect Google Calendar
               </a>
             )}

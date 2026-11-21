@@ -1,8 +1,10 @@
 // HTTP layer for meetings: paste or upload, list, open, edit, delete and re-analyse.
 import {
   createMeetingFromTextSchema,
+  lineNumberSchema,
   meetingDetailsSchema,
   updateMeetingSchema,
+  updateTranscriptLineSchema,
   type Meeting,
   type MeetingListItem,
 } from '@debrief/shared';
@@ -75,6 +77,15 @@ export function createMeetingsController(queue: AnalysisQueue) {
       const id = meetingId(req);
       const patch = updateMeetingSchema.parse(req.body);
       const meeting = await meetingsService.update(getAuthUser(req).id, id, patch);
+      res.json({ meeting } satisfies { meeting: Meeting });
+    },
+
+    async updateLine(req: Request, res: Response) {
+      const id = meetingId(req);
+      const line = lineNumberSchema.safeParse(req.params.n);
+      if (!line.success) throw notFound('Line');
+      const { text } = updateTranscriptLineSchema.parse(req.body);
+      const meeting = await meetingsService.updateLine(getAuthUser(req).id, id, line.data, text);
       res.json({ meeting } satisfies { meeting: Meeting });
     },
 

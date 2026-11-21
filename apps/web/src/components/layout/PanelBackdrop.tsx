@@ -1,4 +1,5 @@
-// The softly moving colour blobs behind the page. GPU-friendly, and they stop if motion is reduced.
+// Soft colour blobs drifting along the left and right edges, leaving the middle calm. Each one is blurred once and then only moved
+// around (transform), so the GPU does the animation and the page stays smooth.
 export function PanelBackdrop({ contained = false }: { contained?: boolean }) {
   return (
     <div
@@ -9,9 +10,9 @@ export function PanelBackdrop({ contained = false }: { contained?: boolean }) {
           : 'pointer-events-none fixed inset-0 overflow-hidden lg:absolute'
       }
     >
-      <div className="absolute -top-48 -right-40 size-152 rounded-pill blob-lime will-change-transform motion-safe:animate-blob-1" />
-      <div className="absolute -right-24 -bottom-64 size-176 rounded-pill blob-cobalt will-change-transform motion-safe:animate-blob-2" />
-      <div className="absolute top-[18%] left-[8%] size-144 rounded-pill blob-cobalt-soft will-change-transform motion-safe:animate-blob-3" />
+      <div className="absolute -top-32 -right-56 size-[30rem] blob bg-spark/35 motion-safe:animate-blob-1" />
+      <div className="absolute -right-48 -bottom-56 size-[32rem] blob bg-accent/20 motion-safe:animate-blob-2" />
+      <div className="absolute top-[15%] -left-60 size-[30rem] blob bg-violet/20 motion-safe:animate-blob-3" />
     </div>
   );
 }

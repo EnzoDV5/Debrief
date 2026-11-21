@@ -1,4 +1,5 @@
-// A page title, description and action buttons, shown in the top bar.
+// A page title, description and action buttons, shown in the top bar. Anything passed as
+// children (like a filter bar) sits underneath, still outside the page frame.
 import type { ReactNode } from 'react';
 import { usePageTitle } from '@/lib/usePageTitle';
 import { PageBar } from './PageBar';
@@ -7,10 +8,12 @@ export function PageHeader({
   title,
   description,
   actions,
+  children,
 }: {
   title: string;
   description?: ReactNode;
   actions?: ReactNode;
+  children?: ReactNode;
 }) {
   usePageTitle(title);
   return (
@@ -24,6 +27,9 @@ export function PageHeader({
         </div>
         {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
       </header>
+      {children && (
+        <div className="animate-page-in px-4 pt-4 sm:px-8 lg:px-1 lg:pt-0 lg:pb-5">{children}</div>
+      )}
     </PageBar>
   );
 }

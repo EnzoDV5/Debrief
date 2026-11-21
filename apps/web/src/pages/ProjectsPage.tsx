@@ -34,17 +34,9 @@ export function ProjectsPage() {
       <PageHeader
         title={selected?.name ?? 'Projects'}
         description="Group related meetings together."
-      />
-      {error ? (
-        <ErrorState
-          title="Couldn't load projects"
-          message={error.message}
-          onRetry={() => void refetch()}
-        />
-      ) : (
-        <>
+        actions={
           <form
-            className="mb-6 flex max-w-lg gap-2"
+            className="flex w-full gap-2 lg:w-96"
             onSubmit={(event) => {
               event.preventDefault();
               create.mutate(newName.trim(), {
@@ -67,6 +59,16 @@ export function ProjectsPage() {
               Create
             </Button>
           </form>
+        }
+      />
+      {error ? (
+        <ErrorState
+          title="Couldn't load projects"
+          message={error.message}
+          onRetry={() => void refetch()}
+        />
+      ) : (
+        <>
           {create.error && (
             <Alert tone="danger" className="mb-4">
               {create.error.message}

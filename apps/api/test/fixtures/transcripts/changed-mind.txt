@@ -1,0 +1,8 @@
+Naledi Khoza: We need a payment provider for the shop. I was thinking Stripe.
+Pieter Nel: Stripe is fine, but the fees for local cards are higher than PayFast.
+Naledi Khoza: Okay, let's go with Stripe for now.
+Pieter Nel: Wait, our bank also gives us a discount on PayFast.
+Naledi Khoza: Then actually no, scrap Stripe. Let's go with PayFast.
+Pieter Nel: Agreed, PayFast it is.
+Naledi Khoza: And we'll launch the shop in January, not December.
+Pieter Nel: Yes, January makes more sense.

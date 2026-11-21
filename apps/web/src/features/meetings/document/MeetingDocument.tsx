@@ -1,16 +1,29 @@
 // The meeting page: transcript on the left, notes lined up next to the lines they came from.
 import type { ActionItem, Decision, Meeting, TranscriptLine } from '@debrief/shared';
-import { Plus, Sparkle, TextSelect } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Pencil, Plus, TextSelect } from 'lucide-react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 import { useLocation } from 'react-router';
 import { useShellPanelInset } from '@/components/layout/shellFrame';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { ActionItemDialog } from '@/features/actionItems/ActionItemDialog';
 import { cn } from '@/lib/cn';
+import { useLingering } from '@/lib/useLingering';
+import { AnalysisNotesLoader } from './AnalysisNotesLoader';
 import { AskMeetingPanel } from './AskMeetingPanel';
 import { DecisionBubble } from './DecisionBubble';
 import { findPhrase, segment, type Mark } from './highlight';
 import { MeetingActionCard } from './MeetingActionCard';
 import { NewDecisionDialog } from './NewDecisionDialog';
+import { NoNotesFound } from './NoNotesFound';
+import { TranscriptLineEditor } from './TranscriptLineEditor';
 import { TranscriptMap, type MapMarker } from './TranscriptMap';
 import {
   PickToolbar,
@@ -68,7 +81,13 @@ const notesCell = 'px-4 sm:px-8 xl:px-0';
 const cardsCell =
   'space-y-3 pb-3 pl-16 sm:pl-22 xl:py-2.5 xl:pl-0 xl:[&_.glass]:bg-surface xl:[&_.glass]:bg-none xl:[&>*]:scroll-spotlight';
 
-export function MeetingDocument({ meeting }: { meeting: Meeting }) {
+export function MeetingDocument({
+  meeting,
+  loading = false,
+}: {
+  meeting: Meeting;
+  loading?: boolean;
+}) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const analysisRunning =
     meeting.analysisStatus === 'pending' || meeting.analysisStatus === 'processing';
@@ -78,8 +97,27 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
   useShellPanelInset(PANEL_INSET, 'transcript-edge-fade');
 
   const transcriptRef = useRef<HTMLOListElement>(null);
+  const notesHeadRef = useRef<HTMLDivElement>(null);
+  const [notesHead, setNotesHead] = useState(0);
+  useEffect(() => {
+    const head = notesHeadRef.current;
+    if (!head || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => setNotesHead(head.offsetHeight));
+    observer.observe(head);
+    return () => observer.disconnect();
+  }, []);
   const [toolbar, setToolbar] = useState<PickToolbarState | null>(null);
   const [creating, setCreating] = useState<{ kind: PickKind; pick: TranscriptPick } | null>(null);
+  const [editingLine, setEditingLine] = useState<number | null>(null);
+  // Keeps the dialog on screen while it animates out after closing.
+  const shownCreating = useLingering(creating);
+  // Shortly after the page opens, any card that appears is "new" and gets the grow-in entrance.
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSettled(true), 1500);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   useTranscriptSelection(transcriptRef, setToolbar);
   const closeToolbar = useCallback(() => setToolbar(null), []);
   const choose = (kind: PickKind) => {
@@ -115,6 +153,25 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
     () => meeting.transcriptLines.map((line) => line.n),
     [meeting.transcriptLines],
   );
+  const noteOrder = useMemo(
+    () => new Map([...byLine.keys()].sort((a, b) => a - b).map((line, index) => [line, index])),
+    [byLine],
+  );
+
+  // When the AI finishes while you watch, bring the first card into view if it's off screen.
+  const wasRunning = useRef(analysisRunning);
+  useEffect(() => {
+    const finished = wasRunning.current && meeting.analysisStatus === 'done';
+    wasRunning.current = analysisRunning;
+    const first = noteOrder.keys().next().value;
+    if (!finished || first === undefined) return;
+    const row = document.getElementById(`L${first}`);
+    const box = row?.getBoundingClientRect();
+    if (!row || !box || (box.top >= 0 && box.bottom <= window.innerHeight)) return;
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    row.scrollIntoView?.({ block: 'start', behavior: reduce ? 'auto' : 'smooth' });
+  }, [meeting.analysisStatus, analysisRunning, noteOrder]);
+
   const mapMarkers = useMemo(() => {
     const markers: MapMarker[] = [];
     for (const [line, notes] of [...byLine].sort(([a], [b]) => a - b)) {
@@ -148,13 +205,14 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
 
   useEffect(() => {
     if (targetLine !== null) {
-      document.getElementById(`L${targetLine}`)?.scrollIntoView?.({ block: 'center' });
+      document.getElementById(`L${targetLine}`)?.scrollIntoView?.({ block: 'start' });
     }
   }, [targetLine, meeting.transcriptLines]);
 
   return (
     <section
       aria-labelledby="transcript-title"
+      style={notesHead ? ({ '--notes-head': `${notesHead}px` } as CSSProperties) : undefined}
       className="relative min-w-0 pb-10 text-fg [--gap:1.5rem] [--notes:24rem] lg:pb-[45dvh] 2xl:[--notes:27rem]"
     >
       <div className={cn(columns, 'xl:min-h-31 xl:items-stretch')}>
@@ -179,15 +237,16 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
           )}
         >
           <div className="xl:sticky xl:top-0 xl:z-10">
-            <div className="xl:pointer-events-auto xl:bg-sidebar xl:pb-2">
+            <div ref={notesHeadRef} className="xl:pointer-events-auto xl:bg-sidebar xl:pb-2">
               <AskMeetingPanel meetingId={meeting.id} />
+              {!loading && <NoNotesFound meeting={meeting} />}
             </div>
             <div
               aria-hidden="true"
               className="pointer-events-none hidden h-10 bg-linear-to-b from-sidebar to-transparent xl:block"
             />
           </div>
-          {analysisRunning && (
+          {analysisRunning && !loading && (
             <div className="mt-12 px-4 pb-8 xl:mt-28 xl:px-0 xl:pb-0">
               <AnalysisNotesLoader />
             </div>
@@ -199,176 +258,244 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
         </div>
       </div>
 
-      <ol ref={transcriptRef} className="relative pt-3">
-        {meeting.transcriptLines.map((line, i) => {
-          const notes = byLine.get(line.n);
-          const newSpeaker =
-            line.speaker && line.speaker !== meeting.transcriptLines[i - 1]?.speaker;
-          return (
-            <li
-              key={line.n}
-              id={`L${line.n}`}
-              aria-current={line.n === targetLine ? 'location' : undefined}
-              className={cn(
-                columns,
-                'scroll-mt-24',
-                !notes && '[contain-intrinsic-size:auto_3rem] [content-visibility:auto]',
-              )}
-            >
-              <div className={cn(sheetCell, 'py-2.5', newSpeaker && i > 0 && 'pt-7')}>
-                <div
+      {loading ? (
+        <TranscriptSkeleton />
+      ) : (
+        <>
+          <ol ref={transcriptRef} className="relative pt-3 motion-safe:animate-step-in">
+            {meeting.transcriptLines.map((line, i) => {
+              const notes = byLine.get(line.n);
+              const newSpeaker =
+                line.speaker && line.speaker !== meeting.transcriptLines[i - 1]?.speaker;
+              return (
+                <li
+                  key={line.n}
+                  id={`L${line.n}`}
+                  aria-current={line.n === targetLine ? 'location' : undefined}
                   className={cn(
-                    '-mx-3 grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-3 rounded-md px-3 sm:grid-cols-[2.75rem_minmax(0,1fr)] lg:scroll-spotlight-soft',
-                    line.n === targetLine && 'bg-accent-soft/60',
+                    columns,
+                    // Jumps land just under the Ask card on wide screens (its height is measured).
+                    'scroll-mt-24 xl:scroll-mt-[calc(var(--notes-head,9rem)+1.25rem)]',
+                    !notes && '[contain-intrinsic-size:auto_3rem] [content-visibility:auto]',
                   )}
                 >
-                  <a
-                    href={`#L${line.n}`}
-                    aria-label={`Line ${line.n}`}
-                    tabIndex={-1}
-                    className="pt-0.5 text-right font-mono text-xs text-muted tabular-nums hover:text-accent"
-                  >
-                    {line.n}
-                  </a>
-                  <div className="min-w-0">
-                    {newSpeaker && <p className="mb-1 text-base font-bold">{line.speaker}</p>}
-                    <p
-                      data-line-text={line.n}
-                      tabIndex={0}
-                      onKeyDown={(event) => {
-                        if (event.key !== 'Enter' && event.key !== ' ') return;
-                        event.preventDefault();
-                        const box = event.currentTarget.getBoundingClientRect();
-                        setToolbar({
-                          pick: pickText(line.n, line.text),
-                          x: box.left + Math.min(box.width / 2, 160),
-                          y: box.top,
-                          source: 'click',
-                          focus: true,
-                        });
-                      }}
-                      className="rounded-md text-lg leading-8 wrap-break-word text-fg/90 sm:text-xl sm:leading-9"
+                  <div className={cn(sheetCell, 'py-2.5', newSpeaker && i > 0 && 'pt-7')}>
+                    <div
+                      className={cn(
+                        '-mx-3 grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-3 rounded-md px-3 sm:grid-cols-[2.75rem_minmax(0,1fr)] lg:scroll-spotlight-soft',
+                        line.n === targetLine && 'bg-accent-soft/60',
+                      )}
                     >
-                      <LineText
-                        line={line}
-                        marks={marksFor(line, notes)}
-                        activeId={activeId}
-                        onActive={setActiveId}
-                        onPick={setToolbar}
-                      />
-                    </p>
+                      <a
+                        href={`#L${line.n}`}
+                        aria-label={`Line ${line.n}`}
+                        tabIndex={-1}
+                        className="pt-0.5 text-right font-mono text-xs text-muted tabular-nums hover:text-accent"
+                      >
+                        {line.n}
+                      </a>
+                      <div className="min-w-0">
+                        {newSpeaker && <p className="mb-1 text-base font-bold">{line.speaker}</p>}
+                        {editingLine === line.n ? (
+                          <TranscriptLineEditor
+                            meetingId={meeting.id}
+                            line={line}
+                            onDone={() => setEditingLine(null)}
+                          />
+                        ) : (
+                          <>
+                            <p
+                              data-line-text={line.n}
+                              tabIndex={0}
+                              onKeyDown={(event) => {
+                                if (event.key !== 'Enter' && event.key !== ' ') return;
+                                event.preventDefault();
+                                const box = event.currentTarget.getBoundingClientRect();
+                                setToolbar({
+                                  pick: pickText(line.n, line.text),
+                                  x: box.left + Math.min(box.width / 2, 160),
+                                  y: box.top,
+                                  source: 'click',
+                                  focus: true,
+                                });
+                              }}
+                              className="rounded-md text-lg leading-8 wrap-break-word text-fg/90 sm:text-xl sm:leading-9"
+                            >
+                              <LineText
+                                line={line}
+                                marks={marksFor(line, notes)}
+                                activeId={activeId}
+                                onActive={setActiveId}
+                                onPick={setToolbar}
+                              />
+                            </p>
+                            {line.edited && (
+                              <p className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-muted">
+                                <Pencil aria-hidden="true" className="size-3" />
+                                Edited
+                              </p>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
+                  {notes && (notes.items.length > 0 || notes.decisions.length > 0) && (
+                    <div className={cn(notesCell, cardsCell)}>
+                      {notes.decisions.map((decision) => (
+                        <CardEntrance
+                          key={decision.id}
+                          late={settled}
+                          delay={Math.min(noteOrder.get(line.n) ?? 0, 8) * 80}
+                        >
+                          <DecisionBubble
+                            meetingId={meeting.id}
+                            decision={decision}
+                            active={activeId === decision.id}
+                            onActiveChange={(active) => setActiveId(active ? decision.id : null)}
+                          />
+                        </CardEntrance>
+                      ))}
+                      {notes.items.map((item) => (
+                        <CardEntrance
+                          key={item.id}
+                          late={settled}
+                          delay={Math.min(noteOrder.get(line.n) ?? 0, 8) * 80}
+                        >
+                          <MeetingActionCard
+                            meeting={meeting}
+                            item={item}
+                            ownerSuggestions={ownerSuggestions}
+                            active={activeId === item.id}
+                            onActiveChange={(active) => setActiveId(active ? item.id : null)}
+                          />
+                        </CardEntrance>
+                      ))}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+
+          {(unlinkedItems.length > 0 || unlinkedDecisions.length > 0) && (
+            <section
+              aria-label="Notes without a transcript line"
+              className={cn(columns, 'relative')}
+            >
+              <div className={cn(sheetCell, 'pt-8')}>
+                <div className="border-t border-line pt-6">
+                  <h3 className="font-semibold">Other notes</h3>
+                  <p className="mt-1 text-sm text-muted">
+                    These actions and decisions have no verified transcript line.
+                  </p>
                 </div>
               </div>
-              {notes && (notes.items.length > 0 || notes.decisions.length > 0) && (
-                <div className={cn(notesCell, cardsCell)}>
-                  {notes.decisions.map((decision) => (
-                    <DecisionBubble
-                      key={decision.id}
-                      meetingId={meeting.id}
-                      decision={decision}
-                      active={activeId === decision.id}
-                      onActiveChange={(active) => setActiveId(active ? decision.id : null)}
-                    />
-                  ))}
-                  {notes.items.map((item) => (
-                    <MeetingActionCard
-                      key={item.id}
-                      meeting={meeting}
-                      item={item}
-                      ownerSuggestions={ownerSuggestions}
-                      active={activeId === item.id}
-                      onActiveChange={(active) => setActiveId(active ? item.id : null)}
-                    />
-                  ))}
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ol>
-
-      {(unlinkedItems.length > 0 || unlinkedDecisions.length > 0) && (
-        <section aria-label="Notes without a transcript line" className={cn(columns, 'relative')}>
-          <div className={cn(sheetCell, 'pt-8')}>
-            <div className="border-t border-line pt-6">
-              <h3 className="font-semibold">Other notes</h3>
-              <p className="mt-1 text-sm text-muted">
-                These actions and decisions have no verified transcript line.
-              </p>
-            </div>
-          </div>
-          <div className={cn(notesCell, cardsCell, 'xl:pt-14')}>
-            {unlinkedDecisions.map((decision) => (
-              <DecisionBubble key={decision.id} meetingId={meeting.id} decision={decision} />
-            ))}
-            {unlinkedItems.map((item) => (
-              <MeetingActionCard
-                key={item.id}
-                meeting={meeting}
-                item={item}
-                ownerSuggestions={ownerSuggestions}
-                active={activeId === item.id}
-                onActiveChange={(active) => setActiveId(active ? item.id : null)}
-              />
-            ))}
-          </div>
-        </section>
+              <div className={cn(notesCell, cardsCell, 'xl:pt-14')}>
+                {unlinkedDecisions.map((decision) => (
+                  <DecisionBubble key={decision.id} meetingId={meeting.id} decision={decision} />
+                ))}
+                {unlinkedItems.map((item) => (
+                  <MeetingActionCard
+                    key={item.id}
+                    meeting={meeting}
+                    item={item}
+                    ownerSuggestions={ownerSuggestions}
+                    active={activeId === item.id}
+                    onActiveChange={(active) => setActiveId(active ? item.id : null)}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+        </>
       )}
 
-      <TranscriptMap listRef={transcriptRef} lines={lineNumbers} markers={mapMarkers} />
-      {toolbar && <PickToolbar state={toolbar} onChoose={choose} onClose={closeToolbar} />}
-      {creating?.kind === 'action' && (
+      {!loading && (
+        <TranscriptMap listRef={transcriptRef} lines={lineNumbers} markers={mapMarkers} />
+      )}
+      {toolbar && (
+        <PickToolbar
+          state={toolbar}
+          onChoose={choose}
+          onEdit={() => {
+            setEditingLine(toolbar.pick.line);
+            setToolbar(null);
+            window.getSelection()?.removeAllRanges();
+          }}
+          onClose={closeToolbar}
+        />
+      )}
+      {shownCreating?.kind === 'action' && (
         <ActionItemDialog
-          open
+          open={creating?.kind === 'action'}
           onClose={() => setCreating(null)}
           meetingId={meeting.id}
           ownerSuggestions={ownerSuggestions}
-          initialText={creating.pick.text}
-          source={{ line: creating.pick.line, quote: creating.pick.quote }}
+          initialText={shownCreating.pick.text}
+          source={{ line: shownCreating.pick.line, quote: shownCreating.pick.quote }}
         />
       )}
-      {creating?.kind === 'decision' && (
+      {shownCreating?.kind === 'decision' && (
         <NewDecisionDialog
+          open={creating?.kind === 'decision'}
           meetingId={meeting.id}
           onClose={() => setCreating(null)}
-          initialText={creating.pick.text}
-          sourceLine={creating.pick.line}
+          initialText={shownCreating.pick.text}
+          sourceLine={shownCreating.pick.line}
         />
       )}
     </section>
   );
 }
 
-function AnalysisNotesLoader() {
+// Cards there when the page opens slide in one after another. A card added later first grows its
+// row open, so the transcript below glides down instead of jumping. The outer div is left free for
+// the scroll spotlight effect; the inner one animates.
+function CardEntrance({
+  late,
+  delay,
+  children,
+}: {
+  late: boolean;
+  delay: number;
+  children: ReactNode;
+}) {
+  const [grows] = useState(late);
   return (
-    <div
-      role="status"
-      aria-label="AI is finding notes"
-      className="flex flex-col items-center text-center xl:text-sidebar-fg"
-    >
-      <div aria-hidden="true" className="relative grid size-20 place-items-center text-accent">
-        <Sparkle className="size-11 motion-safe:animate-ai-spark-spin" fill="currentColor" />
-        <span className="absolute top-0 left-1/2 -translate-x-1/2">
-          <Sparkle className="size-3 motion-safe:animate-ai-spark-flicker" fill="currentColor" />
-        </span>
-        <span className="absolute top-4 right-0">
-          <Sparkle
-            className="size-3.5 [animation-delay:-0.7s] motion-safe:animate-ai-spark-flicker"
-            fill="currentColor"
-          />
-        </span>
-        <span className="absolute bottom-1 left-1">
-          <Sparkle
-            className="size-2.5 [animation-delay:-1.3s] motion-safe:animate-ai-spark-flicker"
-            fill="currentColor"
-          />
-        </span>
+    <div>
+      {grows ? (
+        <div className="grid grid-rows-[1fr] motion-safe:animate-card-grow">
+          <div className="min-h-0 overflow-clip [overflow-clip-margin:1rem]">{children}</div>
+        </div>
+      ) : (
+        <div className="motion-safe:animate-card-in" style={{ animationDelay: `${delay}ms` }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Shown in the frame while the next meeting loads, so the page never goes blank.
+function TranscriptSkeleton() {
+  return (
+    <div role="status" aria-label="Loading meeting" className={columns}>
+      <div className={cn(sheetCell, 'space-y-7 pt-6')}>
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <div
+            key={i}
+            className="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-3 sm:grid-cols-[2.75rem_minmax(0,1fr)]"
+          >
+            <Skeleton className="mt-1 ml-auto h-3 w-5" />
+            <div className="space-y-2.5">
+              {i % 2 === 0 && <Skeleton className="h-4 w-32" />}
+              <Skeleton className="h-5 w-full" />
+              <Skeleton className="h-5 w-2/3" />
+            </div>
+          </div>
+        ))}
       </div>
-      <p className="mt-3 font-semibold">AI is finding notes</p>
-      <p className="mt-2 max-w-64 text-sm text-muted xl:text-sidebar-muted">
-        Decisions and action items will appear beside the transcript.
-      </p>
     </div>
   );
 }

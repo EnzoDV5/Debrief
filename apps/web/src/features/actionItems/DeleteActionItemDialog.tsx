@@ -3,6 +3,7 @@ import type { ActionItem } from '@debrief/shared';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
+import { useLingering } from '@/lib/useLingering';
 import { useDeleteActionItem } from './hooks';
 
 export function DeleteActionItemDialog({
@@ -13,6 +14,7 @@ export function DeleteActionItemDialog({
   onClose: () => void;
 }) {
   const remove = useDeleteActionItem();
+  const shown = useLingering(item);
   return (
     <Dialog
       open={item !== null}
@@ -21,7 +23,7 @@ export function DeleteActionItemDialog({
         onClose();
       }}
       title="Delete this action item?"
-      description={item && <>“{item.text}” will be removed. This can’t be undone.</>}
+      description={shown && <>“{shown.text}” will be removed. This can’t be undone.</>}
     >
       {remove.error && (
         <Alert tone="danger" className="mb-5">

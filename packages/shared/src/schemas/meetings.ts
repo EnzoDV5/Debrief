@@ -6,6 +6,7 @@ export const transcriptLineSchema = z.object({
   n: z.number().int().positive(),
   speaker: z.string().optional(),
   text: z.string(),
+  edited: z.boolean().optional(),
 });
 export type TranscriptLine = z.infer<typeof transcriptLineSchema>;
 
@@ -69,6 +70,13 @@ export const updateMeetingSchema = z
   .partial()
   .refine((patch) => Object.keys(patch).length > 0, 'Nothing to update');
 export type UpdateMeetingInput = z.infer<typeof updateMeetingSchema>;
+
+// Fixing a line the transcription got wrong. The original upload is never changed.
+export const lineNumberSchema = z.coerce.number().int().positive();
+export const updateTranscriptLineSchema = z.object({
+  text: z.string().trim().min(1, 'A line can’t be empty').max(2000, 'Use 2000 characters or fewer'),
+});
+export type UpdateTranscriptLineInput = z.infer<typeof updateTranscriptLineSchema>;
 
 export const meetingListItemSchema = z.object({
   id: z.uuid(),

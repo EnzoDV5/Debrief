@@ -1,8 +1,9 @@
 // The meeting page's top bar: title, status and actions.
 import type { Meeting } from '@debrief/shared';
-import { CalendarDays, ChevronDown, Pencil, RotateCcw, Rows3 } from 'lucide-react';
+import { CalendarDays, ChevronDown, Pencil, RotateCcw, Rows3, SearchCheck } from 'lucide-react';
 import { useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Alert } from '@/components/ui/Alert';
+import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Collapsible } from '@/components/ui/Collapsible';
 import { Dialog } from '@/components/ui/Dialog';
@@ -21,7 +22,9 @@ const sourceLabels: Record<Meeting['sourceType'], string> = {
   md: 'Markdown file',
 };
 
-export function MeetingBar({ meeting }: { meeting: Meeting }) {
+// While the next meeting loads, the bar stays put: the title becomes a skeleton and the buttons
+// pause, so nothing can act on the meeting you are leaving.
+export function MeetingBar({ meeting, loading = false }: { meeting: Meeting; loading?: boolean }) {
   usePageTitle(meeting.title);
   const analyze = useAnalyzeMeeting(meeting.id);
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -40,31 +43,49 @@ export function MeetingBar({ meeting }: { meeting: Meeting }) {
   };
 
   return (
-    <div
-      onKeyDown={closeOnEscape}
-      className="animate-page-in px-4 pt-7 sm:px-8 lg:px-1 lg:pt-0 lg:pb-5"
-    >
+    <div onKeyDown={closeOnEscape} className="px-4 pt-7 sm:px-8 lg:px-1 lg:pt-0 lg:pb-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <h1 className="min-w-0 text-2xl font-bold lg:truncate lg:text-xl lg:text-white">
-              {meeting.title}
-            </h1>
-            <AnalysisStatusBadge status={meeting.analysisStatus} />
+        {loading ? (
+          <div role="status" aria-label="Loading meeting" className="min-w-0 flex-1 space-y-2.5">
+            <span className="block h-6 w-64 max-w-full animate-pulse rounded-md bg-fg/10 lg:bg-white/10" />
+            <span className="block h-4 w-48 max-w-full animate-pulse rounded-md bg-fg/10 lg:bg-white/10" />
           </div>
-          <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted lg:text-sidebar-muted">
-            <span className="inline-flex items-center gap-1.5">
-              <CalendarDays aria-hidden="true" className="size-4" />
-              {formatCalendarDate(meeting.meetingDate)}
-            </span>
-            <span className="inline-flex items-center gap-1.5 numeric">
-              <Rows3 aria-hidden="true" className="size-4" />
-              {plural(meeting.transcriptLines.length, 'line')} · {sourceLabels[meeting.sourceType]}
-            </span>
-          </p>
-        </div>
+        ) : (
+          <div className="min-w-0 motion-safe:animate-step-in">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <h1 className="min-w-0 text-2xl font-bold lg:truncate lg:text-xl lg:text-white">
+                {meeting.title}
+              </h1>
+              <AnalysisStatusBadge status={meeting.analysisStatus} />
+              {meeting.analysisStatus === 'done' &&
+                meeting.actionItems.length === 0 &&
+                meeting.decisions.length === 0 && (
+                  <Badge tone="neutral" icon={<SearchCheck aria-hidden="true" />}>
+                    Nothing found
+                  </Badge>
+                )}
+            </div>
+            <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted lg:text-sidebar-muted">
+              <span className="inline-flex items-center gap-1.5">
+                <CalendarDays aria-hidden="true" className="size-4" />
+                {formatCalendarDate(meeting.meetingDate)}
+              </span>
+              <span className="inline-flex items-center gap-1.5 numeric">
+                <Rows3 aria-hidden="true" className="size-4" />
+                {plural(meeting.transcriptLines.length, 'line')} ·{' '}
+                {sourceLabels[meeting.sourceType]}
+              </span>
+            </p>
+          </div>
+        )}
 
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <div
+          inert={loading}
+          className={cn(
+            'flex shrink-0 flex-wrap items-center gap-2 transition-opacity',
+            loading && 'opacity-60',
+          )}
+        >
           <BarButton
             ref={summaryToggle}
             aria-expanded={summaryOpen}
@@ -89,14 +110,14 @@ export function MeetingBar({ meeting }: { meeting: Meeting }) {
         </div>
       </div>
 
-      {running && (
+      {!loading && running && (
         <Alert className="mt-4">
           {meeting.analysisStatus === 'pending'
             ? 'Your transcript is saved. The AI will start reading it in a moment.'
             : 'The AI is reading the transcript. Results appear beside the text when it’s done.'}
         </Alert>
       )}
-      {meeting.analysisStatus === 'failed' && (
+      {!loading && meeting.analysisStatus === 'failed' && (
         <Alert tone="danger" className="mt-4">
           <p>{meeting.analysisError ?? 'Analysis failed. Your transcript is saved.'}</p>
           <Button size="sm" className="mt-3" loading={analyze.isPending} onClick={rerun}>

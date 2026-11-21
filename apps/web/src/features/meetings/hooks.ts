@@ -6,13 +6,14 @@ import {
   type AskMeetingResponse,
   projectResponseSchema,
   projectsResponseSchema,
+  searchResponseSchema,
   type Meeting,
   type MeetingListItem,
   type MeetingDetailsInput,
   type UpdateMeetingInput,
   type Project,
 } from '@debrief/shared';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { request, requestNoContent } from '@/api/client';
 
 export const meetingKeys = {
@@ -46,28 +47,71 @@ export function useMeetings(filter: MeetingFilter = {}) {
   });
 }
 
+async function fetchMeeting(queryClient: QueryClient, id: string) {
+  const meeting = (await request(`/meetings/${id}`, { schema: meetingResponseSchema })).meeting;
+  queryClient.setQueryData<MeetingListItem[]>(meetingKeys.list, (list) => {
+    if (!list) return list;
+    return list.map((item) =>
+      item.id === id &&
+      (item.analysisStatus !== meeting.analysisStatus || item.title !== meeting.title)
+        ? { ...item, analysisStatus: meeting.analysisStatus, title: meeting.title }
+        : item,
+    );
+  });
+  return meeting;
+}
+
+// While the next meeting loads, the previous one stays on screen (marked as placeholder), so
+// switching meetings never flashes an empty page.
 export function useMeeting(id: string) {
   const queryClient = useQueryClient();
   return useQuery({
     queryKey: meetingKeys.detail(id),
-    queryFn: async () => {
-      const meeting = (await request(`/meetings/${id}`, { schema: meetingResponseSchema })).meeting;
-      queryClient.setQueryData<MeetingListItem[]>(meetingKeys.list, (list) => {
-        if (!list) return list;
-        return list.map((item) =>
-          item.id === id &&
-          (item.analysisStatus !== meeting.analysisStatus || item.title !== meeting.title)
-            ? { ...item, analysisStatus: meeting.analysisStatus, title: meeting.title }
-            : item,
-        );
-      });
-      return meeting;
-    },
+    queryFn: () => fetchMeeting(queryClient, id),
+    placeholderData: (previous) => previous,
     refetchInterval: (query) =>
       query.state.data?.analysisStatus === 'pending' ||
       query.state.data?.analysisStatus === 'processing'
         ? 2_000
         : false,
+  });
+}
+
+export function usePrefetchMeeting() {
+  const queryClient = useQueryClient();
+  return (id: string) =>
+    void queryClient.prefetchQuery({
+      queryKey: meetingKeys.detail(id),
+      queryFn: () => fetchMeeting(queryClient, id),
+    });
+}
+
+export function useUpdateTranscriptLine(meetingId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ n, text }: { n: number; text: string }) =>
+      (
+        await request(`/meetings/${meetingId}/lines/${n}`, {
+          method: 'PATCH',
+          body: { text },
+          schema: meetingResponseSchema,
+        })
+      ).meeting,
+    onSuccess: (meeting) => queryClient.setQueryData(meetingKeys.detail(meetingId), meeting),
+  });
+}
+
+// Search across meetings, action items and decisions. With no term it returns the latest of each
+// (so a filter shows something before you type); a single character waits for a second.
+export function useSearch(term: string, enabled = true) {
+  return useQuery({
+    queryKey: ['search', term],
+    queryFn: () =>
+      request(term ? `/search?${new URLSearchParams({ q: term })}` : '/search', {
+        schema: searchResponseSchema,
+      }),
+    enabled: enabled && term.length !== 1,
+    placeholderData: (previous) => previous,
   });
 }
 

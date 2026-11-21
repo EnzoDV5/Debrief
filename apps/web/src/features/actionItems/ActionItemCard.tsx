@@ -45,11 +45,13 @@ export function NoteCardHeader({
   kind,
   line,
   edited = false,
+  tags,
   actions,
 }: {
   kind: NoteKind;
   line?: number | null;
   edited?: boolean;
+  tags?: ReactNode;
   actions?: ReactNode;
 }) {
   const { label, icon: Icon, chip } = KIND[kind];
@@ -64,9 +66,10 @@ export function NoteCardHeader({
         <Icon aria-hidden="true" className="size-3.5" strokeWidth={2.5} />
         {label}
       </span>
-      {line != null && <span className="text-xs text-muted numeric">Line {line}</span>}
+      {tags}
+      {line != null && <span className="text-sm text-muted numeric">Line {line}</span>}
       {edited && (
-        <span className="text-xs text-muted">
+        <span className="text-sm text-muted">
           <span aria-hidden="true">· </span>
           <span title="You changed this card. The transcript still shows what was originally said.">
             Edited by you
@@ -96,7 +99,7 @@ export function Initials({ name }: { name: string }) {
 }
 
 export const cardChip =
-  'inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-xs font-medium';
+  'inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-[0.8125rem] font-medium';
 
 export function ActionItemCard({
   item,
@@ -106,6 +109,7 @@ export function ActionItemCard({
   onDelete,
   active = false,
   onActiveChange,
+  fixed = false,
 }: {
   item: ActionItem;
   source?: ReactNode;
@@ -114,6 +118,8 @@ export function ActionItemCard({
   onDelete: () => void;
   active?: boolean;
   onActiveChange?: (active: boolean) => void;
+  // Fills a fixed-size box (the Actions carousel): long text is cut, links sit at the bottom.
+  fixed?: boolean;
 }) {
   const update = useUpdateActionItem();
   const done = item.status === 'done';
@@ -125,12 +131,16 @@ export function ActionItemCard({
       onMouseLeave={() => onActiveChange?.(false)}
       onFocus={() => onActiveChange?.(true)}
       onBlur={() => onActiveChange?.(false)}
-      className={noteCardClass('action', active)}
+      className={cn(
+        noteCardClass('action', active),
+        fixed && 'flex h-full flex-col',
+        fixed && item.needsReview && 'border-warning/50 ring-1 ring-warning/30',
+      )}
     >
-      {item.needsReview && (
-        <p className="-mx-4 -mt-4 mb-3 flex items-start gap-1.5 bg-warning-soft px-4 py-2 text-xs text-warning">
-          <TriangleAlert aria-hidden="true" className="mt-px size-3.5 shrink-0" />
-          <span>
+      {item.needsReview && !fixed && (
+        <p className="-mx-4 -mt-4 mb-3 flex items-start gap-1.5 bg-warning-soft px-4 py-2 text-sm text-warning">
+          <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          <span className={cn(fixed && 'line-clamp-2')}>
             <strong>Needs review:</strong> {item.reviewReason ?? 'Check this item.'}
           </span>
         </p>
@@ -140,6 +150,12 @@ export function ActionItemCard({
         kind="action"
         line={line}
         edited={item.editedAt !== null}
+        tags={
+          <>
+            {overdue && <Badge tone="danger">Overdue</Badge>}
+            {item.status === 'in_progress' && <Badge tone="accent">In progress</Badge>}
+          </>
+        }
         actions={
           <>
             <IconButton label={`Edit “${item.text}”`} onClick={onEdit}>
@@ -152,7 +168,7 @@ export function ActionItemCard({
         }
       />
 
-      <div className="mt-2 flex items-start gap-3">
+      <div className={cn('mt-2 flex items-start gap-3', fixed && 'min-h-0 flex-1')}>
         <input
           type="checkbox"
           checked={done}
@@ -160,15 +176,27 @@ export function ActionItemCard({
           aria-label={done ? `Mark “${item.text}” as not done` : `Mark “${item.text}” as done`}
           className="mt-0.5 size-5 shrink-0 cursor-pointer accent-accent"
         />
-        <div className="min-w-0 flex-1">
+        <div className={cn('min-w-0 flex-1', fixed && 'flex h-full flex-col')}>
           <p
             className={cn(
               'leading-snug font-semibold text-pretty',
               done && 'text-muted line-through',
+              fixed && 'line-clamp-2',
             )}
           >
             {item.text}
           </p>
+          {fixed && item.needsReview && (
+            <p
+              title={item.reviewReason ?? undefined}
+              className="mt-1.5 flex min-w-0 items-center gap-1.5 text-sm text-warning"
+            >
+              <TriangleAlert aria-hidden="true" className="size-4 shrink-0" />
+              <span className="truncate">
+                <strong>Needs review:</strong> {item.reviewReason ?? 'Check this item.'}
+              </span>
+            </p>
+          )}
 
           <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
             <span
@@ -191,15 +219,17 @@ export function ActionItemCard({
               <CalendarDays aria-hidden="true" className="size-3.5" />
               {item.dueDate ? formatCalendarDate(item.dueDate) : 'No due date'}
             </span>
-            {overdue && <Badge tone="danger">Overdue</Badge>}
-            {item.status === 'in_progress' && <Badge tone="accent">In progress</Badge>}
           </div>
           {item.dueDateText && (
-            <p className="mt-1.5 text-xs text-muted">Said as “{item.dueDateText}”</p>
+            <p className={cn('mt-2 text-sm text-muted', fixed && 'truncate')}>
+              Said as “{item.dueDateText}”
+            </p>
           )}
 
-          {source && <div className="mt-3 text-sm">{source}</div>}
-          <AddToCalendar item={item} />
+          <div className={cn(fixed && 'mt-auto')}>
+            {source && <div className="mt-3 text-sm">{source}</div>}
+            <AddToCalendar item={item} />
+          </div>
           {update.error && (
             <p role="alert" className="mt-2 text-sm text-danger">
               Couldn’t save: {update.error.message}

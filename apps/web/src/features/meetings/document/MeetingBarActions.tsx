@@ -86,7 +86,7 @@ export function ProjectMenu({ meeting }: { meeting: Meeting }) {
       <div
         role="group"
         aria-label="Choose a project"
-        className="absolute right-0 z-50 mt-2 w-56 rounded-md border border-line bg-surface p-1 text-fg shadow-raised"
+        className="absolute right-0 z-50 mt-2 w-60 origin-top-right rounded-card border border-white/70 glass-float p-1.5 text-fg shadow-raised motion-safe:animate-search-in"
       >
         {update.error && (
           <Alert tone="danger" className="mb-1 text-sm">
@@ -137,9 +137,13 @@ function ProjectOption({
       type="button"
       aria-pressed={selected}
       onClick={onClick}
-      className="flex min-h-9 w-full items-center justify-between gap-2 rounded-sm px-2 text-left text-sm hover:bg-surface-2"
+      className={cn(
+        'flex min-h-10 w-full items-center gap-2.5 rounded-md px-3 text-left text-sm transition-colors hover:bg-accent-soft hover:text-accent',
+        selected && 'font-semibold',
+      )}
     >
-      <span className="truncate">{children}</span>
+      <Folder aria-hidden="true" className="size-4 shrink-0 opacity-70" />
+      <span className="flex-1 truncate">{children}</span>
       {selected && <Check aria-hidden="true" className="size-4 shrink-0 text-accent" />}
     </button>
   );

@@ -6,14 +6,17 @@ export function Logo({
   markOnly = false,
   bare = false,
   size = 'md',
+  animated = false,
   className,
 }: {
   inverse?: boolean;
   markOnly?: boolean;
   bare?: boolean;
   size?: 'md' | 'xl';
+  animated?: boolean;
   className?: string;
 }) {
+  const line = animated ? 'motion-safe:logo-line' : undefined;
   const lineFill = inverse ? 'var(--color-accent)' : bare ? 'var(--color-accent)' : '#fff';
   return (
     <span
@@ -27,10 +30,34 @@ export function Logo({
         {!bare && (
           <rect width="32" height="32" rx="9" fill={inverse ? '#ffffff' : 'var(--color-accent)'} />
         )}
-        <rect x="8" y="9" width="16" height="2.5" rx="1.25" fill={lineFill} />
-        <rect x="8" y="14.75" width="12" height="2.5" rx="1.25" fill={lineFill} />
-        <rect x="8" y="20.5" width="8" height="2.5" rx="1.25" fill="var(--color-spark)" />
-        <circle cx="21.5" cy="21.75" r="2.25" fill="var(--color-spark)" />
+        <rect x="8" y="9" width="16" height="2.5" rx="1.25" fill={lineFill} className={line} />
+        <rect
+          x="8"
+          y="14.75"
+          width="12"
+          height="2.5"
+          rx="1.25"
+          fill={lineFill}
+          className={line}
+          style={animated ? { animationDelay: '120ms' } : undefined}
+        />
+        <rect
+          x="8"
+          y="20.5"
+          width="8"
+          height="2.5"
+          rx="1.25"
+          fill="var(--color-spark)"
+          className={line}
+          style={animated ? { animationDelay: '240ms' } : undefined}
+        />
+        <circle
+          cx="21.5"
+          cy="21.75"
+          r="2.25"
+          fill="var(--color-spark)"
+          className={animated ? 'motion-safe:logo-dot' : undefined}
+        />
       </svg>
       {!markOnly && (
         <span

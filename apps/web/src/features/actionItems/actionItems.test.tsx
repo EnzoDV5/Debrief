@@ -256,14 +256,14 @@ describe('action items on the meeting page', () => {
   });
 });
 
-describe('"My open items" page', () => {
+describe('Actions page', () => {
   const listed = (overrides: Partial<ActionItem> = {}) => ({
     ...item(overrides),
     meetingTitle: 'Weekly sync',
     meetingDate: '2026-11-24',
   });
 
-  it('lists items across meetings with a link back to the source line', async () => {
+  it('groups items by meeting in a carousel, each linking to its transcript line', async () => {
     mockApi({
       ...me,
       'GET /api/action-items': {
@@ -274,12 +274,17 @@ describe('"My open items" page', () => {
     renderApp('/items');
 
     expect(await screen.findByText('Send the files')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Weekly sync/ })).toHaveAttribute(
+    const section = screen.getByRole('region', { name: 'Weekly sync' });
+    expect(within(section).getByRole('link', { name: 'Open Weekly sync' })).toHaveAttribute(
       'href',
-      `/meetings/${MEETING_ID}#L2`,
+      `/meetings/${MEETING_ID}`,
     );
+    const carousel = within(section).getByRole('region', { name: 'Actions from Weekly sync' });
+    expect(
+      within(carousel).getByRole('link', { name: 'Line 2 in the transcript' }),
+    ).toHaveAttribute('href', `/meetings/${MEETING_ID}#L2`);
     expect(screen.getByText('Overdue')).toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent('1 item · 1 overdue');
+    expect(screen.getByRole('status')).toHaveTextContent('1 item in 1 meeting · 1 overdue');
   });
 
   it('sends the chosen filters to the api and keeps them in the URL', async () => {
@@ -298,8 +303,9 @@ describe('"My open items" page', () => {
     expect(urls[0]).toMatch(/status=open/);
 
     await user.click(screen.getByRole('button', { name: 'Done' }));
-    await user.selectOptions(screen.getByLabelText('Owner'), 'Ben');
-    await user.click(screen.getByLabelText('Overdue only'));
+    await user.click(screen.getByRole('button', { name: /^Owner/ }));
+    await user.click(screen.getByRole('option', { name: 'Ben' }));
+    await user.click(screen.getByRole('button', { name: 'Overdue only' }));
 
     await waitFor(() =>
       expect(urls.at(-1)).toMatch(/status=done.*today=.*owner=Ben.*overdue=true/),

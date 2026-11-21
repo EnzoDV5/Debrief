@@ -2,13 +2,14 @@
 import { ACTION_ITEM_STATUSES, createActionItemSchema, type ActionItem } from '@debrief/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useId } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import type { z } from 'zod';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
 import { Field } from '@/components/ui/Field';
 import { Input, Textarea } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { applyApiError } from '@/lib/formErrors';
 import { STATUS_LABELS } from './ActionItemCard';
 import { useCreateActionItem, useUpdateActionItem } from './hooks';
@@ -39,6 +40,7 @@ export function ActionItemDialog({
 
   const {
     register,
+    control,
     handleSubmit,
     setError,
     reset,
@@ -121,18 +123,24 @@ export function ActionItemDialog({
         </div>
 
         <Field label="Status" error={errors.status?.message}>
-          {(control) => (
-            <select
-              {...control}
-              {...register('status')}
-              className="block min-h-11 w-full rounded-md border border-line-strong bg-surface px-3 text-base"
-            >
-              {ACTION_ITEM_STATUSES.map((status) => (
-                <option key={status} value={status}>
-                  {STATUS_LABELS[status]}
-                </option>
-              ))}
-            </select>
+          {(fieldProps) => (
+            <Controller
+              name="status"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  {...fieldProps}
+                  label="Status"
+                  value={field.value ?? 'todo'}
+                  onChange={field.onChange}
+                  options={ACTION_ITEM_STATUSES.map((status) => ({
+                    value: status,
+                    label: STATUS_LABELS[status],
+                  }))}
+                  className="min-h-11 w-full rounded-md"
+                />
+              )}
+            />
           )}
         </Field>
 

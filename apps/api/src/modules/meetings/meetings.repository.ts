@@ -122,6 +122,19 @@ export const meetingsRepository = {
     return meeting ?? null;
   },
 
+  async updateLinesForUser(
+    userId: string,
+    meetingId: string,
+    transcriptLines: MeetingRow['transcriptLines'],
+  ): Promise<MeetingRow | null> {
+    const [meeting] = await db
+      .update(meetings)
+      .set({ transcriptLines })
+      .where(and(eq(meetings.id, meetingId), eq(meetings.userId, userId)))
+      .returning();
+    return meeting ?? null;
+  },
+
   async setAnalysisPending(userId: string, meetingId: string): Promise<MeetingRow | null> {
     const [meeting] = await db
       .update(meetings)

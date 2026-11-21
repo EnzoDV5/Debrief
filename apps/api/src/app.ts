@@ -30,6 +30,7 @@ import {
 } from './modules/integrations/integrations.service';
 import { createMeetingsRouter } from './modules/meetings/meetings.routes';
 import { createProjectsRouter } from './modules/projects/projects.routes';
+import { createSearchRouter } from './modules/search/search.routes';
 
 export type AppDeps = {
   analysisQueue: AnalysisQueue;
@@ -120,6 +121,7 @@ export function createApp(deps: AppDeps) {
   api.use('/action-items', createActionItemsRouter(integrations));
   api.use('/integrations', createIntegrationsRouter(integrations));
   api.use('/decisions', createDecisionsRouter());
+  api.use('/search', createSearchRouter());
   app.use('/api', api);
 
   app.use(notFoundHandler);

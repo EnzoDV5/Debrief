@@ -1,0 +1,11 @@
+Standup, Tuesday 24 November 2026
+
+Ayanda Zulu: I'll fix the login bug tomorrow.
+Ben Cohen: I'm finishing the export feature. Should be done by next Friday.
+Chloe Daniels: I'll write the release notes before the end of the month.
+Ayanda Zulu: Ben, can you also review my pull request today?
+Ben Cohen: Sure, I'll review it today.
+Chloe Daniels: Ayanda, the client demo is on the 3rd. Can you prepare the demo data?
+Ayanda Zulu: Yes, I'll have the demo data ready by the 3rd.
+Ben Cohen: We decided to drop Internet Explorer support, right?
+Chloe Daniels: Yes, that's agreed. No more IE.

@@ -8,3 +8,4 @@ export * from './schemas/meetings';
 export * from './password';
 export * from './transcript/parse';
 export * from './transcript/meetingDate';
+export * from './schemas/search';

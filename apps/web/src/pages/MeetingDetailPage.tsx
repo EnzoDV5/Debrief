@@ -21,7 +21,7 @@ import { usePageTitle } from '@/lib/usePageTitle';
 
 export function MeetingDetailPage() {
   const { meetingId = '' } = useParams();
-  const { data: meeting, isPending, error, refetch } = useMeeting(meetingId);
+  const { data: meeting, isPending, isPlaceholderData, error, refetch } = useMeeting(meetingId);
 
   if (isPending) return <DetailSkeleton />;
 
@@ -36,16 +36,18 @@ export function MeetingDetailPage() {
     );
   }
 
-  return <MeetingDetail key={meeting.id} meeting={meeting} />;
+  return <MeetingDetail meeting={meeting} loading={isPlaceholderData} />;
 }
 
-function MeetingDetail({ meeting }: { meeting: Meeting }) {
+// Keyed by meeting id: each meeting starts fresh (closed summary, empty Ask box), while the
+// frame around it stays where it is.
+function MeetingDetail({ meeting, loading }: { meeting: Meeting; loading: boolean }) {
   return (
     <>
       <PageBar>
-        <MeetingBar meeting={meeting} />
+        <MeetingBar key={meeting.id} meeting={meeting} loading={loading} />
       </PageBar>
-      <MeetingDocument meeting={meeting} />
+      <MeetingDocument key={meeting.id} meeting={meeting} loading={loading} />
     </>
   );
 }
@@ -65,15 +67,23 @@ function MeetingNotFound() {
 function DetailSkeleton() {
   useShellPanelInset(PANEL_INSET);
   return (
-    <div
-      role="status"
-      aria-label="Loading meeting"
-      className={cn('px-4 py-7 sm:px-8 lg:py-10', PANEL_INSET_MARGIN)}
-    >
-      <Skeleton className="h-8 w-2/3 max-w-md" />
-      <Skeleton className="mt-3 h-4 w-1/2 max-w-xs" />
-      <Skeleton className="mt-8 h-40 rounded-card" />
-      <Skeleton className="mt-6 h-96 rounded-card" />
-    </div>
+    <>
+      <PageBar>
+        <div aria-hidden="true" className="space-y-2.5 px-4 pt-7 sm:px-8 lg:px-1 lg:pt-0 lg:pb-5">
+          <span className="block h-6 w-64 max-w-full animate-pulse rounded-md bg-fg/10 lg:bg-white/10" />
+          <span className="block h-4 w-48 max-w-full animate-pulse rounded-md bg-fg/10 lg:bg-white/10" />
+        </div>
+      </PageBar>
+      <div
+        role="status"
+        aria-label="Loading meeting"
+        className={cn('px-4 py-7 sm:px-8 lg:py-10', PANEL_INSET_MARGIN)}
+      >
+        <Skeleton className="h-8 w-2/3 max-w-md" />
+        <Skeleton className="mt-3 h-4 w-1/2 max-w-xs" />
+        <Skeleton className="mt-8 h-40 rounded-card" />
+        <Skeleton className="mt-6 h-96 rounded-card" />
+      </div>
+    </>
   );
 }

@@ -10,7 +10,8 @@
     "db:migrate": "tsx --env-file-if-exists=../../.env src/db/migrate.ts",
     "db:migrate:supabase": "tsx --env-file-if-exists=../../.env src/db/migrate.ts --supabase",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "ai:eval": "tsx --env-file-if-exists=../../.env scripts/aiEval/run.ts"
   },
   "dependencies": {
     "@debrief/shared": "*",

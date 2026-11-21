@@ -251,3 +251,52 @@ describe('isolation: another user can never reach my meeting', () => {
     expect(theirs.body).toEqual(nobody.body);
   });
 });
+
+describe('PATCH /api/meetings/:id/lines/:n (fix a transcript line)', () => {
+  const editLine = (cookie: string, id: string, n: number | string, body: object) =>
+    request(app)
+      .patch(`/api/meetings/${id}/lines/${n}`)
+      .set('Origin', WEB_ORIGIN)
+      .set('Cookie', cookie)
+      .send(body);
+
+  it('changes the line, marks it as edited, and keeps the original upload untouched', async () => {
+    const meeting = await createMeeting(alice);
+    const res = await editLine(alice, meeting.id, 2, { text: '  Hi there, everyone  ' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.meeting.transcriptLines).toEqual([
+      { n: 1, speaker: 'Ann', text: 'Hello' },
+      { n: 2, speaker: 'Ben', text: 'Hi there, everyone', edited: true },
+    ]);
+    const row = await pool.query('select transcript_original from meetings where id = $1', [
+      meeting.id,
+    ]);
+    expect(row.rows[0].transcript_original).toBe('Ann: Hello\nBen: Hi there');
+  });
+
+  it('rejects an empty line with a field error', async () => {
+    const meeting = await createMeeting(alice);
+    const res = await editLine(alice, meeting.id, 1, { text: '   ' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.fields).toHaveProperty('text');
+  });
+
+  it('returns 404 for a line that does not exist or is not a number', async () => {
+    const meeting = await createMeeting(alice);
+    expect((await editLine(alice, meeting.id, 99, { text: 'x' })).status).toBe(404);
+    expect((await editLine(alice, meeting.id, 'abc', { text: 'x' })).status).toBe(404);
+  });
+
+  it('gives Bob a 404 on Alice’s meeting and changes nothing', async () => {
+    const meeting = await createMeeting(alice);
+    const res = await editLine(bob, meeting.id, 1, { text: 'Hacked' });
+
+    expect(res.status).toBe(404);
+    const row = await pool.query('select transcript_lines from meetings where id = $1', [
+      meeting.id,
+    ]);
+    expect(row.rows[0].transcript_lines[0].text).toBe('Hello');
+  });
+});

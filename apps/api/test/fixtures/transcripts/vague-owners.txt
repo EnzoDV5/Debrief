@@ -1,0 +1,7 @@
+Kabelo Mahlangu: Okay, the website refresh. Where are we?
+Ingrid Steyn: The new homepage design is approved. Someone needs to write the copy for it.
+Kabelo Mahlangu: We should also update the team photos at some point.
+Ingrid Steyn: The marketing team will probably want to review it before it goes live.
+Kabelo Mahlangu: Somebody should check the contact form still works after the migration.
+Ingrid Steyn: Agreed. It would be good if we sorted the broken links too, there are quite a few.
+Kabelo Mahlangu: Let's pick it up next week then.

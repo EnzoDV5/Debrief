@@ -1,8 +1,9 @@
 // The "Add to calendar" button on an action item that has a due date.
 import type { ActionItem } from '@debrief/shared';
-import { CalendarCheck, CalendarPlus, ExternalLink } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/Button';
+import { GoogleLogo } from '@/components/ui/GoogleLogo';
 import { useAddToCalendar, useCalendarStatus } from './hooks';
 
 export function AddToCalendar({ item }: { item: ActionItem }) {
@@ -16,7 +17,7 @@ export function AddToCalendar({ item }: { item: ActionItem }) {
         to="/account"
         className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:underline"
       >
-        <CalendarPlus aria-hidden="true" className="size-4" />
+        <GoogleLogo className="size-4" />
         Connect Google Calendar to add this
       </Link>
     );
@@ -29,13 +30,7 @@ export function AddToCalendar({ item }: { item: ActionItem }) {
         size="sm"
         className="-ml-2.5"
         loading={add.isPending}
-        icon={
-          item.inCalendar ? (
-            <CalendarCheck aria-hidden="true" className="size-4" />
-          ) : (
-            <CalendarPlus aria-hidden="true" className="size-4" />
-          )
-        }
+        icon={<GoogleLogo className="size-4" />}
         onClick={() => add.mutate(item.id)}
         aria-label={`${item.inCalendar ? 'Update' : 'Add'} “${item.text}” in Google Calendar`}
       >
@@ -49,6 +44,7 @@ export function AddToCalendar({ item }: { item: ActionItem }) {
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 font-semibold text-accent hover:underline"
         >
+          <GoogleLogo className="size-3.5" />
           Open in Google Calendar
           <ExternalLink aria-hidden="true" className="size-3.5" />
           <span className="sr-only">(opens in a new tab)</span>

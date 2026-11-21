@@ -2,7 +2,6 @@
 import {
   CalendarCheck,
   CalendarDays,
-  CalendarPlus,
   Check,
   FileText,
   Gavel,
@@ -18,6 +17,7 @@ import {
   cardChip,
   noteCardClass,
 } from '@/features/actionItems/ActionItemCard';
+import { GoogleLogo } from '@/components/ui/GoogleLogo';
 import { cn } from '@/lib/cn';
 
 type Mark = 'decision' | 'action' | 'date';
@@ -726,7 +726,7 @@ function NoteCard({
                   calendarHovered && calendar === 'idle' && 'bg-accent-soft',
                 )}
               >
-                {calendar === 'idle' && <CalendarPlus className="size-4" />}
+                {calendar === 'idle' && <GoogleLogo className="size-4" />}
                 {calendar === 'adding' && <LoaderCircle className="size-4 animate-spin" />}
                 {calendar === 'added' && <CalendarCheck className="size-4" />}
                 {calendar === 'idle'

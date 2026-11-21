@@ -12,7 +12,9 @@ type Handler =
 
 const defaultHandlers: Record<string, Handler> = {
   'GET /api/meetings': { status: 200, body: { meetings: [] } },
+  'GET /api/meetings?archived=true': { status: 200, body: { meetings: [] } },
   'GET /api/projects': { status: 200, body: { projects: [] } },
+  'GET /api/action-items': { status: 200, body: { actionItems: [], owners: [] } },
   'GET /api/auth/providers': { status: 200, body: { google: false, passwordReset: false } },
   'GET /api/integrations/google': {
     status: 200,
