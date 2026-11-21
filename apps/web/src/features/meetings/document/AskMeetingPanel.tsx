@@ -21,7 +21,14 @@ const keepFocus = (event: { preventDefault: () => void }) => event.preventDefaul
 const chip =
   'rounded-pill border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:border-accent/40 hover:bg-accent-soft hover:text-accent';
 
-export function AskMeetingPanel({ meetingId }: { meetingId: string }) {
+export function AskMeetingPanel({
+  meetingId,
+  disabledReason,
+}: {
+  meetingId: string;
+  // Set when asking makes no sense yet (the analysis failed); shown under the box.
+  disabledReason?: string;
+}) {
   const ask = useAskMeeting(meetingId);
   const input = useRef<HTMLInputElement>(null);
   const [question, setQuestion] = useState('');
@@ -53,7 +60,10 @@ export function AskMeetingPanel({ meetingId }: { meetingId: string }) {
     <section
       aria-label="Ask this meeting"
       aria-busy={ask.isPending}
-      className="group rounded-card border border-line bg-surface p-4 shadow-raised"
+      className={cn(
+        'group rounded-card border border-line bg-surface p-4 shadow-raised',
+        disabledReason && 'opacity-75',
+      )}
     >
       <div className="flex items-center gap-2.5">
         <span
@@ -68,6 +78,8 @@ export function AskMeetingPanel({ meetingId }: { meetingId: string }) {
       <form onSubmit={submit} className="relative mt-3">
         <input
           ref={input}
+          disabled={Boolean(disabledReason)}
+          aria-describedby={disabledReason ? `${meetingId}-ask-disabled` : undefined}
           aria-label="Ask a question about this meeting"
           placeholder="e.g. Why did we choose this?"
           value={question}
@@ -76,17 +88,22 @@ export function AskMeetingPanel({ meetingId }: { meetingId: string }) {
             setQuestion(event.target.value);
             if (ask.isError) ask.reset();
           }}
-          className="h-12 w-full rounded-pill border border-line-strong bg-surface pr-14 pl-4 text-base text-fg transition-colors placeholder:text-muted focus:border-accent"
+          className="h-12 w-full rounded-pill border border-line-strong bg-surface pr-14 pl-4 text-base text-fg transition-colors placeholder:text-muted focus:border-accent disabled:cursor-not-allowed disabled:bg-surface-2"
         />
         <button
           type="submit"
           aria-label="Ask"
-          disabled={!canSend || ask.isPending}
+          disabled={!canSend || ask.isPending || Boolean(disabledReason)}
           className="absolute top-1/2 right-1.5 grid size-9 -translate-y-1/2 place-items-center rounded-pill bg-accent text-accent-fg shadow-glow transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
         >
           {ask.isPending ? <Spinner /> : <ArrowUp aria-hidden="true" className="size-4" />}
         </button>
       </form>
+      {disabledReason && (
+        <p id={`${meetingId}-ask-disabled`} className="mt-2 text-sm text-muted">
+          {disabledReason}
+        </p>
+      )}
 
       {!shown && (
         <div

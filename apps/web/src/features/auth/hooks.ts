@@ -2,6 +2,7 @@
 import {
   authProvidersSchema,
   authResponseSchema,
+  type UpdateProfileInput,
   type DeleteAccountInput,
   type ForgotPasswordInput,
   type LoginInput,
@@ -76,6 +77,17 @@ export function useLogout() {
   return useMutation({
     mutationFn: () => requestNoContent('/auth/logout', { method: 'POST' }),
     onSettled: signedOut,
+  });
+}
+
+// Changes your display name; the new name shows everywhere at once (sidebar, account page).
+export function useUpdateProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: UpdateProfileInput) =>
+      (await request('/auth/me', { method: 'PATCH', body: input, schema: authResponseSchema }))
+        .user,
+    onSuccess: (user) => queryClient.setQueryData(meQueryKey, user),
   });
 }
 

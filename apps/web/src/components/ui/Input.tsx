@@ -4,7 +4,7 @@ import { useState, type ComponentProps } from 'react';
 import { cn } from '@/lib/cn';
 
 const inputClasses =
-  'block w-full min-h-11 rounded-md border border-line-strong bg-surface px-3 text-base text-fg ' +
+  'block w-full min-h-11 rounded-md border border-line-strong bg-surface bg-clip-padding px-3 text-base text-fg ' +
   'placeholder:text-muted transition-colors duration-150 ' +
   'hover:border-fg/60 focus:border-accent focus-visible:outline-accent focus-visible:outline-offset-0 ' +
   'aria-invalid:border-danger aria-invalid:focus-visible:outline-danger ' +

@@ -83,7 +83,7 @@ export function CalendarCard({ result }: { result: string | null }) {
             ) : (
               <a
                 href={CONNECT_CALENDAR_URL}
-                className="inline-flex min-h-11 items-center gap-2 rounded-md bg-accent px-4 text-sm font-semibold text-accent-fg transition-colors hover:bg-accent-hover"
+                className="inline-flex min-h-11 items-center gap-2 rounded-md bg-[linear-gradient(to_top,var(--color-accent-hover)_50%,var(--color-accent)_50%)] [background-size:100%_210%] bg-top px-4 text-sm font-semibold text-accent-fg shadow-glow transition-[background-position,box-shadow,scale] duration-300 ease-out-3 hover:bg-bottom hover:shadow-[0_8px_20px_-10px_var(--color-accent)] active:scale-[0.97]"
               >
                 <span className="grid size-6 place-items-center rounded-sm bg-white">
                   <GoogleLogo className="size-4" />

@@ -107,6 +107,8 @@ export const meetings = pgTable(
     sourceType: sourceTypeEnum('source_type').notNull(),
     pinnedAt: timestamp('pinned_at', { withTimezone: true }),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
+    // The user's own order in the sidebar (drag to reorder). Null = not placed yet: shown first.
+    sidebarPosition: integer('sidebar_position'),
     projectId: uuid('project_id').references(() => projects.id, { onDelete: 'set null' }),
     summary: text('summary'),
     analysisStatus: analysisStatusEnum('analysis_status').notNull().default('pending'),

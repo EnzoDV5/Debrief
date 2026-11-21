@@ -71,6 +71,18 @@ export const updateMeetingSchema = z
   .refine((patch) => Object.keys(patch).length > 0, 'Nothing to update');
 export type UpdateMeetingInput = z.infer<typeof updateMeetingSchema>;
 
+export const archiveAllResponseSchema = z.object({ archived: z.number().int().nonnegative() });
+
+// A new sidebar order for one section (pinned or recent): meeting ids, top to bottom.
+export const reorderMeetingsSchema = z.object({
+  ids: z
+    .array(z.uuid())
+    .min(1)
+    .max(200)
+    .refine((ids) => new Set(ids).size === ids.length, 'Each meeting can only appear once'),
+});
+export type ReorderMeetingsInput = z.infer<typeof reorderMeetingsSchema>;
+
 // Fixing a line the transcription got wrong. The original upload is never changed.
 export const lineNumberSchema = z.coerce.number().int().positive();
 export const updateTranscriptLineSchema = z.object({

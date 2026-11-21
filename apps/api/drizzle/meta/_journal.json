@@ -64,6 +64,13 @@
       "when": 1795197838083,
       "tag": "0008_password_resets",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795298406098,
+      "tag": "0009_meeting_sidebar_order",
+      "breakpoints": true
     }
   ]
 }

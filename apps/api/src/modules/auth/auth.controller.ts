@@ -1,8 +1,9 @@
-// HTTP layer for register, log in, log out, me and delete account.
+// HTTP layer for register, log in, log out, me (and changing your name) and delete account.
 import {
   deleteAccountSchema,
   loginSchema,
   registerSchema,
+  updateProfileSchema,
   type AuthResponse,
 } from '@debrief/shared';
 import type { Request, Response } from 'express';
@@ -40,6 +41,12 @@ export const authController = {
 
   me(req: Request, res: Response) {
     res.json({ user: getAuthUser(req) } satisfies AuthResponse);
+  },
+
+  async updateProfile(req: Request, res: Response) {
+    const input = updateProfileSchema.parse(req.body);
+    const user = await authService.updateProfile(getAuthUser(req).id, input);
+    res.json({ user } satisfies AuthResponse);
   },
 
   async deleteAccount(req: Request, res: Response) {

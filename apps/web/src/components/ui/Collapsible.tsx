@@ -7,18 +7,22 @@ export function Collapsible({
   open,
   children,
   flush = false,
+  instant = false,
 }: {
   id: string;
   open: boolean;
   children: ReactNode;
   flush?: boolean;
+  // Skip its own animation when a parent already animates the height (the top bar).
+  instant?: boolean;
 }) {
   return (
     <div
       id={id}
       inert={!open}
       className={cn(
-        'grid transition-[grid-template-rows] duration-300 ease-out-3',
+        'grid',
+        !instant && 'transition-[grid-template-rows] duration-300 ease-out-3',
         open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
       )}
     >

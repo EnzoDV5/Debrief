@@ -20,8 +20,14 @@ export const passwordSchema = z
     if (missing) ctx.addIssue({ code: 'custom', message: missing });
   });
 
+const nameSchema = z.string().trim().min(1, 'Enter your name').max(100, 'Name is too long');
+
+// Changing your display name (account page). Same rules as at sign-up.
+export const updateProfileSchema = z.object({ name: nameSchema });
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+
 export const registerSchema = z.object({
-  name: z.string().trim().min(1, 'Enter your name').max(100, 'Name is too long'),
+  name: nameSchema,
   email: emailSchema,
   password: passwordSchema,
 });

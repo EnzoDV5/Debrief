@@ -10,23 +10,27 @@ import { useProjects, useUpdateMeeting } from '../hooks';
 
 type Tone = 'default' | 'highlight' | 'danger';
 
+// Same hover as the app's buttons: a colour wipes up from the bottom and the text flips. On the
+// dark bar (wide screens) the wipe is white with dark text; on the light page it's dark with white.
 const tones: Record<Tone, string> = {
   default:
-    'border-line-strong bg-surface/60 text-fg shadow-card hover:bg-surface ' +
-    'lg:border-sidebar-line lg:bg-sidebar-hover lg:text-sidebar-fg lg:shadow-none lg:hover:bg-sidebar-active lg:hover:text-white',
+    'border-line-strong bg-[linear-gradient(to_top,var(--color-fg)_50%,var(--color-surface)_50%)] text-fg shadow-card hover:border-fg hover:text-white hover:shadow-none ' +
+    'lg:border-sidebar-line lg:bg-[linear-gradient(to_top,#fff_50%,var(--color-sidebar-hover)_50%)] lg:text-sidebar-fg lg:shadow-none lg:hover:border-white lg:hover:text-fg',
   highlight:
-    'border-spark bg-spark text-fg shadow-card hover:bg-spark/85 ' +
-    'lg:shadow-none lg:hover:bg-spark/85',
+    'border-spark bg-[linear-gradient(to_top,#fff_50%,var(--color-spark)_50%)] text-fg shadow-card hover:border-white hover:shadow-none lg:shadow-none',
   danger:
-    'border-danger/40 bg-surface/60 text-danger shadow-card hover:bg-danger-soft ' +
-    'lg:border-danger-light/40 lg:bg-transparent lg:text-danger-light lg:shadow-none lg:hover:bg-danger-light/15',
+    'border-danger/40 bg-[linear-gradient(to_top,var(--color-danger)_50%,var(--color-surface)_50%)] text-danger shadow-card hover:border-danger hover:text-white hover:shadow-none ' +
+    'lg:border-danger-light/40 lg:bg-[linear-gradient(to_top,var(--color-danger-light)_50%,transparent_50%)] lg:text-danger-light lg:shadow-none lg:hover:border-danger-light lg:hover:text-sidebar',
 };
 
 export function barButtonClass(tone: Tone = 'default', expanded = false) {
   return cn(
-    'inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-md border px-3 text-sm font-semibold transition-colors lg:focus-visible:outline-white',
+    'inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-md border bg-clip-padding px-3 text-sm font-semibold ' +
+      '[background-size:100%_210%] bg-top hover:bg-bottom ' +
+      'transition-[background-position,color,border-color,box-shadow,scale] duration-300 ease-out-3 active:scale-[0.97] lg:focus-visible:outline-white ' +
+      'disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-top disabled:active:scale-100',
     tones[tone],
-    expanded && 'bg-accent-soft text-accent lg:bg-sidebar-active lg:text-white',
+    expanded && 'bg-accent-soft bg-none text-accent lg:border-white lg:bg-white lg:text-fg',
   );
 }
 

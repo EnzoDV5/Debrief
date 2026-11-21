@@ -2,10 +2,9 @@
 import {
   Archive,
   ChevronDown,
+  ChevronRight,
   Folder,
   ListChecks,
-  LoaderCircle,
-  LogOut,
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
@@ -15,19 +14,18 @@ import {
   UserRound,
   X,
 } from 'lucide-react';
-import type { MeetingListItem } from '@debrief/shared';
 import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
+import { AnimatedHeight } from '@/components/ui/AnimatedHeight';
 import { Button } from '@/components/ui/Button';
 import { Collapsible } from '@/components/ui/Collapsible';
 import { Logo } from '@/components/ui/Logo';
 import { useActionItems } from '@/features/actionItems/hooks';
-import { useCurrentUser, useLogout } from '@/features/auth/hooks';
-import { useMeetings, usePrefetchMeeting } from '@/features/meetings/hooks';
-import { MeetingMenu } from '@/features/meetings/MeetingMenu';
+import { useCurrentUser } from '@/features/auth/hooks';
+import { useMeetings } from '@/features/meetings/hooks';
 import { SearchDialog } from '@/features/meetings/SearchDialog';
-import { AnalysisWatchProvider, useFreshMeetings } from '@/features/meetings/analysisWatch';
-import { useListMotion } from '@/features/meetings/useListMotion';
+import { SidebarMeetingList } from '@/features/meetings/SidebarMeetingList';
+import { AnalysisWatchProvider } from '@/features/meetings/analysisWatch';
 import { cn } from '@/lib/cn';
 import { AUTH_PANEL_LEFT, type EntranceState } from './authExit';
 import { PageBarSlot, PanelOverlaySlot } from './PageBar';
@@ -173,7 +171,9 @@ export function AppShell() {
             } as CSSProperties
           }
         >
-          <div ref={setPageBarSlot} className="relative z-30" />
+          <AnimatedHeight className="relative z-30">
+            <div ref={setPageBarSlot} />
+          </AnimatedHeight>
           <div
             className={cn(
               'relative lg:min-h-0 lg:flex-1',
@@ -461,15 +461,13 @@ function SidebarContent({
                 Pinned
               </SectionHeading>
               <div className="scrollbar-panel mt-1 min-h-0 overflow-y-auto scroll-fade px-2 pt-3 pb-3">
-                <MeetingLinks meetings={pinned} onNavigate={onNavigate} />
+                <SidebarMeetingList meetings={pinned} onNavigate={onNavigate} reorderable />
               </div>
             </section>
           )}
           {pinned.length > 0 && <Divider />}
-          <section aria-label="Recent meetings" className="flex min-h-0 flex-1 flex-col">
-            <SectionHeading count={meetings ? recent.length : undefined}>
-              Recent meetings
-            </SectionHeading>
+          <section aria-label="Meetings" className="flex min-h-0 flex-1 flex-col">
+            <SectionHeading count={meetings ? recent.length : undefined}>Meetings</SectionHeading>
             <div className="scrollbar-panel mt-1 min-h-0 flex-1 overflow-y-auto scroll-fade px-2 pt-3 pb-4">
               {isPending ? (
                 <p className="px-3 py-2 text-sm text-sidebar-muted">Loading meetings…</p>
@@ -485,7 +483,7 @@ function SidebarContent({
                   </button>
                 </div>
               ) : recent.length > 0 ? (
-                <MeetingLinks meetings={recent} onNavigate={onNavigate} />
+                <SidebarMeetingList meetings={recent} onNavigate={onNavigate} reorderable />
               ) : (
                 <p className="px-3 py-2 text-sm text-sidebar-muted">
                   {pinned.length > 0
@@ -563,7 +561,7 @@ function ArchivedDropdown({
               <p className="px-3 py-2 text-sm text-sidebar-muted">Nothing archived yet.</p>
             ) : (
               <div className="border-l border-sidebar-line pl-1">
-                <MeetingLinks meetings={archived} onNavigate={onNavigate} />
+                <SidebarMeetingList meetings={archived} onNavigate={onNavigate} />
               </div>
             )}
           </div>
@@ -595,156 +593,6 @@ function SectionHeading({
   );
 }
 
-// Hovering or focusing a meeting starts loading it, so opening it feels instant. Changes to the
-// list animate: moved rows glide, new ones slide in, removed ones fold shut.
-const LEAVE_MS = 320;
-
-function MeetingLinks({
-  meetings,
-  onNavigate,
-}: {
-  meetings: MeetingListItem[];
-  onNavigate?: () => void;
-}) {
-  const prefetch = usePrefetchMeeting();
-  const rowRef = useListMotion();
-  const fresh = useFreshMeetings();
-
-  // A meeting that leaves this list (deleted, archived, pinned elsewhere) stays a moment as a
-  // "ghost" row that folds shut, so the rows below close the gap smoothly.
-  const [previous, setPrevious] = useState(meetings);
-  const [leaving, setLeaving] = useState<{ meeting: MeetingListItem; index: number }[]>([]);
-  if (previous !== meetings) {
-    const gone = previous
-      .map((meeting, index) => ({ meeting, index }))
-      .filter(({ meeting }) => !meetings.some((m) => m.id === meeting.id));
-    if (gone.length) setLeaving((current) => [...current, ...gone]);
-    setPrevious(meetings);
-  }
-  useEffect(() => {
-    if (!leaving.length) return;
-    const timer = window.setTimeout(() => setLeaving([]), LEAVE_MS);
-    return () => window.clearTimeout(timer);
-  }, [leaving]);
-
-  const rows: (
-    { kind: 'row'; meeting: MeetingListItem } | { kind: 'ghost'; meeting: MeetingListItem }
-  )[] = meetings.map((meeting) => ({ kind: 'row', meeting }));
-  for (const { meeting, index } of leaving) {
-    if (!meetings.some((m) => m.id === meeting.id))
-      rows.splice(Math.min(index, rows.length), 0, { kind: 'ghost', meeting });
-  }
-
-  return (
-    <ul className="space-y-0.5">
-      {rows.map(({ kind, meeting }) =>
-        kind === 'ghost' ? (
-          <li
-            key={`ghost-${meeting.id}`}
-            aria-hidden="true"
-            inert
-            className="grid grid-rows-[1fr] motion-safe:animate-row-out"
-          >
-            <div className="min-h-0 overflow-hidden">
-              <span className="block truncate rounded-md px-3 py-2 text-sm text-sidebar-fg">
-                {meeting.title}
-              </span>
-            </div>
-          </li>
-        ) : (
-          <MeetingRow
-            key={meeting.id}
-            ref={rowRef(meeting.id)}
-            meeting={meeting}
-            isNew={fresh.has(meeting.id)}
-            onNavigate={onNavigate}
-            onPrefetch={() => prefetch(meeting.id)}
-          />
-        ),
-      )}
-    </ul>
-  );
-}
-
-// One meeting in the sidebar. While it's being analysed it shows a spinner and a shimmering
-// title (you can keep using the app meanwhile); when it's done it stands out with a "New" tag
-// until you open it.
-function MeetingRow({
-  ref,
-  meeting,
-  isNew,
-  onNavigate,
-  onPrefetch,
-}: {
-  ref: (el: HTMLElement | null) => void;
-  meeting: MeetingListItem;
-  isNew: boolean;
-  onNavigate?: () => void;
-  onPrefetch: () => void;
-}) {
-  const analysing = meeting.analysisStatus === 'pending' || meeting.analysisStatus === 'processing';
-  const statusId = useId();
-  const status = analysing ? 'Analysing' : isNew ? 'New results' : null;
-  return (
-    <li
-      ref={ref}
-      className={cn(
-        'flex items-center rounded-md transition-colors duration-500 hover:bg-sidebar-hover',
-        isNew && 'bg-spark/10 ring-1 ring-spark/30 ring-inset',
-      )}
-    >
-      <NavLink
-        to={`/meetings/${meeting.id}`}
-        onClick={onNavigate}
-        onPointerEnter={onPrefetch}
-        onFocus={onPrefetch}
-        title={meeting.title}
-        aria-describedby={status ? statusId : undefined}
-        className={({ isActive }) =>
-          cn(
-            'flex min-h-10 min-w-0 flex-1 items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
-            isActive ? 'bg-sidebar-active text-white' : 'text-sidebar-fg hover:bg-sidebar-hover',
-            isNew && 'font-semibold text-white',
-          )
-        }
-      >
-        {analysing && (
-          <LoaderCircle aria-hidden="true" className="size-4 shrink-0 animate-spin text-spark" />
-        )}
-        {isNew && !analysing && (
-          <span
-            aria-hidden="true"
-            className="size-2 shrink-0 rounded-pill bg-spark motion-safe:animate-pulse"
-          />
-        )}
-        <span
-          className={cn(
-            'min-w-0 flex-1 truncate',
-            analysing &&
-              'ai-shimmer-text [--shimmer-base:var(--color-sidebar-muted)] [--shimmer-hi:#fff]',
-          )}
-        >
-          {meeting.title}
-        </span>
-        {isNew && !analysing && (
-          <span
-            aria-hidden="true"
-            className="shrink-0 rounded-pill bg-spark px-1.5 text-[0.6875rem] leading-5 font-bold text-fg"
-          >
-            New
-          </span>
-        )}
-      </NavLink>
-      {status && (
-        <span id={statusId} className="sr-only">
-          {status}
-        </span>
-      )}
-      <MeetingMenu meeting={meeting} />
-    </li>
-  );
-}
-
 function navClass(isActive: boolean, collapsed: boolean) {
   return cn(
     'flex min-h-10 items-center gap-3 rounded-md text-sm font-medium whitespace-nowrap transition-colors',
@@ -753,13 +601,7 @@ function navClass(isActive: boolean, collapsed: boolean) {
   );
 }
 
-function initials(name: string) {
-  const parts = name.trim().split(/\s+/);
-  return (
-    (parts[0]?.[0] ?? '') + (parts.length > 1 ? (parts.at(-1)?.[0] ?? '') : '')
-  ).toUpperCase();
-}
-
+// You, at the bottom of the sidebar: opens the account page (where you also log out).
 function AccountBlock({
   onNavigate,
   collapsed = false,
@@ -768,8 +610,6 @@ function AccountBlock({
   collapsed?: boolean;
 }) {
   const user = useCurrentUser();
-  const logout = useLogout();
-  const navigate = useNavigate();
   return (
     <div className={cn('shrink-0 p-3 pt-0', collapsed && 'px-2')}>
       <div aria-hidden="true" className="mx-2 mb-3 h-px rounded-pill bg-sidebar-line" />
@@ -779,7 +619,7 @@ function AccountBlock({
         title={collapsed ? `${user.name} (account)` : undefined}
         className={({ isActive }) =>
           cn(
-            'flex items-center gap-3 rounded-md p-2 transition-colors',
+            'group flex items-center gap-3 rounded-md p-2 transition-colors',
             collapsed && 'justify-center',
             isActive ? 'bg-sidebar-active' : 'hover:bg-sidebar-hover',
           )
@@ -787,38 +627,21 @@ function AccountBlock({
       >
         <span
           aria-hidden="true"
-          className="grid size-9 shrink-0 place-items-center rounded-pill bg-sidebar-active text-xs font-bold text-white"
+          className="grid size-9 shrink-0 place-items-center rounded-pill bg-sidebar-active text-sidebar-fg ring-1 ring-sidebar-line group-hover:text-white"
         >
-          {initials(user.name)}
+          <UserRound className="size-5" />
         </span>
         <span className={cn('min-w-0 flex-1', collapsed && 'sr-only')}>
           <span className="block truncate text-sm font-semibold text-white">{user.name}</span>
           <span className="block truncate text-xs text-sidebar-muted">{user.email}</span>
         </span>
-        {!collapsed && <UserRound aria-hidden="true" className="size-4 text-sidebar-muted" />}
-      </NavLink>
-      <button
-        type="button"
-        disabled={logout.isPending}
-        title={collapsed ? 'Log out' : undefined}
-        onClick={() =>
-          logout.mutate(undefined, {
-            onSettled: () => {
-              onNavigate?.();
-              navigate('/login');
-            },
-          })
-        }
-        className={cn(
-          'mt-1 flex min-h-9 w-full items-center gap-2 rounded-md text-sm whitespace-nowrap text-sidebar-muted hover:bg-sidebar-hover hover:text-white disabled:opacity-60',
-          collapsed ? 'justify-center' : 'px-3',
+        {!collapsed && (
+          <ChevronRight
+            aria-hidden="true"
+            className="size-4 text-sidebar-muted transition-transform group-hover:translate-x-0.5"
+          />
         )}
-      >
-        <LogOut aria-hidden="true" className="size-4 shrink-0" />
-        <span className={cn(collapsed && 'sr-only')}>
-          {logout.isPending ? 'Logging out…' : 'Log out'}
-        </span>
-      </button>
+      </NavLink>
     </div>
   );
 }

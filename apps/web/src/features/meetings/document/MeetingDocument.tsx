@@ -238,7 +238,14 @@ export function MeetingDocument({
         >
           <div className="xl:sticky xl:top-0 xl:z-10">
             <div ref={notesHeadRef} className="xl:pointer-events-auto xl:bg-sidebar xl:pb-2">
-              <AskMeetingPanel meetingId={meeting.id} />
+              <AskMeetingPanel
+                meetingId={meeting.id}
+                disabledReason={
+                  meeting.analysisStatus === 'failed'
+                    ? 'Retry the analysis first, then you can ask about this meeting.'
+                    : undefined
+                }
+              />
               {!loading && <NoNotesFound meeting={meeting} />}
             </div>
             <div
@@ -247,7 +254,7 @@ export function MeetingDocument({
             />
           </div>
           {analysisRunning && !loading && (
-            <div className="mt-12 px-4 pb-8 xl:mt-28 xl:px-0 xl:pb-0">
+            <div className="mt-12 px-4 pb-8 xl:sticky xl:top-[calc(var(--notes-head,9rem)+6rem)] xl:mt-28 xl:px-0 xl:pb-0">
               <AnalysisNotesLoader />
             </div>
           )}

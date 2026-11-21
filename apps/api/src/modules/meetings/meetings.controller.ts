@@ -3,6 +3,7 @@ import {
   createMeetingFromTextSchema,
   lineNumberSchema,
   meetingDetailsSchema,
+  reorderMeetingsSchema,
   updateMeetingSchema,
   updateTranscriptLineSchema,
   type Meeting,
@@ -87,6 +88,17 @@ export function createMeetingsController(queue: AnalysisQueue) {
       const { text } = updateTranscriptLineSchema.parse(req.body);
       const meeting = await meetingsService.updateLine(getAuthUser(req).id, id, line.data, text);
       res.json({ meeting } satisfies { meeting: Meeting });
+    },
+
+    async archiveAll(req: Request, res: Response) {
+      const archived = await meetingsService.archiveAll(getAuthUser(req).id);
+      res.json({ archived });
+    },
+
+    async reorder(req: Request, res: Response) {
+      const { ids } = reorderMeetingsSchema.parse(req.body);
+      await meetingsService.reorder(getAuthUser(req).id, ids);
+      res.status(204).end();
     },
 
     async remove(req: Request, res: Response) {

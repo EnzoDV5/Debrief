@@ -61,6 +61,15 @@ export const authRepository = {
     }
   },
 
+  async updateName(userId: string, name: string): Promise<UserRow | null> {
+    const [user] = await db
+      .update(users)
+      .set({ name })
+      .where(and(eq(users.id, userId), isNull(users.deletedAt)))
+      .returning();
+    return user ?? null;
+  },
+
   async linkGoogleAccount(userId: string, googleSub: string): Promise<UserRow | null> {
     const [user] = await db
       .update(users)

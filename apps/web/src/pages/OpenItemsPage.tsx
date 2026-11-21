@@ -22,7 +22,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Carousel } from '@/components/ui/Carousel';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { ErrorState } from '@/components/ui/ErrorState';
+import { ErrorState, LOAD_ERROR_MESSAGE } from '@/components/ui/ErrorState';
 import { Select, type SelectOption } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ActionItemCard, Initials, isOverdue } from '@/features/actionItems/ActionItemCard';
@@ -30,6 +30,7 @@ import { ActionItemDialog } from '@/features/actionItems/ActionItemDialog';
 import { DeleteActionItemDialog } from '@/features/actionItems/DeleteActionItemDialog';
 import { useActionItems, type ActionItemFilters } from '@/features/actionItems/hooks';
 import { cn } from '@/lib/cn';
+import { useLeavingList } from '@/lib/useLeavingList';
 import { useLingering } from '@/lib/useLingering';
 import { formatCalendarDate, plural } from '@/lib/format';
 
@@ -79,7 +80,9 @@ export function OpenItemsPage() {
   const items = data?.actionItems ?? [];
   const filtered = filters.status !== 'open' || Boolean(filters.owner) || filters.overdue;
   const overdueCount = items.filter((item) => isOverdue(item)).length;
-  const groups = groupByMeeting(items);
+  // Ticked-off or deleted items animate out of their row before they go.
+  const shownItems = useLeavingList(items, JSON.stringify(filters));
+  const groups = groupByMeeting(shownItems);
   const navigate = useNavigate();
 
   return (
@@ -107,7 +110,8 @@ export function OpenItemsPage() {
       ) : error ? (
         <ErrorState
           title="Couldn't load your action items"
-          message={error.message}
+          message={LOAD_ERROR_MESSAGE}
+          details={error.message}
           onRetry={() => void refetch()}
         />
       ) : items.length === 0 ? (
@@ -163,7 +167,8 @@ export function OpenItemsPage() {
                     </Button>
                   </div>
                   <p className="text-sm text-muted">
-                    {formatCalendarDate(group.meetingDate)} · {plural(group.items.length, 'item')}
+                    {formatCalendarDate(group.meetingDate)} ·{' '}
+                    {plural(group.items.filter((item) => !item.leaving).length, 'item')}
                   </p>
                 </div>
                 <div className="-mx-4 mt-3 sm:-mx-8">
@@ -175,7 +180,12 @@ export function OpenItemsPage() {
                           if ((event.target as HTMLElement).closest(INTERACTIVE)) return;
                           navigate(lineLink(item));
                         }}
-                        className="h-76 w-[min(82vw,22rem)] shrink-0 cursor-pointer snap-start"
+                        inert={item.leaving}
+                        className={cn(
+                          'h-76 w-[min(82vw,22rem)] shrink-0 cursor-pointer snap-start',
+                          item.leaving &&
+                            'pointer-events-none overflow-hidden motion-safe:animate-card-leave',
+                        )}
                       >
                         <ActionItemCard
                           fixed
@@ -227,10 +237,15 @@ const lineLink = (item: ActionItemWithMeeting) =>
   `/meetings/${item.meetingId}${item.sourceLine ? `#L${item.sourceLine}` : ''}`;
 
 // One group per meeting, newest meeting first; items keep the order the server sent.
-function groupByMeeting(items: ActionItemWithMeeting[]) {
+function groupByMeeting(items: (ActionItemWithMeeting & { leaving?: boolean })[]) {
   const groups = new Map<
     string,
-    { meetingId: string; meetingTitle: string; meetingDate: string; items: ActionItemWithMeeting[] }
+    {
+      meetingId: string;
+      meetingTitle: string;
+      meetingDate: string;
+      items: (ActionItemWithMeeting & { leaving?: boolean })[];
+    }
   >();
   for (const item of items) {
     const group = groups.get(item.meetingId) ?? {

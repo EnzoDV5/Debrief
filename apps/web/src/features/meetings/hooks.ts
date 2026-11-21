@@ -7,6 +7,7 @@ import {
   projectResponseSchema,
   projectsResponseSchema,
   searchResponseSchema,
+  archiveAllResponseSchema,
   type Meeting,
   type MeetingListItem,
   type MeetingDetailsInput,
@@ -126,6 +127,42 @@ export function useSearch(term: string, enabled = true) {
   });
 }
 
+// Saves a new sidebar order for one section (meeting ids, top to bottom). The list is reordered
+// in the cache first, so the sidebar updates instantly; if the save fails, the real order is
+// fetched again.
+export function useReorderMeetings() {
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: (ids: string[]) =>
+      requestNoContent('/meetings/order', { method: 'PUT', body: { ids } }),
+    onError: () => void invalidateMeetingLists(queryClient),
+  });
+  return (ids: string[]) => {
+    queryClient.setQueryData<MeetingListItem[]>(meetingKeys.list, (list) => {
+      if (!list) return list;
+      const byId = new Map(list.map((meeting) => [meeting.id, meeting]));
+      const reordered = ids.map((id) => byId.get(id)).filter((m) => m !== undefined);
+      let next = 0;
+      return list.map((meeting) => (ids.includes(meeting.id) ? reordered[next++]! : meeting));
+    });
+    mutation.mutate(ids);
+  };
+}
+
+// Clears the sidebar's Meetings list by archiving every unpinned meeting (nothing is deleted).
+export function useArchiveAllMeetings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () =>
+      (await request('/meetings/archive-all', { method: 'POST', schema: archiveAllResponseSchema }))
+        .archived,
+    onSuccess: () => {
+      void invalidateMeetingLists(queryClient);
+      void queryClient.invalidateQueries({ queryKey: ['action-items'] });
+    },
+  });
+}
+
 export function useAnalyzeMeeting(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -210,6 +247,8 @@ export function useDeleteMeeting(id: string) {
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: meetingKeys.detail(id) });
       void invalidateMeetingLists(queryClient);
+      // Its action items are gone too (the Actions page and its count badge).
+      void queryClient.invalidateQueries({ queryKey: ['action-items'] });
       void queryClient.invalidateQueries({ queryKey: projectKeys });
     },
   });

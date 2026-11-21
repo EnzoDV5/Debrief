@@ -3,10 +3,19 @@
 // runs on the server, so moving around the site never interrupts it.
 import type { AnalysisStatus, MeetingListItem } from '@debrief/shared';
 import { CircleAlert, CircleCheck, X } from 'lucide-react';
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { Link, useLocation } from 'react-router';
 import { cn } from '@/lib/cn';
-import { useMeetings } from './hooks';
+import { meetingKeys, useMeetings } from './hooks';
 
 const TOAST_MS = 10_000;
 const LEAVE_MS = 220;
@@ -34,6 +43,22 @@ export function useFreshMeetings() {
 export function AnalysisWatchProvider({ children }: { children: ReactNode }) {
   const { data: meetings } = useMeetings();
   const { pathname } = useLocation();
+  const queryClient = useQueryClient();
+
+  // A finished analysis brings new action items: fetch them now for the Actions page and its
+  // badge, and refresh that meeting, rather than waiting for the next visit.
+  const lastStatus = useRef(new Map<string, AnalysisStatus>());
+  useEffect(() => {
+    if (!meetings) return;
+    for (const meeting of meetings) {
+      const before = lastStatus.current.get(meeting.id);
+      if (before && running(before) && !running(meeting.analysisStatus)) {
+        void queryClient.invalidateQueries({ queryKey: ['action-items'] });
+        void queryClient.invalidateQueries({ queryKey: meetingKeys.detail(meeting.id) });
+      }
+      lastStatus.current.set(meeting.id, meeting.analysisStatus);
+    }
+  }, [meetings, queryClient]);
   const [fresh, setFresh] = useState(readFresh);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [seen, setSeen] = useState<{
@@ -41,11 +66,19 @@ export function AnalysisWatchProvider({ children }: { children: ReactNode }) {
     status: Map<string, AnalysisStatus>;
   }>({ list: undefined, status: new Map() });
 
+  const openId = /^\/meetings\/([^/]+)$/.exec(pathname)?.[1];
+
   // Compare each new list with the last one: anything that was running and now isn't just finished.
+  // If you're already on that meeting you can see the result there, so there's no notification.
   if (meetings && meetings !== seen.list) {
     const finished = meetings.filter((meeting) => {
       const before = seen.status.get(meeting.id);
-      return before !== undefined && running(before) && !running(meeting.analysisStatus);
+      return (
+        before !== undefined &&
+        running(before) &&
+        !running(meeting.analysisStatus) &&
+        meeting.id !== openId
+      );
     });
     setSeen({ list: meetings, status: new Map(meetings.map((m) => [m.id, m.analysisStatus])) });
     if (finished.length) {
@@ -63,7 +96,6 @@ export function AnalysisWatchProvider({ children }: { children: ReactNode }) {
   }
 
   // Opening a meeting means you've seen its results: it goes back to looking like the others.
-  const openId = /^\/meetings\/([^/]+)$/.exec(pathname)?.[1];
   if (openId && fresh.has(openId)) {
     const next = new Set(fresh);
     next.delete(openId);
@@ -90,7 +122,7 @@ export function AnalysisWatchProvider({ children }: { children: ReactNode }) {
       <div
         role="region"
         aria-label="Notifications"
-        className="pointer-events-none fixed right-4 bottom-4 z-[70] flex flex-col items-end gap-3 sm:right-6 sm:bottom-6"
+        className="pointer-events-none fixed right-4 bottom-4 z-70 flex flex-col items-end gap-3 sm:right-6 sm:bottom-6"
       >
         {toasts.map((toast) => (
           <AnalysisToast key={toast.meetingId} toast={toast} onDismiss={dismiss} />

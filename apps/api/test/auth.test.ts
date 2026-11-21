@@ -9,6 +9,7 @@ import {
   resetDatabase,
   sessionCookieHeader,
   sessionCookiePair,
+  signUp,
   WEB_ORIGIN,
   testAppDeps,
 } from './helpers';
@@ -272,5 +273,34 @@ describe('security middleware', () => {
   it('tells browsers not to cache api responses', async () => {
     const res = await me();
     expect(res.headers['cache-control']).toBe('no-store');
+  });
+});
+
+describe('PATCH /api/auth/me (change your name)', () => {
+  it('changes the name, trims it, and validates it', async () => {
+    const app = createApp(testAppDeps);
+    const cookie = await signUp(app, 'Alice');
+    const patch = (body: object) =>
+      request(app).patch('/api/auth/me').set('Cookie', cookie).set('Origin', WEB_ORIGIN).send(body);
+
+    const res = await patch({ name: '  Alice Mokoena  ' });
+    expect(res.status).toBe(200);
+    expect(res.body.user.name).toBe('Alice Mokoena');
+    expect((await request(app).get('/api/auth/me').set('Cookie', cookie)).body.user.name).toBe(
+      'Alice Mokoena',
+    );
+
+    const empty = await patch({ name: '   ' });
+    expect(empty.status).toBe(400);
+    expect(empty.body.error.fields).toHaveProperty('name');
+  });
+
+  it('requires a session', async () => {
+    const app = createApp(testAppDeps);
+    const res = await request(app)
+      .patch('/api/auth/me')
+      .set('Origin', WEB_ORIGIN)
+      .send({ name: 'X' });
+    expect(res.status).toBe(401);
   });
 });

@@ -8,7 +8,7 @@ import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Collapsible } from '@/components/ui/Collapsible';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { ErrorState } from '@/components/ui/ErrorState';
+import { ErrorState, LOAD_ERROR_MESSAGE } from '@/components/ui/ErrorState';
 import { Input } from '@/components/ui/Input';
 import { MeetingResults } from '@/features/meetings/MeetingResults';
 import {
@@ -65,7 +65,8 @@ export function ProjectsPage() {
       {error ? (
         <ErrorState
           title="Couldn't load projects"
-          message={error.message}
+          message={LOAD_ERROR_MESSAGE}
+          details={error.message}
           onRetry={() => void refetch()}
         />
       ) : (
@@ -247,7 +248,8 @@ function ProjectRow({
             {meetingError ? (
               <ErrorState
                 title="Couldn't load project meetings"
-                message={meetingError.message}
+                message={LOAD_ERROR_MESSAGE}
+                details={meetingError.message}
                 onRetry={() => void refetchMeetings()}
               />
             ) : meetingsPending ? (

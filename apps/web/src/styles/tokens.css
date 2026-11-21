@@ -288,11 +288,11 @@
       transform: translateY(10px) scale(0.98);
     }
   }
-  --animate-row-out: row-out 320ms var(--ease-panel) forwards;
-  @keyframes row-out {
+  --animate-ghost-out: ghost-out 200ms ease-in forwards;
+  @keyframes ghost-out {
     to {
-      grid-template-rows: 0fr;
       opacity: 0;
+      transform: translateX(-10px) scale(0.97);
     }
   }
   --animate-toast-in: toast-in 420ms var(--ease-panel) backwards;
@@ -316,6 +316,15 @@
     }
     to {
       transform: scaleX(0);
+    }
+  }
+  --animate-card-leave: card-leave 340ms var(--ease-panel) forwards;
+  @keyframes card-leave {
+    to {
+      opacity: 0;
+      transform: scale(0.94);
+      width: 0;
+      margin-right: -1rem;
     }
   }
   --animate-card-in: card-in 520ms var(--ease-panel) backwards;

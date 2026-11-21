@@ -16,6 +16,8 @@ export function createMeetingsRouter(deps: AppDeps) {
 
   router.get('/', meetingsController.list);
   router.post('/', transcriptUpload, meetingsController.create);
+  router.put('/order', meetingsController.reorder);
+  router.post('/archive-all', meetingsController.archiveAll);
   router.get('/:id', meetingsController.get);
   router.post('/:id/ask', createAskRateLimiter(), createAskController(deps.ask));
   router.post('/:id/analyze', meetingsController.analyze);

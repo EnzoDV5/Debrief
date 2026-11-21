@@ -287,6 +287,31 @@ describe('Actions page', () => {
     expect(screen.getByRole('status')).toHaveTextContent('1 item in 1 meeting · 1 overdue');
   });
 
+  it('removes an item from the Open list as soon as it is ticked off', async () => {
+    let status: ActionItem['status'] = 'todo';
+    mockApi({
+      ...me,
+      'GET /api/action-items': () => ({
+        status: 200,
+        body: {
+          actionItems: status === 'done' ? [] : [listed({ status })],
+          owners: ['Ann'],
+        },
+      }),
+      [`PATCH /api/action-items/${item().id}`]: () => {
+        status = 'done';
+        return { status: 200, body: { actionItem: item({ status: 'done' }) } };
+      },
+    });
+    const user = userEvent.setup();
+    renderApp('/items');
+
+    await user.click(
+      await screen.findByRole('checkbox', { name: 'Mark “Send the files” as done' }),
+    );
+    await waitFor(() => expect(screen.queryByText('Send the files')).not.toBeInTheDocument());
+  });
+
   it('sends the chosen filters to the api and keeps them in the URL', async () => {
     const urls: string[] = [];
     mockApi({

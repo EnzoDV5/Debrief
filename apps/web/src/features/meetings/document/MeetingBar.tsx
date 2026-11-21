@@ -90,6 +90,12 @@ export function MeetingBar({ meeting, loading = false }: { meeting: Meeting; loa
             ref={summaryToggle}
             aria-expanded={summaryOpen}
             aria-controls={summaryId}
+            disabled={meeting.analysisStatus === 'failed'}
+            title={
+              meeting.analysisStatus === 'failed'
+                ? 'No summary: the analysis failed. Retry it first.'
+                : undefined
+            }
             onClick={() => setSummaryOpen((open) => !open)}
           >
             Summary
@@ -119,10 +125,14 @@ export function MeetingBar({ meeting, loading = false }: { meeting: Meeting; loa
       )}
       {!loading && meeting.analysisStatus === 'failed' && (
         <Alert tone="danger" className="mt-4">
-          <p>{meeting.analysisError ?? 'Analysis failed. Your transcript is saved.'}</p>
-          <Button size="sm" className="mt-3" loading={analyze.isPending} onClick={rerun}>
-            Retry analysis
-          </Button>
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+            <p className="min-w-0 flex-1">
+              {meeting.analysisError ?? 'Analysis failed. Your transcript is saved.'}
+            </p>
+            <Button size="sm" className="shrink-0" loading={analyze.isPending} onClick={rerun}>
+              Retry analysis
+            </Button>
+          </div>
         </Alert>
       )}
       {analyze.error && (
@@ -131,7 +141,9 @@ export function MeetingBar({ meeting, loading = false }: { meeting: Meeting; loa
         </Alert>
       )}
 
-      <Collapsible id={summaryId} open={summaryOpen}>
+      {/* Opens instantly inside the top bar; the bar's own height animation then reveals it as
+          the frame lowers, so the two move as one. */}
+      <Collapsible id={summaryId} open={summaryOpen && meeting.analysisStatus !== 'failed'} instant>
         <section
           aria-label="Meeting summary"
           className="px-1 lg:scrollbar-panel lg:max-h-[40vh] lg:overflow-y-auto lg:pr-3 lg:text-sidebar-fg"

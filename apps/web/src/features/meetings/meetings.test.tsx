@@ -115,7 +115,7 @@ describe('workspace history', () => {
     const sidebar = await screen.findByRole('complementary');
     const pinnedSection = await within(sidebar).findByRole('region', { name: 'Pinned meetings' });
     expect(within(pinnedSection).getByRole('link', { name: 'Board prep' })).toBeInTheDocument();
-    const recentSection = within(sidebar).getByRole('region', { name: 'Recent meetings' });
+    const recentSection = within(sidebar).getByRole('region', { name: 'Meetings' });
     expect(within(recentSection).getByRole('link', { name: 'Weekly sync' })).toBeInTheDocument();
     expect(
       within(recentSection).queryByRole('link', { name: 'Board prep' }),
@@ -124,6 +124,38 @@ describe('workspace history', () => {
       'href',
       '/items',
     );
+  });
+
+  it('reorders meetings with Alt + arrow keys, and saves the new order', async () => {
+    const second = {
+      ...listItem,
+      id: 'e84b8177-ecb1-48b7-aa22-b53b09a637e2',
+      title: 'Sprint review',
+    };
+    let saved: unknown;
+    mockApi({
+      ...me,
+      'GET /api/meetings': { status: 200, body: { meetings: [listItem, second] } },
+      'PUT /api/meetings/order': (body) => {
+        saved = body;
+        return { status: 204 };
+      },
+    });
+    const user = userEvent.setup();
+    renderApp('/meetings');
+
+    const sidebar = await screen.findByRole('complementary');
+    const recent = await within(sidebar).findByRole('region', { name: 'Meetings' });
+    within(recent).getByRole('link', { name: 'Weekly sync' }).focus();
+    await user.keyboard('{Alt>}{ArrowDown}{/Alt}');
+
+    await waitFor(() => expect(saved).toEqual({ ids: [second.id, listItem.id] }));
+    const titles = within(recent)
+      .getAllByRole('link')
+      .map((link) => link.textContent);
+    expect(titles).toEqual(['Sprint review', 'Weekly sync']);
+    expect(within(recent).getByText('Moved “Weekly sync” to position 2 of 2.')).toBeInTheDocument();
+    expect(within(recent).getByRole('link', { name: 'Weekly sync' })).toHaveFocus();
   });
 
   it('opens the meeting history as a mobile drawer', async () => {
@@ -293,8 +325,13 @@ describe('new meeting: drop, review, then analyse', () => {
 describe('analysis in the background', () => {
   it('keeps working while you move around, then notifies you and marks the meeting new', async () => {
     let calls = 0;
+    let itemFetches = 0;
     mockApi({
       ...me,
+      'GET /api/action-items': () => {
+        itemFetches += 1;
+        return { status: 200, body: { actionItems: [], owners: [] } };
+      },
       'GET /api/meetings': () => {
         calls += 1;
         const analysisStatus = calls === 1 ? 'processing' : 'done';
@@ -312,7 +349,10 @@ describe('analysis in the background', () => {
     const link = await within(sidebar).findByRole('link', { name: 'Weekly sync' });
     expect(link).toHaveAccessibleDescription('Analysing');
 
+    const fetchesBefore = itemFetches;
     expect(await screen.findByText('Analysis finished', {}, { timeout: 5000 })).toBeInTheDocument();
+    // The new action items are fetched straight away (Actions page and its badge).
+    await waitFor(() => expect(itemFetches).toBeGreaterThan(fetchesBefore));
     expect(within(sidebar).getByRole('link', { name: 'Weekly sync' })).toHaveAccessibleDescription(
       'New results',
     );
@@ -324,6 +364,86 @@ describe('analysis in the background', () => {
       ),
     );
   }, 10_000);
+});
+
+describe('while you are on the meeting that finishes', () => {
+  it('shows the result there, without a notification', async () => {
+    let calls = 0;
+    mockApi({
+      ...me,
+      'GET /api/meetings': {
+        status: 200,
+        body: { meetings: [{ ...listItem, analysisStatus: 'processing' }] },
+      },
+      [`GET ${detailUrl}`]: () => {
+        calls += 1;
+        const analysisStatus = calls === 1 ? 'processing' : 'done';
+        return { status: 200, body: { meeting: { ...meeting, analysisStatus, summary: 'Done.' } } };
+      },
+    });
+    renderApp(`/meetings/${meeting.id}`);
+
+    expect(await screen.findByText('Analysed', {}, { timeout: 5000 })).toBeInTheDocument();
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(screen.queryByText('Analysis finished')).not.toBeInTheDocument();
+  }, 10_000);
+});
+
+describe('your account', () => {
+  it('changes your name right where it is shown', async () => {
+    let sent: unknown;
+    mockApi({
+      ...me,
+      'PATCH /api/auth/me': (body) => {
+        sent = body;
+        return { status: 200, body: { user: { ...testUser, name: 'Alice Dlamini' } } };
+      },
+    });
+    const user = userEvent.setup();
+    renderApp('/account');
+
+    await user.click(await screen.findByRole('button', { name: new RegExp(testUser.name) }));
+    const input = screen.getByRole('textbox', { name: 'Your name' });
+    await user.clear(input);
+    await user.type(input, 'Alice Dlamini{Enter}');
+
+    await waitFor(() => expect(sent).toEqual({ name: 'Alice Dlamini' }));
+    expect(await screen.findByRole('button', { name: /Alice Dlamini/ })).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('complementary')).getByText('Alice Dlamini'),
+    ).toBeInTheDocument();
+  });
+});
+
+describe('a failed analysis', () => {
+  it('is marked in the sidebar, and Summary and Ask are disabled with a reason', async () => {
+    const failed = {
+      ...meeting,
+      analysisStatus: 'failed' as const,
+      analysisError: 'Today’s free AI quota has been used up.',
+    };
+    mockApi({
+      ...me,
+      'GET /api/meetings': {
+        status: 200,
+        body: { meetings: [{ ...listItem, analysisStatus: 'failed' }] },
+      },
+      [`GET ${detailUrl}`]: { status: 200, body: { meeting: failed } },
+    });
+    renderApp(`/meetings/${meeting.id}`);
+
+    const sidebar = await screen.findByRole('complementary');
+    expect(
+      await within(sidebar).findByRole('link', { name: 'Weekly sync' }),
+    ).toHaveAccessibleDescription('Analysis failed');
+    expect(await screen.findByRole('button', { name: 'Summary' })).toBeDisabled();
+    const ask = screen.getByRole('textbox', { name: 'Ask a question about this meeting' });
+    expect(ask).toBeDisabled();
+    expect(ask).toHaveAccessibleDescription(
+      'Retry the analysis first, then you can ask about this meeting.',
+    );
+    expect(screen.getByRole('button', { name: 'Retry analysis' })).toBeInTheDocument();
+  });
 });
 
 describe('search and archive in the sidebar', () => {
@@ -428,6 +548,39 @@ describe('search and archive in the sidebar', () => {
     expect(dialog).toHaveAttribute('open');
     await user.click(within(dialog).getByRole('button', { name: 'Close search' }));
     await waitFor(() => expect(dialog).not.toHaveAttribute('open'));
+  });
+
+  it('clears the Meetings list from the account page after a confirm step', async () => {
+    const pinned = {
+      ...listItem,
+      id: 'e84b8177-ecb1-48b7-aa22-b53b09a637e2',
+      title: 'Board prep',
+      pinnedAt: '2026-11-24T09:00:00.000Z',
+    };
+    let archived = false;
+    mockApi({
+      ...me,
+      'GET /api/meetings': () => ({
+        status: 200,
+        body: { meetings: archived ? [pinned] : [pinned, listItem] },
+      }),
+      'POST /api/meetings/archive-all': () => {
+        archived = true;
+        return { status: 200, body: { archived: 1 } };
+      },
+    });
+    const user = userEvent.setup();
+    renderApp('/account');
+
+    await user.click(await screen.findByRole('button', { name: 'Clear list' }));
+    expect(screen.getByText(/Move 1 meeting to Archived?/)).toHaveTextContent(
+      '1 pinned meeting will stay.',
+    );
+    expect(archived).toBe(false);
+
+    await user.click(screen.getByRole('button', { name: 'Yes, archive 1 meeting' }));
+    expect(await screen.findByText('1 meeting moved to Archived.')).toBeInTheDocument();
+    expect(archived).toBe(true);
   });
 
   it('shows archived meetings in a dropdown instead of a page', async () => {

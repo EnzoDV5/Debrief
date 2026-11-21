@@ -1,5 +1,6 @@
 // Data hooks for action items. Ticking one off updates the screen straight away.
 import {
+  UNASSIGNED_OWNER,
   actionItemListResponseSchema,
   actionItemResponseSchema,
   decisionResponseSchema,
@@ -55,10 +56,34 @@ export function updateItemEverywhere(queryClient: QueryClient, id: string, updat
       ? { ...data, actionItems: apply(data.actionItems) }
       : data,
   );
-  queryClient.setQueriesData<{ actionItems: ActionItem[]; owners: string[] }>(
-    { queryKey: actionItemKeys.all },
-    (data) => (data ? { ...data, actionItems: apply(data.actionItems) } : data),
-  );
+  // Each Actions-page list also drops an item that no longer fits its filter (e.g. ticked off
+  // while showing "Open"), so it leaves straight away instead of on the next refresh.
+  for (const [key, data] of queryClient.getQueriesData<{
+    actionItems: ActionItem[];
+    owners: string[];
+  }>({ queryKey: actionItemKeys.all })) {
+    if (!data) continue;
+    const filters = key[1] as ActionItemFilters | undefined;
+    queryClient.setQueryData(key, {
+      ...data,
+      actionItems: apply(data.actionItems).filter((item) => !filters || fitsFilters(item, filters)),
+    });
+  }
+}
+
+function fitsFilters(item: ActionItem, filters: ActionItemFilters) {
+  const status =
+    filters.status === 'all' ||
+    (filters.status === 'open' ? item.status !== 'done' : item.status === filters.status);
+  const owner =
+    !filters.owner ||
+    (filters.owner === UNASSIGNED_OWNER
+      ? item.owner === null
+      : item.owner?.toLowerCase() === filters.owner.toLowerCase());
+  const overdue =
+    !filters.overdue ||
+    (item.status !== 'done' && item.dueDate !== null && item.dueDate < todayDate());
+  return status && owner && overdue;
 }
 
 async function snapshot(queryClient: QueryClient) {

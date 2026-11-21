@@ -30,7 +30,7 @@ export function Alert({
       className={cn('flex gap-3 rounded-md px-4 py-3 text-sm', classes, className)}
     >
       <Icon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-      <div className="space-y-0.5">
+      <div className="min-w-0 flex-1 space-y-0.5">
         {title && <p className="font-semibold">{title}</p>}
         {children && <div className="text-fg">{children}</div>}
       </div>

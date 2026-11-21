@@ -14,7 +14,7 @@ export class ApiError extends Error {
   }
 }
 
-type RequestOptions = { method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'; body?: unknown };
+type RequestOptions = { method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown };
 
 async function send(path: string, { method = 'GET', body }: RequestOptions): Promise<Response> {
   let res: Response;

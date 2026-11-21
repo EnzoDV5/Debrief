@@ -101,7 +101,10 @@ export const meetingsService = {
     const { pinned, archived, ...fields } = patch;
     const row = await meetingsRepository.updateForUser(userId, meetingId, {
       ...fields,
-      ...(pinned !== undefined ? { pinnedAt: pinned ? new Date() : null } : {}),
+      // Pinning or unpinning puts the meeting at the top of its new section.
+      ...(pinned !== undefined
+        ? { pinnedAt: pinned ? new Date() : null, sidebarPosition: null }
+        : {}),
       ...(archived !== undefined ? { archivedAt: archived ? new Date() : null } : {}),
     });
     if (!row) throw notFound('Meeting');
@@ -119,6 +122,14 @@ export const meetingsService = {
     const updated = await meetingsRepository.updateLinesForUser(userId, meetingId, lines);
     if (!updated) throw notFound('Meeting');
     return withResults(userId, updated);
+  },
+
+  async archiveAll(userId: string): Promise<number> {
+    return meetingsRepository.archiveAllForUser(userId);
+  },
+
+  async reorder(userId: string, ids: string[]): Promise<void> {
+    await meetingsRepository.setOrderForUser(userId, ids);
   },
 
   async remove(userId: string, meetingId: string): Promise<void> {

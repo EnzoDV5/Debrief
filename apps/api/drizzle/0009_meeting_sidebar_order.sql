@@ -1,0 +1,1 @@
+ALTER TABLE "meetings" ADD COLUMN "sidebar_position" integer;

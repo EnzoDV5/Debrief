@@ -4,12 +4,14 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app';
 import { closeDatabase, resetDatabase, signUp, testAppDeps, WEB_ORIGIN } from './helpers';
 
-const app = createApp(testAppDeps);
+// A fresh app per test, so the sign-up rate limit starts at zero each time.
+let app: ReturnType<typeof createApp>;
 let alice: string;
 let bob: string;
 
 beforeEach(async () => {
   await resetDatabase();
+  app = createApp(testAppDeps);
   alice = await signUp(app, 'Alice');
   bob = await signUp(app, 'Bob');
 });
@@ -115,5 +117,96 @@ describe('meeting organisation', () => {
       (await request(app).get(`/api/meetings/${ownId}`).set('Cookie', alice)).body.meeting
         .projectId,
     ).toBeNull();
+  });
+});
+
+describe('PUT /api/meetings/order (drag to reorder)', () => {
+  const put = (cookie: string, ids: unknown) =>
+    request(app)
+      .put('/api/meetings/order')
+      .set('Cookie', cookie)
+      .set('Origin', WEB_ORIGIN)
+      .send({ ids });
+  const titles = async (cookie: string) =>
+    (
+      (await request(app).get('/api/meetings').set('Cookie', cookie)).body.meetings as {
+        title: string;
+      }[]
+    ).map((m) => m.title);
+  const create = async (cookie: string, title: string) =>
+    (
+      await write(cookie, 'post', '/api/meetings', {
+        title,
+        meetingDate: '2026-11-24',
+        transcript: 'Ann: Hello',
+      })
+    ).body.meeting.id as string;
+
+  it('saves the order, keeps pinned first, and puts new meetings on top', async () => {
+    const a = await create(alice, 'A');
+    const b = await create(alice, 'B');
+    const c = await create(alice, 'C');
+    expect(await titles(alice)).toEqual(['C', 'B', 'A']);
+
+    expect((await put(alice, [a, c, b])).status).toBe(204);
+    expect(await titles(alice)).toEqual(['A', 'C', 'B']);
+
+    await create(alice, 'D');
+    expect(await titles(alice)).toEqual(['D', 'A', 'C', 'B']);
+
+    await write(alice, 'patch', `/api/meetings/${b}`, { pinned: true });
+    expect(await titles(alice)).toEqual(['B', 'D', 'A', 'C']);
+  });
+
+  it('validates the ids', async () => {
+    expect((await put(alice, ['not-a-uuid'])).status).toBe(400);
+    expect((await put(alice, [])).status).toBe(400);
+    const a = await create(alice, 'A');
+    expect((await put(alice, [a, a])).status).toBe(400);
+  });
+
+  it('cannot reorder another user’s meetings', async () => {
+    const a = await create(alice, 'A');
+    const b = await create(alice, 'B');
+    expect((await put(bob, [a, b])).status).toBe(204);
+    expect(await titles(alice)).toEqual(['B', 'A']);
+  });
+});
+
+describe('POST /api/meetings/archive-all (clear the Meetings list)', () => {
+  const create = async (cookie: string, title: string) =>
+    (
+      await write(cookie, 'post', '/api/meetings', {
+        title,
+        meetingDate: '2026-11-24',
+        transcript: 'Ann: Hello',
+      })
+    ).body.meeting.id as string;
+  const listTitles = async (cookie: string, query = '') =>
+    (
+      (await request(app).get(`/api/meetings${query}`).set('Cookie', cookie)).body.meetings as {
+        title: string;
+      }[]
+    ).map((m) => m.title);
+
+  it('archives every unpinned meeting, keeps pinned ones, and touches nobody else', async () => {
+    await create(alice, 'A');
+    await create(alice, 'B');
+    const pinned = await create(alice, 'Pinned');
+    await write(alice, 'patch', `/api/meetings/${pinned}`, { pinned: true });
+    await create(bob, 'Bob meeting');
+
+    const res = await write(alice, 'post', '/api/meetings/archive-all');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ archived: 2 });
+
+    expect(await listTitles(alice)).toEqual(['Pinned']);
+    expect((await listTitles(alice, '?archived=true')).sort()).toEqual(['A', 'B']);
+    expect(await listTitles(bob)).toEqual(['Bob meeting']);
+  });
+
+  it('requires a session', async () => {
+    const res = await request(app).post('/api/meetings/archive-all').set('Origin', WEB_ORIGIN);
+    expect(res.status).toBe(401);
   });
 });

@@ -7,7 +7,7 @@ import { PageBar } from '@/components/layout/PageBar';
 import { useShellPanelInset } from '@/components/layout/shellFrame';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { ErrorState } from '@/components/ui/ErrorState';
+import { ErrorState, LOAD_ERROR_MESSAGE } from '@/components/ui/ErrorState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import {
   MeetingDocument,
@@ -30,7 +30,8 @@ export function MeetingDetailPage() {
     return (
       <ErrorState
         title="Couldn't load this meeting"
-        message={error.message}
+        message={LOAD_ERROR_MESSAGE}
+        details={error.message}
         onRetry={() => void refetch()}
       />
     );

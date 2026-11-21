@@ -1,5 +1,11 @@
 // Accounts and sessions: argon2id passwords, fresh session on every login, soft delete.
-import type { DeleteAccountInput, LoginInput, PublicUser, RegisterInput } from '@debrief/shared';
+import type {
+  DeleteAccountInput,
+  LoginInput,
+  PublicUser,
+  RegisterInput,
+  UpdateProfileInput,
+} from '@debrief/shared';
 import argon2 from 'argon2';
 import type { UserRow } from '../../db/schema';
 import { generateSessionToken, hashSessionToken } from '../../lib/crypto';
@@ -68,6 +74,12 @@ export const authService = {
     const tokenHash = hashSessionToken(token);
     const user = await authRepository.findUserBySession(tokenHash);
     return user ? { user: toPublicUser(user), tokenHash } : null;
+  },
+
+  async updateProfile(userId: string, input: UpdateProfileInput): Promise<PublicUser> {
+    const user = await authRepository.updateName(userId, input.name);
+    if (!user) throw unauthenticated();
+    return toPublicUser(user);
   },
 
   async deleteAccount(userId: string, input: DeleteAccountInput) {

@@ -49,6 +49,7 @@ export function createAuthRouter({
   );
 
   router.get('/me', requireAuth, authController.me);
+  router.patch('/me', requireAuth, authController.updateProfile);
   router.delete(
     '/account',
     requireAuth,
