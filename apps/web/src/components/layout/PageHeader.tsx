@@ -1,13 +1,8 @@
+// A page title, description and action buttons, shown in the top bar.
 import type { ReactNode } from 'react';
 import { usePageTitle } from '@/lib/usePageTitle';
 import { PageBar } from './PageBar';
 
-/**
- * Page title (also sets the tab title), optional description, and actions on the right.
- * Rendered into the shell's page bar (see PageBar), so on desktop it sits on the dark frame above
- * the page panel, like the meeting page's title. Same spacing as MeetingBar, so the panel's top
- * edge stays in the same place when moving between pages.
- */
 export function PageHeader({
   title,
   description,

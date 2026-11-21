@@ -1,3 +1,4 @@
+// Rules for Google Calendar: connect, disconnect, and add or update an event for an item.
 import { randomBytes } from 'node:crypto';
 import type { ActionItem, CalendarStatus } from '@debrief/shared';
 import { decryptSecret, encryptSecret, parseEncryptionKey } from '../../lib/crypto';
@@ -13,17 +14,12 @@ import {
 } from './googleClient';
 import { integrationsRepository } from './integrations.repository';
 
-// Business rules for the Google Calendar integration. No req/res, no SQL.
-
 export type IntegrationsDeps = {
   google: GoogleClient;
-  /** AES-256-GCM key for stored refresh tokens. Without it the feature stays off. */
   encryptionKey: Buffer | undefined;
-  /** Used to put a link back to the meeting in the calendar event. */
   webOrigin: string;
 };
 
-/** Google is down or refused: a clear, retryable message instead of a generic 500. */
 function googleUnavailable(err: unknown): AppError {
   logger.warn({ err }, 'Google Calendar request failed');
   return new AppError(
@@ -62,11 +58,6 @@ export function createIntegrationsService({ google, encryptionKey, webOrigin }: 
       };
     },
 
-    /**
-     * Step 1 of connecting: where to send the user, plus two secrets the browser must keep until
-     * Google sends them back. `state` stops another site attaching ITS Google account to this
-     * user (CSRF); the PKCE verifier makes a stolen authorization code useless.
-     */
     startConnect() {
       requireKey();
       const state = randomBytes(32).toString('base64url');
@@ -74,11 +65,9 @@ export function createIntegrationsService({ google, encryptionKey, webOrigin }: 
       return { url: google.authUrl(state, pkce.challenge), state, verifier: pkce.verifier };
     },
 
-    /** Step 2, after Google sends the user back: swap the code for a refresh token, store it encrypted. */
     async finishConnect(userId: string, code: string, codeVerifier: string) {
       const key = requireKey();
       const { refreshToken, scope } = await google.exchangeCode(code, codeVerifier);
-      // The user can untick permissions on Google's screen; without events access we can't work.
       if (!scope.split(' ').includes(CALENDAR_SCOPE)) {
         await google.revoke(refreshToken).catch(() => {});
         throw new GoogleError('failed', 'Calendar permission was not granted');
@@ -86,7 +75,6 @@ export function createIntegrationsService({ google, encryptionKey, webOrigin }: 
       await integrationsRepository.saveConnection(userId, encryptSecret(refreshToken, key), scope);
     },
 
-    /** Forget the token here AND revoke it at Google, so it's useless even if it leaked. */
     async disconnect(userId: string) {
       const connection = await integrationsRepository.findConnection(userId);
       if (!connection) return;
@@ -94,7 +82,6 @@ export function createIntegrationsService({ google, encryptionKey, webOrigin }: 
         try {
           await google.revoke(decryptSecret(connection.refreshTokenEncrypted, encryptionKey));
         } catch (err) {
-          // Still delete our copy: the user asked to disconnect.
           logger.warn({ err }, 'Revoking the Google token failed');
         }
       }
@@ -127,7 +114,6 @@ export function createIntegrationsService({ google, encryptionKey, webOrigin }: 
         );
       } catch (err) {
         if (err instanceof GoogleError && err.kind === 'revoked') {
-          // Access was removed in Google: drop the dead token so the UI offers "Connect" again.
           await integrationsRepository.deleteConnection(userId);
           throw new AppError(
             409,
@@ -164,7 +150,6 @@ export function createIntegrationsService({ google, encryptionKey, webOrigin }: 
 
 export type IntegrationsService = ReturnType<typeof createIntegrationsService>;
 
-/** The real wiring, from env. Used by server.ts; tests build their own with a fake Google. */
 export function createIntegrationsFromEnv(env: {
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;

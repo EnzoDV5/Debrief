@@ -1,10 +1,7 @@
+// Sends the welcome email to a new user in the background, so it never slows sign-up down.
 import { logger } from '../../lib/logger';
 import type { EmailClient } from './emailClient';
 
-/**
- * The welcome letter for a brand-new account (email sign-up or first Google sign-in). It goes
- * to the new user only: nobody else is told about sign-ups.
- */
 export function createWelcomeMailer({
   email,
   webOrigin,
@@ -13,10 +10,6 @@ export function createWelcomeMailer({
   webOrigin: string;
 }) {
   return {
-    /**
-     * Fire and forget: called after the sign-up has already been answered, so a slow or failed
-     * email never delays or breaks signing up. A failure is only logged.
-     */
     send(user: { email: string; name: string }) {
       if (!email.welcomeConfigured) return;
       email

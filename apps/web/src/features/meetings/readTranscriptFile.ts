@@ -1,3 +1,4 @@
+// Checks a transcript file in the browser for instant feedback. The api checks it again.
 import {
   MAX_TRANSCRIPT_BYTES,
   parseTranscript,
@@ -7,10 +8,6 @@ import {
 
 export type ReadFileResult = { ok: true; lines: TranscriptLine[] } | { ok: false; error: string };
 
-/**
- * The browser-side twin of the api's file checks, for instant feedback before uploading.
- * The server repeats every check: this only saves the user a round trip.
- */
 export async function readTranscriptFile(file: File): Promise<ReadFileResult> {
   const ext = file.name.split('.').pop()?.toLowerCase();
   const sourceType = UPLOAD_EXTENSIONS.find((allowed) => allowed === ext);
@@ -31,7 +28,6 @@ export async function readTranscriptFile(file: File): Promise<ReadFileResult> {
   return { ok: true, lines };
 }
 
-/** "q1-planning_call.vtt" → "Q1 planning call": a sensible default title. */
 export function titleFromFilename(name: string): string {
   const base = name
     .replace(/\.[^.]+$/, '')

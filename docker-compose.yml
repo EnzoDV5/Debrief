@@ -2,10 +2,8 @@ name: debrief
 
 services:
   db:
-    # Postgres 17 to match what Supabase runs in production.
     image: postgres:17-alpine
     environment:
-      # Local-only credentials, not secrets. Production uses Supabase.
       POSTGRES_USER: debrief
       POSTGRES_PASSWORD: debrief
       POSTGRES_DB: debrief
@@ -13,7 +11,6 @@ services:
       - '5432:5432'
     volumes:
       - db-data:/var/lib/postgresql/data
-      # Runs once, on first start with an empty volume: creates the separate test database.
       - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U debrief -d debrief']
@@ -25,24 +22,17 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    # Secrets (e.g. OPENROUTER_API_KEY) come from .env at runtime; they are never in the image.
     env_file:
       - path: .env
         required: false
-    # These override .env: inside Docker the database is the `db` service, not localhost.
     environment:
       NODE_ENV: production
       PORT: 3000
       DATABASE_URL: postgres://debrief:debrief@db:5432/debrief
-      # The browser sees the app on :8080, so that's the only origin allowed to change data.
       WEB_ORIGIN: http://localhost:8080
-      # nginx sits in front of the api; trust its X-Forwarded-For for the real client IP.
       TRUST_PROXY: 1
-      # Google sends users back to the site they started on (register this URI in Google too).
       GOOGLE_REDIRECT_URI: http://localhost:8080/api/integrations/google/callback
       GOOGLE_AUTH_REDIRECT_URI: http://localhost:8080/api/auth/google/callback
-    # No published port: like production, the api is only reachable through the web proxy.
-    # (This also keeps port 3000 free for `npm run dev:api`.)
     depends_on:
       db:
         condition: service_healthy

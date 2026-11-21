@@ -1,11 +1,10 @@
+// Writes the Netlify file that forwards /api to the Render api after each build.
 import { writeFile } from 'node:fs/promises';
 import process from 'node:process';
 import { URL } from 'node:url';
 
 const rawOrigin = process.env.DEBRIEF_API_ORIGIN?.trim();
 
-// Netlify serves the Vite build; the Express API and its background worker run elsewhere.
-// A proxy keeps the browser's /api calls and session cookie on the site's own origin.
 let apiRule = '';
 if (rawOrigin) {
   let url;
@@ -32,7 +31,6 @@ if (rawOrigin) {
   throw new Error('Set DEBRIEF_API_ORIGIN to your deployed API origin in Netlify build settings');
 }
 
-// Order matters: the API proxy must be checked before React Router's page fallback.
 await writeFile(
   new URL('../apps/web/dist/_redirects', import.meta.url),
   `${apiRule}/* /index.html 200\n`,

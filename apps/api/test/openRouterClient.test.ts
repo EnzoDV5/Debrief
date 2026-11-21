@@ -1,3 +1,4 @@
+// The OpenRouter client: timeouts, retries and error handling.
 import { describe, expect, it, vi } from 'vitest';
 import {
   AiError,
@@ -18,7 +19,6 @@ function respond(status: number, body: unknown, headers: Record<string, string> 
 }
 const ok = (content: string) => respond(200, { choices: [{ message: { content } }] });
 
-/** A client with a scripted fetch and instant "sleeps" that we record. */
 function setup(responses: Array<Response | Error>, options: { timeoutMs?: number } = {}) {
   const fetchImpl = vi.fn(async () => {
     const next = responses.shift();
@@ -123,7 +123,7 @@ describe('OpenRouter client', () => {
 
   it('treats a 200 with an error body or empty content as failures', async () => {
     const providerError = setup([respond(200, { error: { message: 'upstream died' } }), ok('{}')]);
-    expect(await providerError.client.complete(request)).toBe('{}'); // retried as "unavailable"
+    expect(await providerError.client.complete(request)).toBe('{}');
 
     const empty = setup([ok('   ')]);
     expect((await failureOf(empty.client.complete(request))).kind).toBe('empty');

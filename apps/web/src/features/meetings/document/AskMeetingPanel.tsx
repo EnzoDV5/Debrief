@@ -1,3 +1,4 @@
+// The "Ask this meeting" card.
 import type { AskMeetingResponse } from '@debrief/shared';
 import { ArrowUp, Sparkles, X } from 'lucide-react';
 import { useRef, useState, type FormEvent } from 'react';
@@ -20,12 +21,6 @@ const keepFocus = (event: { preventDefault: () => void }) => event.preventDefaul
 const chip =
   'rounded-pill border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:border-accent/40 hover:bg-accent-soft hover:text-accent';
 
-/**
- * "Ask this meeting": a card at the top of the notes column, always open. At rest it is just the
- * title and a compact chat-style question box. Suggestions appear while it has focus, and an
- * answer opens below. On wide screens it is sticky at the top of the notes column and grows down
- * over it instead of pushing the transcript (see MeetingDocument).
- */
 export function AskMeetingPanel({ meetingId }: { meetingId: string }) {
   const ask = useAskMeeting(meetingId);
   const input = useRef<HTMLInputElement>(null);
@@ -58,7 +53,6 @@ export function AskMeetingPanel({ meetingId }: { meetingId: string }) {
     <section
       aria-label="Ask this meeting"
       aria-busy={ask.isPending}
-      // "group": the suggestions show while anything in the card has focus (focus-within).
       className="group rounded-card border border-line bg-surface p-4 shadow-raised"
     >
       <div className="flex items-center gap-2.5">
@@ -94,9 +88,6 @@ export function AskMeetingPanel({ meetingId }: { meetingId: string }) {
         </button>
       </form>
 
-      {/* While the card has focus and no answer is open: suggestions, or earlier questions.
-          The chips don't take focus on press (keepFocus): otherwise the box would lose focus,
-          hiding the chips before the click lands (Safari doesn't focus clicked buttons). */}
       {!shown && (
         <div
           className="mt-3 hidden flex-wrap gap-2 group-focus-within:flex"
@@ -164,7 +155,6 @@ export function AskMeetingPanel({ meetingId }: { meetingId: string }) {
               ))}
             </div>
           )}
-          {/* The answer reads like a quote: a coloured rule, no box. */}
           <div className="relative border-l-2 border-accent pr-8 pl-4" aria-live="polite">
             <button
               type="button"

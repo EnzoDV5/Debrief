@@ -1,3 +1,4 @@
+// Analyses one meeting: three AI calls, checks the answers against the transcript, then saves.
 import type { Logger } from 'pino';
 import type { ZodType } from 'zod';
 import { analysisRepository } from './analysis.repository';
@@ -11,30 +12,20 @@ import {
   type AnalysisStep,
 } from './prompts';
 
-// Runs the analysis for one meeting. Called by the background worker, never by a web request,
-// so a slow or failing AI can never make the website hang.
-//
-// Flow: load meeting (scoped to its owner) → 'processing' → summary, decisions, action items
-// (each tries the model chain) → post-checks → save everything in one transaction → 'done'.
-// Any failure → 'failed' with a message the user can act on. The transcript is never touched.
-
 export type AnalysisJob = { meetingId: string; userId: string };
 
 export type AnalysisDeps = {
   ai: AiClient;
-  /** Models to try, in order. */
   models: string[];
   log: Pick<Logger, 'info' | 'warn' | 'error'>;
 };
 
-/** A failure we expected and can explain to the user. */
 class AnalysisFailure extends Error {
   constructor(readonly userMessage: string) {
     super(userMessage);
   }
 }
 
-// Shown on the meeting page. Each says the transcript is safe and what to do next.
 const USER_MESSAGES: Record<AiErrorKind | 'invalid_output', string> = {
   daily_limit:
     "Today's free AI quota has been used up. Your transcript is saved; try again tomorrow.",
@@ -62,11 +53,6 @@ type StepConfig<T> = {
 
 type Context = { job: AnalysisJob; transcript: string; deps: AnalysisDeps };
 
-/**
- * One step (e.g. "action_items"): try each model until one returns output that parses AND passes
- * the Zod schema. Every attempt is recorded in analysis_runs. Malformed, partial or wrong-shaped
- * output counts as 'invalid_output' and moves on to the next model; it is never saved.
- */
 async function runStep<T>(step: AnalysisStep, config: StepConfig<T>, ctx: Context): Promise<T> {
   const { job, transcript, deps } = ctx;
   let lastProblem: AiErrorKind | 'invalid_output' = 'not_configured';
@@ -98,9 +84,7 @@ async function runStep<T>(step: AnalysisStep, config: StepConfig<T>, ctx: Contex
     } catch (err) {
       if (!(err instanceof AiError)) throw err;
       await record('failed', { error: `${err.kind}: ${err.message}` });
-      // Logged without any transcript or AI text, only what happened.
       deps.log.warn({ meetingId: job.meetingId, step, model, kind: err.kind }, 'AI call failed');
-      // No other model can fix a used-up daily quota, a bad key or a missing key: stop now.
       if (FATAL.has(err.kind)) throw new AnalysisFailure(USER_MESSAGES[err.kind]);
       lastProblem = err.kind;
       continue;
@@ -138,13 +122,9 @@ export async function analyzeMeeting(job: AnalysisJob, deps: AnalysisDeps): Prom
   }
 
   await analysisRepository.markProcessing(job.userId, job.meetingId);
-  // User isolation: this prompt contains this one meeting's transcript and nothing else. Every
-  // AI call is a fresh, independent request: no shared history, no other user's data.
   const ctx: Context = { job, transcript: formatTranscript(meeting.transcriptLines), deps };
 
   try {
-    // One after another (not in parallel): gentler on free-tier rate limits, and a used-up
-    // daily quota stops the run after the first call instead of three.
     const summary = await runStep('summary', steps.summary, ctx);
     const decisions = await runStep('decisions', steps.decisions, ctx);
     const items = await runStep('action_items', steps.action_items, ctx);
@@ -171,8 +151,6 @@ export async function analyzeMeeting(job: AnalysisJob, deps: AnalysisDeps): Prom
     }
     deps.log.error({ err, meetingId: job.meetingId }, 'Analysis crashed');
     await analysisRepository.markFailed(job.userId, job.meetingId, UNEXPECTED);
-    // Unexpected failures may be transient (for example a dropped database connection).
-    // Let pg-boss retry the job; a successful retry will replace this error state.
     throw err;
   }
 }

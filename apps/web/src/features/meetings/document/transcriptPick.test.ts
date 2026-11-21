@@ -1,3 +1,4 @@
+// Turning a click or selection into a pick.
 import { describe, expect, it } from 'vitest';
 import { pickText, sentencesOf } from './transcriptPick';
 

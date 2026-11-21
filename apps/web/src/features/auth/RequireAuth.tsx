@@ -1,12 +1,9 @@
+// Sends logged-out visitors to the log-in page. The api still checks every request itself.
 import { Navigate, Outlet, useLocation } from 'react-router';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { useMe } from './hooks';
 
-/**
- * Wraps every logged-in page. Logged out → /login, remembering where the user was going.
- * (A UX gate only: the api enforces auth on every request regardless.)
- */
 export function RequireAuth() {
   const { data: user, isPending, error, refetch } = useMe();
   const location = useLocation();

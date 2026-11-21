@@ -1,5 +1,4 @@
-// Public entry point: web and api import from '@debrief/shared', never from deep paths.
-// The package exports TypeScript source directly (no build step): tsx and Vite compile it.
+// Everything the web and api share, from one import.
 export * from './schemas/analysis';
 export * from './schemas/ask';
 export * from './schemas/auth';

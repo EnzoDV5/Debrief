@@ -1,3 +1,4 @@
+// Google Calendar buttons in the UI.
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
@@ -49,7 +50,6 @@ describe('Google Calendar on the Account page', () => {
     renderApp('/account?calendar=connected');
 
     expect(await screen.findByText('Google Calendar is connected.')).toBeInTheDocument();
-    // The message comes from the URL at once; the date arrives with the status request.
     expect(await screen.findByText(/since 19 Nov 2026/)).toBeInTheDocument();
   });
 
@@ -128,7 +128,6 @@ describe('"Add to calendar" on an action item', () => {
     const link = await screen.findByRole('link', { name: /Open in Google Calendar/ });
     expect(link).toHaveAttribute('href', 'https://calendar.google.com/event?eid=abc');
     expect(link).toHaveAttribute('target', '_blank');
-    // Now it's in the calendar, the button offers to update that event instead.
     expect(
       screen.getByRole('button', { name: 'Update “Send the files” in Google Calendar' }),
     ).toBeInTheDocument();

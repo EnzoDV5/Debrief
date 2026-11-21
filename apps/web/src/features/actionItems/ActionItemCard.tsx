@@ -1,3 +1,4 @@
+// The card for one action item: tick it off, see its owner, date and source, and edit it.
 import type { ActionItem, ActionItemStatus } from '@debrief/shared';
 import {
   CalendarDays,
@@ -26,11 +27,6 @@ export function isOverdue(item: Pick<ActionItem, 'dueDate' | 'status'>, today = 
   return item.status !== 'done' && item.dueDate !== null && item.dueDate < today;
 }
 
-/**
- * The shell every result card shares (action items and decisions): same surface, border, padding
- * and header, so the two kinds only differ by their colour. `group` lets the header's edit and
- * delete buttons appear on hover.
- */
 export function noteCardClass(kind: NoteKind, active: boolean) {
   return cn(
     'group overflow-hidden rounded-card border border-line glass p-4 shadow-card transition-[box-shadow,border-color] duration-200',
@@ -45,10 +41,6 @@ const KIND = {
   decision: { label: 'Decision', icon: Check, chip: 'bg-success-soft text-success' },
 } as const;
 
-/**
- * Card header: what kind of result it is, the transcript line it came from, "Edited by you", and
- * the card's buttons on the right.
- */
 export function NoteCardHeader({
   kind,
   line,
@@ -56,7 +48,6 @@ export function NoteCardHeader({
   actions,
 }: {
   kind: NoteKind;
-  /** Shown as plain text: on the meeting page the line number beside the card is the link. */
   line?: number | null;
   edited?: boolean;
   actions?: ReactNode;
@@ -74,7 +65,6 @@ export function NoteCardHeader({
         {label}
       </span>
       {line != null && <span className="text-xs text-muted numeric">Line {line}</span>}
-      {/* The transcript stays as it was said; this tells the reader the card was reworded. */}
       {edited && (
         <span className="text-xs text-muted">
           <span aria-hidden="true">· </span>
@@ -84,9 +74,6 @@ export function NoteCardHeader({
         </span>
       )}
       {actions && (
-        // Mouse users see the buttons on hover or focus, so a column of cards stays calm. Touch
-        // screens (no hover) always show them. They're always in the page for keyboard and
-        // screen-reader users.
         <div className="-my-1 -mr-2 ml-auto flex shrink-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 [@media(hover:hover)]:opacity-0">
           {actions}
         </div>
@@ -95,7 +82,6 @@ export function NoteCardHeader({
   );
 }
 
-/** Small round initials, like an avatar, for the person named as owner. */
 export function Initials({ name }: { name: string }) {
   const parts = name.trim().split(/\s+/);
   const letters = (parts[0]?.[0] ?? '') + (parts.length > 1 ? (parts.at(-1)?.[0] ?? '') : '');
@@ -109,14 +95,9 @@ export function Initials({ name }: { name: string }) {
   );
 }
 
-/** The owner and due-date pills (also used by the sign-in page's how-it-works demo). */
 export const cardChip =
   'inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-xs font-medium';
 
-/**
- * One action item: tick box, task, owner, due date, review warning and where it came from.
- * Used on the meeting page and on "My open items" (which adds a link back to the meeting).
- */
 export function ActionItemCard({
   item,
   source,
@@ -127,15 +108,11 @@ export function ActionItemCard({
   onActiveChange,
 }: {
   item: ActionItem;
-  /** Context under the task: "In brief" on a meeting page, the meeting's name on "My open items". */
   source?: ReactNode;
-  /** Its transcript line, shown in the header (the meeting page passes it). */
   line?: number | null;
   onEdit: () => void;
   onDelete: () => void;
-  /** Its words are highlighted in the transcript right now. */
   active?: boolean;
-  /** Hovering or focusing the card lights up its words in the transcript. */
   onActiveChange?: (active: boolean) => void;
 }) {
   const update = useUpdateActionItem();
@@ -151,7 +128,6 @@ export function ActionItemCard({
       className={noteCardClass('action', active)}
     >
       {item.needsReview && (
-        // A strip across the top of the card: hard to miss, but doesn't push the task aside.
         <p className="-mx-4 -mt-4 mb-3 flex items-start gap-1.5 bg-warning-soft px-4 py-2 text-xs text-warning">
           <TriangleAlert aria-hidden="true" className="mt-px size-3.5 shrink-0" />
           <span>
@@ -177,7 +153,6 @@ export function ActionItemCard({
       />
 
       <div className="mt-2 flex items-start gap-3">
-        {/* A real checkbox: Space toggles it, and screen readers announce its state. */}
         <input
           type="checkbox"
           checked={done}
@@ -219,7 +194,6 @@ export function ActionItemCard({
             {overdue && <Badge tone="danger">Overdue</Badge>}
             {item.status === 'in_progress' && <Badge tone="accent">In progress</Badge>}
           </div>
-          {/* The transcript's own words, so the resolved date can be checked. */}
           {item.dueDateText && (
             <p className="mt-1.5 text-xs text-muted">Said as “{item.dueDateText}”</p>
           )}
@@ -259,7 +233,6 @@ export function IconButton({
   );
 }
 
-/** "Line 6" link to the transcript line an item or decision came from. */
 export function LineLink({
   meetingId,
   line,
@@ -269,7 +242,6 @@ export function LineLink({
   meetingId?: string;
   line: number | null;
   onJump?: () => void;
-  /** e.g. a lighter colour where the link sits on a dark background. */
   className?: string;
 }) {
   if (line === null) return null;

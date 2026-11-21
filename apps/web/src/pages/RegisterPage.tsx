@@ -1,3 +1,4 @@
+// The sign-up page.
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useLeaveAuth, type EntranceState } from '@/components/layout/authExit';
 import { GoogleSignInButton } from '@/features/auth/GoogleSignInButton';

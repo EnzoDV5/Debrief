@@ -1,3 +1,4 @@
+// HTTP layer for register, log in, log out, me and delete account.
 import {
   deleteAccountSchema,
   loginSchema,
@@ -9,16 +10,12 @@ import { getAuthUser } from '../../middleware/requireAuth';
 import { authService } from './auth.service';
 import { clearSessionCookie, SESSION_COOKIE, setSessionCookie } from './sessionCookie';
 
-// HTTP in, HTTP out: validate the request, call the service, send the response. No SQL here.
-// schema.parse() throws a ZodError on bad input, which the error handler turns into a 400.
-
 function cookieToken(req: Request): string | undefined {
   const token: unknown = req.cookies?.[SESSION_COOKIE];
   return typeof token === 'string' ? token : undefined;
 }
 
 export const authController = {
-  /** Returns the new user, so the route can send the welcome email after answering. */
   async register(req: Request, res: Response) {
     const input = registerSchema.parse(req.body);
     const { user, token } = await authService.register(input);
@@ -34,7 +31,6 @@ export const authController = {
     res.json({ user } satisfies AuthResponse);
   },
 
-  // Works whether or not the session is still valid: the goal is "logged out" either way.
   async logout(req: Request, res: Response) {
     const token = cookieToken(req);
     if (token) await authService.logout(token);

@@ -1,3 +1,4 @@
+// Search results for meetings that match what was typed in the search box.
 import { Search } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import { PageHeader } from '@/components/layout/PageHeader';

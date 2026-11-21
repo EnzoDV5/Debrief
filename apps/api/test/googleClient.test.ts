@@ -1,3 +1,4 @@
+// The Google Calendar client against fake HTTP responses.
 import { createHash } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 import {

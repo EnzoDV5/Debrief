@@ -1,10 +1,7 @@
+// Shows an api error in a form, under the right field when possible.
 import type { FieldValues, Path, UseFormSetError } from 'react-hook-form';
 import { ApiError } from '@/api/client';
 
-/**
- * Shows an api error in a form: messages for known fields go under those inputs (the server is
- * the real validator), anything else becomes the form-level message in `errors.root.server`.
- */
 export function applyApiError<T extends FieldValues>(
   error: unknown,
   setError: UseFormSetError<T>,

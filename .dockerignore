@@ -1,5 +1,3 @@
-# Keep the build context small and keep secrets out of images.
-# Secrets reach containers at runtime through docker-compose (env_file), never baked in.
 **/node_modules
 **/dist
 **/coverage
@@ -8,5 +6,4 @@
 .env
 .env.*
 !.env.example
-docs/private
 *.log

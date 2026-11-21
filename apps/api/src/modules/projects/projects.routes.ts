@@ -1,3 +1,4 @@
+// The /api/projects routes.
 import { Router } from 'express';
 import { requireAuth } from '../../middleware/requireAuth';
 import { projectsController } from './projects.controller';

@@ -1,3 +1,4 @@
+// Action items in the UI: tick, edit, add, delete and filters.
 import type { ActionItem } from '@debrief/shared';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -81,13 +82,11 @@ describe('action items on the meeting page', () => {
     const box = await screen.findByRole('checkbox', { name: 'Mark “Send the files” as done' });
     await user.click(box);
 
-    // Optimistic: checked straight away, while the request is still in flight.
     expect(
       screen.getByRole('checkbox', { name: 'Mark “Send the files” as not done' }),
     ).toBeChecked();
     expect(sent).toEqual({ status: 'done' });
     answer({ status: 200, body: { actionItem: item({ status: 'done' }) } });
-    // Still ticked once the server has confirmed it.
     await waitFor(() =>
       expect(
         screen.getByRole('checkbox', { name: 'Mark “Send the files” as not done' }),
@@ -187,7 +186,6 @@ describe('action items on the meeting page', () => {
     await user.type(task, 'Book the venue');
     await user.click(within(dialog).getByRole('button', { name: 'Add item' }));
 
-    // Saved with its line, so it shows beside line 2.
     expect(
       await within(document.getElementById('L2')!).findByText('Book the venue'),
     ).toBeInTheDocument();
@@ -230,7 +228,6 @@ describe('action items on the meeting page', () => {
     const user = userEvent.setup();
     renderApp(`/meetings/${MEETING_ID}`);
 
-    // The summary lives in the meeting bar's Summary dropdown.
     await user.click(await screen.findByRole('button', { name: 'Summary' }));
     await user.click(screen.getByRole('button', { name: 'Edit summary' }));
     const summary = screen.getByLabelText('Summary text');
@@ -239,7 +236,6 @@ describe('action items on the meeting page', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }));
     expect(await screen.findByText('Corrected.')).toBeInTheDocument();
 
-    // A decision made from a clicked sentence sits beside that line.
     await user.click(screen.getByText('We chose blue.'));
     const toolbar = screen.getByRole('toolbar', { name: 'Create from the transcript' });
     await user.click(within(toolbar).getByRole('button', { name: 'Decision' }));

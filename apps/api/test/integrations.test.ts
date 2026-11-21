@@ -1,3 +1,4 @@
+// Google Calendar: connecting, adding items and isolation.
 import { randomBytes } from 'node:crypto';
 import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
@@ -16,7 +17,6 @@ import { closeDatabase, PASSWORD, resetDatabase, signUp, testAppDeps, WEB_ORIGIN
 const REFRESH_TOKEN = '1//refresh-token-from-google';
 const key = randomBytes(32);
 
-/** A pretend Google that records what we asked it to do. */
 function fakeGoogle(overrides: Partial<GoogleClient> = {}) {
   const calls = { events: [] as CalendarEvent[], revoked: [] as string[], codes: [] as string[] };
   const google: GoogleClient = {
@@ -68,7 +68,6 @@ beforeEach(async () => {
 });
 afterAll(closeDatabase);
 
-/** Runs the real redirect → callback dance and returns the callback response. */
 async function connect(cookie: string, tamper?: (state: string) => string) {
   const start = await request(app).get('/api/integrations/google/connect').set('Cookie', cookie);
   const state = new URL(start.headers.location as string).searchParams.get('state') ?? '';
@@ -142,7 +141,7 @@ describe('connecting Google Calendar', () => {
   it('rejects a callback whose state does not match (CSRF) and saves nothing', async () => {
     const res = await connect(alice, (state) => `${state}x`);
     expect(res.headers.location).toBe('http://localhost:5173/account?calendar=error');
-    expect(google.calls.codes).toEqual([]); // the code was never even exchanged
+    expect(google.calls.codes).toEqual([]);
     expect((await pool.query('SELECT 1 FROM calendar_connections')).rowCount).toBe(0);
   });
 
@@ -274,6 +273,6 @@ describe('adding an action item to the calendar', () => {
 
     const res = await addToCalendar(bob, alicesItem);
     expect(res.status).toBe(404);
-    expect(google.calls.events).toEqual([]); // Google was never called
+    expect(google.calls.events).toEqual([]);
   });
 });

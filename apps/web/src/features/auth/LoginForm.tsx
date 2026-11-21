@@ -1,3 +1,4 @@
+// The log-in form.
 import { loginSchema } from '@debrief/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { ReactNode } from 'react';
@@ -15,7 +16,6 @@ export function LoginForm({
   alternative,
 }: {
   onSuccess: () => void;
-  /** Another way in, shown beside the Log in button (the Google button). */
   alternative?: ReactNode;
 }) {
   const login = useLogin();
@@ -29,7 +29,6 @@ export function LoginForm({
   } = useForm({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
-    // Check a field when the user leaves it, then live as they fix it. No red while typing.
     mode: 'onTouched',
   });
 
@@ -39,14 +38,12 @@ export function LoginForm({
       onSuccess();
     } catch (error) {
       applyApiError(error, setError, ['email', 'password']);
-      // Wrong credentials: keep the email, clear the password and put the cursor back there.
       resetField('password', { keepError: true });
       setFocus('password');
     }
   });
 
   return (
-    // noValidate: our own inline messages instead of the browser's inconsistent bubbles.
     <form onSubmit={onSubmit} noValidate className="space-y-3">
       {errors.root?.server && (
         <AuthMessage>
@@ -73,7 +70,6 @@ export function LoginForm({
         )}
       </Field>
 
-      {/* Side by side from sm up, stacked on narrow phones. */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="sm:flex-1">
           <Button type="submit" fullWidth loading={isSubmitting}>

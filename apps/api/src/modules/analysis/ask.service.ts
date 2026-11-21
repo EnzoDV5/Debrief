@@ -1,3 +1,4 @@
+// Answers a question about one meeting using only that meeting's transcript.
 import type { AskMeetingResponse, TranscriptLine } from '@debrief/shared';
 import { AppError, notFound } from '../../lib/errors';
 import { analysisRepository } from './analysis.repository';
@@ -34,7 +35,6 @@ function aiUnavailable(error: AiError): AppError {
   return new AppError(503, 'AI_UNAVAILABLE', "The AI couldn't answer right now. Please try again.");
 }
 
-/** A question is answered from this user's saved transcript; no conversation crosses meetings. */
 export async function askMeeting(
   userId: string,
   meetingId: string,
@@ -46,7 +46,6 @@ export async function askMeeting(
   if (!deps?.models.length)
     throw new AppError(503, 'AI_UNAVAILABLE', 'Meeting questions are unavailable right now.');
 
-  // Neutralise XML-looking tags in the question just as formatTranscript does for transcript text.
   const safeQuestion = question.replace(/</g, '‹').replace(/>/g, '›');
   const user = `${formatTranscript(meeting.transcriptLines)}\n<question>${safeQuestion}</question>`;
   let lastError: AiError | null = null;

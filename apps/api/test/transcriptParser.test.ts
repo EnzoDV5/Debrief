@@ -1,3 +1,4 @@
+// Transcript parsing, including a real VTT sample.
 import { readFileSync } from 'node:fs';
 import { detectMeetingDate, parseTranscript } from '@debrief/shared';
 import { describe, expect, it } from 'vitest';
@@ -5,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 const fixture = (name: string) =>
   readFileSync(new URL(`./fixtures/transcripts/${name}`, import.meta.url), 'utf8');
 
-const BOM = String.fromCharCode(0xfeff); // invisible byte-order mark
+const BOM = String.fromCharCode(0xfeff);
 
 describe('parseTranscript: WebVTT', () => {
   const lines = parseTranscript(fixture('messy-planning.vtt'), 'vtt');
@@ -25,7 +26,7 @@ describe('parseTranscript: WebVTT', () => {
       speaker: 'Lerato Dlamini',
       text: "Okay, can everyone hear me? Sipho, you're on mute I think.",
     });
-    expect(lines[3]?.speaker).toBe('Sipho Mthembu'); // <v.loud Sipho Mthembu>
+    expect(lines[3]?.speaker).toBe('Sipho Mthembu');
   });
 
   it('joins a cue that wraps over several lines', () => {
@@ -104,7 +105,6 @@ describe('parseTranscript: plain text', () => {
   });
 
   it('removes a byte-order mark so the first speaker is still recognised', () => {
-    // Without stripping it, the invisible BOM would sit before "Ann" and hide the speaker.
     expect(parseTranscript(BOM + 'Ann: hi\r\nBen: hello', 'txt')).toEqual([
       { n: 1, speaker: 'Ann', text: 'hi' },
       { n: 2, speaker: 'Ben', text: 'hello' },

@@ -1,3 +1,4 @@
+// Meetings: paste, upload, list, edit, delete, and no peeking at other users' meetings.
 import { readFileSync } from 'node:fs';
 import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
@@ -9,7 +10,7 @@ const fixture = (name: string) =>
   readFileSync(new URL(`./fixtures/transcripts/${name}`, import.meta.url));
 
 let app: ReturnType<typeof createApp>;
-let alice: string; // session cookies
+let alice: string;
 let bob: string;
 
 beforeEach(async () => {
@@ -60,7 +61,7 @@ describe('POST /api/meetings (paste)', () => {
       ],
     });
     const row = await pool.query('SELECT transcript_original FROM meetings');
-    expect(row.rows[0].transcript_original).toBe(transcript); // byte-for-byte what was sent
+    expect(row.rows[0].transcript_original).toBe(transcript);
   });
 
   it('requires a session', async () => {
@@ -213,7 +214,7 @@ describe('reading, updating and deleting meetings', () => {
 
     expect(malformed.status).toBe(404);
     expect(missing.status).toBe(404);
-    expect(malformed.body).toEqual(missing.body); // indistinguishable
+    expect(malformed.body).toEqual(missing.body);
   });
 });
 
@@ -235,7 +236,6 @@ describe('isolation: another user can never reach my meeting', () => {
       expect(res.body.error.code).toBe('NOT_FOUND');
     }
 
-    // Alice's meeting is untouched.
     const mine = await request(app).get(url).set('Cookie', alice);
     expect(mine.status).toBe(200);
     expect(mine.body.meeting.title).toBe('Weekly sync');

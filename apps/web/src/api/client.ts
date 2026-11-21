@@ -1,10 +1,7 @@
+// A small fetch wrapper. Any failed request becomes an ApiError with the server's code and field messages.
 import { apiErrorSchema } from '@debrief/shared';
 import type { ZodType } from 'zod';
 
-/**
- * Every failed request becomes an ApiError with the server's `code` and per-field messages,
- * so components never have to dig through raw responses.
- */
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -22,10 +19,6 @@ type RequestOptions = { method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'; body?: unk
 async function send(path: string, { method = 'GET', body }: RequestOptions): Promise<Response> {
   let res: Response;
   try {
-    // Relative /api URL: same origin in dev (Vite proxy), Docker (nginx) and production
-    // (Vercel rewrite), so the session cookie is always first-party and sent automatically.
-    // FormData (file uploads) is sent as-is: the browser sets the multipart Content-Type itself,
-    // including the boundary. Everything else is sent as JSON.
     const isForm = body instanceof FormData;
     res = await fetch(`/api${path}`, {
       method,
@@ -52,7 +45,6 @@ async function send(path: string, { method = 'GET', body }: RequestOptions): Pro
   return res;
 }
 
-/** Request that returns JSON. The response is checked against `schema`, never trusted blindly. */
 export async function request<T>(
   path: string,
   options: RequestOptions & { schema: ZodType<T> },
@@ -65,7 +57,6 @@ export async function request<T>(
   return parsed.data;
 }
 
-/** Request that returns no body (204), e.g. logout. */
 export async function requestNoContent(path: string, options: RequestOptions): Promise<void> {
   await send(path, options);
 }

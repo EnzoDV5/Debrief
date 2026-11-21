@@ -1,3 +1,4 @@
+// Renders the real app in tests, with a fresh cache each time.
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
@@ -9,7 +10,6 @@ type MockResponse = { status: number; body?: unknown };
 type Handler =
   MockResponse | ((body: unknown, url: string) => MockResponse | Promise<MockResponse>);
 
-// Answers every test gets unless it overrides them.
 const defaultHandlers: Record<string, Handler> = {
   'GET /api/meetings': { status: 200, body: { meetings: [] } },
   'GET /api/projects': { status: 200, body: { projects: [] } },
@@ -20,12 +20,6 @@ const defaultHandlers: Record<string, Handler> = {
   },
 };
 
-/**
- * Fake api: keys like "POST /api/auth/login" map to a response (or a function of the request
- * body). Unmatched requests fail the test loudly. Returns the mock so tests can inspect calls.
- * JSON bodies are parsed; FormData (file uploads) is passed to the handler as-is.
- * A key without a query string matches any query (the handler gets the full URL to inspect).
- */
 export function mockApi(overrides: Record<string, Handler>) {
   const handlers = { ...defaultHandlers, ...overrides };
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
@@ -51,7 +45,6 @@ export function mockApi(overrides: Record<string, Handler>) {
   return fetchMock;
 }
 
-/** Renders the real app routes at `path`, with a fresh query cache. */
 export function renderApp(path: string) {
   const queryClient = createQueryClient();
   queryClient.setDefaultOptions({ queries: { retry: false } });

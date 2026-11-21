@@ -1,3 +1,4 @@
+// Schemas for asking a question about a meeting.
 import { z } from 'zod';
 
 export const askMeetingInputSchema = z.object({

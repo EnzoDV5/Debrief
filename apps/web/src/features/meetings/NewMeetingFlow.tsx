@@ -1,3 +1,4 @@
+// The home screen: drop or paste a transcript, check it, then save and analyse.
 import {
   detectMeetingDate,
   meetingDetailsSchema,
@@ -23,32 +24,21 @@ import { useCreateMeeting } from './hooks';
 import { readTranscriptFile, titleFromFilename } from './readTranscriptFile';
 import { TranscriptView } from './TranscriptView';
 
-/** What the user chose, read and parsed in the browser, but NOT saved yet. */
 type Draft =
   | { source: 'upload'; file: File; lines: TranscriptLine[]; suggestedTitle: string }
   | { source: 'paste'; text: string; lines: TranscriptLine[]; suggestedTitle: string };
 
-/**
- * The home screen: drop a file (or paste text), check how Debrief reads it, then save & analyse.
- * Nothing is saved or sent to the AI until the user confirms on the review step, so a wrong file
- * costs nothing, not even a free AI request.
- */
 export function NewMeetingFlow({ notice }: { notice?: ReactNode }) {
   const [draft, setDraft] = useState<Draft | null>(null);
   return draft ? (
     <ReviewStep draft={draft} onBack={() => setDraft(null)} />
   ) : (
     <>
-      {/* e.g. "Welcome" or "Deleted …": only on the drop zone, not while reviewing a file. */}
       {notice}
       <ChooseStep onReady={setDraft} />
     </>
   );
 }
-
-// ---------------------------------------------------------------------------------------------
-// Step 1: choose a file or paste text
-// ---------------------------------------------------------------------------------------------
 
 function ChooseStep({ onReady }: { onReady: (draft: Draft) => void }) {
   const [error, setError] = useState<string>();
@@ -100,11 +90,9 @@ function ChooseStep({ onReady }: { onReady: (draft: Draft) => void }) {
 
       {!pasting ? (
         <>
-          {/* A real <input type="file"> inside a <label>: keyboard and screen-reader users get the
-              native file picker; dragging is a bonus on top. */}
           <label
             onDragOver={(event) => {
-              event.preventDefault(); // required, or the browser opens the file itself
+              event.preventDefault();
               setDragging(true);
             }}
             onDragLeave={() => setDragging(false)}
@@ -142,7 +130,7 @@ function ChooseStep({ onReady }: { onReady: (draft: Draft) => void }) {
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 if (file) void chooseFile(file);
-                event.target.value = ''; // choosing the same file again still fires onChange
+                event.target.value = '';
               }}
             />
           </label>
@@ -206,16 +194,10 @@ function ChooseStep({ onReady }: { onReady: (draft: Draft) => void }) {
   );
 }
 
-// ---------------------------------------------------------------------------------------------
-// Step 2: review, name it, then save & analyse
-// ---------------------------------------------------------------------------------------------
-
 function ReviewStep({ draft, onBack }: { draft: Draft; onBack: () => void }) {
   const navigate = useNavigate();
   const create = useCreateMeeting();
   const speakers = new Set(draft.lines.map((l) => l.speaker).filter(Boolean)).size;
-  // Deadlines like "Wednesday the 18th" are worked out from the meeting date, so use the date
-  // the transcript states (e.g. "Date: Monday 16 November 2026") rather than today, when it has one.
   const detectedDate = detectMeetingDate(draft.lines);
 
   const {
@@ -237,7 +219,6 @@ function ReviewStep({ draft, onBack }: { draft: Draft; onBack: () => void }) {
       );
       navigate(`/meetings/${meeting.id}`, { state: { created: true } });
     } catch (error) {
-      // A problem with the transcript itself (the server re-checks everything).
       const fields = error instanceof ApiError ? error.fields : undefined;
       const transcriptProblem = fields?.file ?? fields?.transcript;
       if (transcriptProblem && !fields?.title && !fields?.meetingDate) {
@@ -306,8 +287,6 @@ function ReviewStep({ draft, onBack }: { draft: Draft; onBack: () => void }) {
         </Card>
       </section>
 
-      {/* Always-visible action bar, so the decision is one click away however long the file is.
-          Sticky (not fixed) so it stays inside the page panel instead of covering the frame. */}
       <div className="sticky bottom-3 z-20 mt-6 rounded-card border border-white/70 glass-float px-4 py-3 shadow-raised">
         <div className="flex items-center justify-between gap-3">
           <p className="hidden items-center gap-1.5 text-sm text-muted sm:flex">

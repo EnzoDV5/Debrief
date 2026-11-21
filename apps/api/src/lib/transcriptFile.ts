@@ -1,3 +1,4 @@
+// Checks an uploaded file is really a .txt, .vtt or .md transcript in valid UTF-8, and reads it.
 import { UPLOAD_EXTENSIONS } from '@debrief/shared';
 import { AppError } from './errors';
 
@@ -11,14 +12,6 @@ function extensionOf(filename: string): UploadExtension | undefined {
   return UPLOAD_EXTENSIONS.find((allowed) => allowed === ext);
 }
 
-/**
- * Checks an uploaded file really is a text transcript and returns its text.
- * - extension must be .txt, .vtt or .md (the brief's list)
- * - bytes must be valid UTF-8: `fatal: true` makes the decoder throw on bad bytes instead of
- *   silently inserting "?" characters, so a renamed PDF or Word file is rejected
- * - no NUL bytes (binary files can be valid UTF-8 by accident)
- * - not empty
- */
 export function readTranscriptFile(file: { originalname: string; buffer: Buffer }) {
   const sourceType = extensionOf(file.originalname);
   if (!sourceType) throw fileError('UNSUPPORTED_FILE_TYPE', 'Upload a .txt, .vtt or .md file');

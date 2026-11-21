@@ -1,3 +1,4 @@
+// The home page, where a new meeting starts.
 import { useLocation } from 'react-router';
 import { Alert } from '@/components/ui/Alert';
 import { useCurrentUser } from '@/features/auth/hooks';
@@ -6,10 +7,6 @@ import { usePageTitle } from '@/lib/usePageTitle';
 
 type LocationState = { welcome?: boolean; deleted?: string } | null;
 
-/**
- * Home: the drop zone IS the start screen (one obvious thing to do). Past meetings live in the
- * sidebar; action items across meetings have their own page.
- */
 export function MeetingsPage() {
   usePageTitle('New meeting');
   const user = useCurrentUser();

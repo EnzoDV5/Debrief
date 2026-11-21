@@ -1,3 +1,4 @@
+// The 404 page.
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/Button';
 import { Logo } from '@/components/ui/Logo';

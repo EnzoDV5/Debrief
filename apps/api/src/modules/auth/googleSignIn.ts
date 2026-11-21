@@ -1,25 +1,17 @@
+// The Google OpenID Connect calls: build the consent link and swap the code for an identity.
 import { z } from 'zod';
 
-// Sign in with Google (OpenID Connect), with plain HTTPS calls like the Calendar client: build
-// the consent URL, then swap the returned code for the person's Google identity.
-// Tests replace `fetchImpl`, so they never call Google.
-
-/** Only who the person is: their Google id, email and name. No access to anything else. */
 export const SIGN_IN_SCOPES = 'openid email profile';
 
 const AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const ISSUERS = ['https://accounts.google.com', 'accounts.google.com'];
 
-/** Who signed in, as Google vouches for it. */
 export type GoogleIdentity = {
-  /** Google's permanent id for the person. */
   sub: string;
   email: string;
-  /** Google has confirmed the person owns this email address. */
   emailVerified: boolean;
   name: string | null;
-  /** The one-time value we sent in the consent URL; must match the one in our cookie. */
   nonce: string | null;
 };
 
@@ -31,13 +23,11 @@ export class GoogleSignInError extends Error {
 }
 
 export interface GoogleSignInClient {
-  /** False when the server has no Google credentials: the button isn't offered. */
   readonly configured: boolean;
   authUrl(params: { state: string; codeChallenge: string; nonce: string }): string;
   exchangeCode(code: string, codeVerifier: string): Promise<GoogleIdentity>;
 }
 
-// The ID token's claims we rely on. Anything else in it is ignored.
 const idTokenClaims = z.object({
   iss: z.string(),
   aud: z.string(),
@@ -49,12 +39,6 @@ const idTokenClaims = z.object({
   nonce: z.string().optional(),
 });
 
-/**
- * Reads and checks the ID token (a JWT) Google returned. We don't verify its signature: it came
- * straight from Google's token endpoint over HTTPS, in answer to a request made with our client
- * secret, and the OpenID Connect spec (Core 3.1.3.7) allows TLS to stand in for the signature in
- * exactly that case. We still check who issued it, that it's for our app, and that it's fresh.
- */
 export function readIdToken(idToken: string, clientId: string, now = Date.now()): GoogleIdentity {
   const payload = idToken.split('.')[1];
   if (!payload) throw new GoogleSignInError('Malformed ID token');
@@ -101,8 +85,6 @@ export function createGoogleSignInClient({
         redirect_uri: redirectUri,
         response_type: 'code',
         scope: SIGN_IN_SCOPES,
-        // Always show Google's account chooser, so someone with several Google accounts (or on
-        // a shared computer) picks the right one instead of being signed in silently.
         prompt: 'select_account',
         state,
         nonce,
@@ -124,7 +106,6 @@ export function createGoogleSignInClient({
           code_verifier: codeVerifier,
           redirect_uri: redirectUri,
         }),
-        // Don't leave the user staring at a blank tab if Google is slow.
         signal: AbortSignal.timeout(10_000),
       });
       const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;

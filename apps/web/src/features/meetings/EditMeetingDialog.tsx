@@ -1,3 +1,4 @@
+// Edit a meeting's title and date.
 import { meetingDetailsSchema, type Meeting } from '@debrief/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -9,7 +10,6 @@ import { Input } from '@/components/ui/Input';
 import { applyApiError } from '@/lib/formErrors';
 import { useUpdateMeeting } from './hooks';
 
-/** Rename a meeting or fix its date. The transcript itself is never edited. */
 export function EditMeetingDialog({
   meeting,
   open,
@@ -28,7 +28,6 @@ export function EditMeetingDialog({
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(meetingDetailsSchema),
-    // `values` keeps the form in sync with the latest saved meeting each time it opens.
     values: { title: meeting.title, meetingDate: meeting.meetingDate },
   });
 

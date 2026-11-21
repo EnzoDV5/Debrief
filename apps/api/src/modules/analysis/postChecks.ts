@@ -1,10 +1,7 @@
+// Checks the AI's answers against the transcript. Made-up owners, dates or quotes get flagged.
 import type { TranscriptLine } from '@debrief/shared';
 import { resolveDueDate } from './dueDates';
 import type { ActionItemsOutput, DecisionsOutput } from './prompts';
-
-// The AI's output has already passed the Zod schema (right shape). These checks ask a different
-// question: is it TRUE to the transcript? Each check is plain code we can test and explain.
-// Nothing here calls the AI. Anything we can't verify is cleared or flagged, never trusted.
 
 export type DecisionDraft = { text: string; sourceLine: number | null };
 
@@ -20,7 +17,6 @@ export type ActionItemDraft = {
   contextSummary: string | null;
 };
 
-/** Lowercase, straight quotes, punctuation → spaces, single spaces. For fair text comparison. */
 export function normalise(text: string): string {
   return text
     .normalize('NFKC')
@@ -33,23 +29,16 @@ export function normalise(text: string): string {
 const lineText = (line: TranscriptLine) =>
   normalise(line.speaker ? `${line.speaker}: ${line.text}` : line.text);
 
-/** Whether these words appear on this line (same forgiving comparison as the AI's quotes). */
 export function quoteIsOnLine(line: TranscriptLine, quote: string): boolean {
   const needle = normalise(quote);
   return needle.length > 0 && lineText(line).includes(needle);
 }
 
-/** Whole-word / whole-phrase match: "Ann" is in "ann said" but not in "annual". */
 function containsPhrase(haystack: string, phrase: string): boolean {
   const needle = normalise(phrase);
   return needle.length > 0 && ` ${haystack} `.includes(` ${needle} `);
 }
 
-/**
- * Checks the cited line and quote. If the quote is on the cited line: fine. If it's on a
- * different line (models are sometimes off by one), we use the line where it really is. If it's
- * nowhere, the citation can't be trusted.
- */
 function verifySource(
   lines: TranscriptLine[],
   sourceLine: number,
@@ -57,7 +46,6 @@ function verifySource(
 ): { sourceLine: number | null; problem: string | null } {
   const cited = lines.find((l) => l.n === sourceLine);
   const quote = normalise(sourceQuote);
-  // Very short "quotes" ("ok", "yes") would match almost anything, so they prove nothing.
   if (quote.length < 4) {
     return {
       sourceLine: cited ? cited.n : null,
@@ -81,14 +69,13 @@ export function checkDecisions(output: DecisionsOutput, lines: TranscriptLine[])
   const seen = new Set<string>();
   return output.decisions.flatMap((decision) => {
     const key = normalise(decision.text);
-    if (seen.has(key)) return []; // models occasionally repeat themselves
+    if (seen.has(key)) return [];
     seen.add(key);
     const { sourceLine, problem } = verifySource(
       lines,
       decision.source_line,
       decision.source_quote,
     );
-    // Decisions have no review flag: an unverifiable citation is simply dropped.
     return [{ text: decision.text, sourceLine: problem ? null : sourceLine }];
   });
 }
@@ -108,18 +95,15 @@ export function checkActionItems(
 
     const reasons: string[] = [];
 
-    // 1. Source line and quote must be real.
     const source = verifySource(lines, item.source_line, item.source_quote);
     if (source.problem) reasons.push(source.problem);
 
-    // 2. The owner must be someone the transcript actually names.
     let owner = item.owner;
     if (owner && !containsPhrase(transcript, owner)) {
       reasons.push(`Owner “${owner}” isn't mentioned in the transcript`);
       owner = null;
     }
 
-    // 3. The deadline words must be in the transcript; our code (not the AI) turns them into a date.
     let dueDateText = item.due_date_text;
     let dueDate: string | null = null;
     if (dueDateText && !transcript.includes(normalise(dueDateText))) {

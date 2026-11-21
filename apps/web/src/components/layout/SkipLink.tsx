@@ -1,4 +1,4 @@
-/** First thing keyboard users reach: jumps past the navigation straight to the page content. */
+// A "skip to content" link for keyboard users.
 export function SkipLink() {
   return (
     <a

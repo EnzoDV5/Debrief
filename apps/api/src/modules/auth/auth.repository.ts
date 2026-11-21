@@ -1,3 +1,4 @@
+// All the database work for users and sessions. Soft-deleted users are invisible here.
 import { and, eq, gt, isNull } from 'drizzle-orm';
 import { db } from '../../db/client';
 import {
@@ -8,12 +9,8 @@ import {
   type UserRow,
 } from '../../db/schema';
 
-// The only file in the auth module that talks to the database.
-// "Active" user = not soft-deleted. Deleted users are invisible to every query here.
-
 const PG_UNIQUE_VIOLATION = '23505';
 
-// Drizzle wraps driver errors, so the Postgres error code may be on the error or its cause.
 function isUniqueViolation(err: unknown): boolean {
   const codeOf = (e: unknown) =>
     typeof e === 'object' && e !== null && 'code' in e ? e.code : undefined;
@@ -49,10 +46,6 @@ export const authRepository = {
     return user ?? null;
   },
 
-  /**
-   * Returns null if an active account already uses this email or Google account (unique
-   * indexes). Accounts made with Google have no password hash.
-   */
   async createUser(data: {
     email: string;
     name: string;
@@ -68,7 +61,6 @@ export const authRepository = {
     }
   },
 
-  /** Remembers the Google account on an existing user, so next time they're found by it. */
   async linkGoogleAccount(userId: string, googleSub: string): Promise<UserRow | null> {
     const [user] = await db
       .update(users)
@@ -82,7 +74,6 @@ export const authRepository = {
     await db.insert(sessions).values(data);
   },
 
-  /** The user behind a session, if the session exists, hasn't expired and the user is active. */
   async findUserBySession(tokenHash: string): Promise<UserRow | null> {
     const [row] = await db
       .select({ user: users })
@@ -103,7 +94,6 @@ export const authRepository = {
     await db.delete(sessions).where(eq(sessions.id, tokenHash));
   },
 
-  /** A new "forgot password" link for this user. Any older link of theirs stops working. */
   async replacePasswordReset(data: { id: string; userId: string; expiresAt: Date }) {
     await db.transaction(async (tx) => {
       await tx.delete(passwordResets).where(eq(passwordResets.userId, data.userId));
@@ -111,13 +101,6 @@ export const authRepository = {
     });
   },
 
-  /**
-   * Uses a reset link: sets the new password and signs the user out everywhere, in one
-   * transaction. Returns null if the link doesn't exist, has expired, was already used, or
-   * belongs to a deleted account.
-   * Claiming the link is a single UPDATE ... WHERE used_at IS NULL, so even two clicks at the
-   * same moment can't both use it.
-   */
   async usePasswordReset(tokenHash: string, passwordHash: string): Promise<UserRow | null> {
     return db.transaction(async (tx) => {
       const [claimed] = await tx
@@ -140,13 +123,11 @@ export const authRepository = {
         .returning();
       if (!user) return null;
 
-      // Whoever knew the old password (maybe not the owner) is logged out on every device.
       await tx.delete(sessions).where(eq(sessions.userId, user.id));
       return user;
     });
   },
 
-  /** Soft delete + sign out everywhere + forget the calendar link, in one transaction. */
   async softDeleteUser(userId: string): Promise<void> {
     await db.transaction(async (tx) => {
       await tx
@@ -155,7 +136,6 @@ export const authRepository = {
         .where(and(eq(users.id, userId), isNull(users.deletedAt)));
       await tx.delete(sessions).where(eq(sessions.userId, userId));
       await tx.delete(passwordResets).where(eq(passwordResets.userId, userId));
-      // The stored Google token is useless to a deleted account and must not linger.
       await tx.delete(calendarConnections).where(eq(calendarConnections.userId, userId));
     });
   },

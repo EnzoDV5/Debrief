@@ -1,3 +1,4 @@
+// Shows whether a meeting's analysis is waiting, running, done or failed.
 import type { AnalysisStatus } from '@debrief/shared';
 import { CircleAlert, CircleCheck, Clock, LoaderCircle } from 'lucide-react';
 import type { ComponentProps } from 'react';
@@ -17,7 +18,6 @@ const statuses: Record<
   failed: { label: 'Analysis failed', tone: 'danger', icon: <CircleAlert aria-hidden="true" /> },
 };
 
-/** Where a meeting's AI analysis is up to. Text + icon + colour, never colour alone. */
 export function AnalysisStatusBadge({ status }: { status: AnalysisStatus }) {
   const { label, tone, icon } = statuses[status];
   return (

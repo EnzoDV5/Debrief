@@ -1,3 +1,4 @@
+// HTTP for connecting Google Calendar and adding action items to it.
 import { timingSafeEqual } from 'node:crypto';
 import type { CookieOptions, Request, Response } from 'express';
 import { env } from '../../config/env';
@@ -6,19 +7,15 @@ import { uuidParam } from '../../lib/params';
 import { getAuthUser } from '../../middleware/requireAuth';
 import type { IntegrationsService } from './integrations.service';
 
-// The OAuth "state" and PKCE verifier live in a short-lived, httpOnly cookie between the redirect
-// to Google and the callback. SameSite=Lax still sends it when Google redirects back (a top-level
-// GET navigation), but never on cross-site background requests.
 const OAUTH_COOKIE = 'debrief_google_oauth';
 const oauthCookieOptions: CookieOptions = {
   httpOnly: true,
   sameSite: 'lax',
   secure: env.NODE_ENV === 'production',
   path: '/api/integrations/google',
-  maxAge: 10 * 60 * 1000, // 10 minutes to get through Google's consent screen
+  maxAge: 10 * 60 * 1000,
 };
 
-/** Constant-time comparison, so the state can't be guessed byte by byte from response times. */
 function sameState(a: string, b: string): boolean {
   const left = Buffer.from(a);
   const right = Buffer.from(b);
@@ -26,7 +23,6 @@ function sameState(a: string, b: string): boolean {
 }
 
 export function createIntegrationsController(service: IntegrationsService, webOrigin: string) {
-  /** Back to the Account page with a one-word result the page turns into a message. */
   const backToAccount = (res: Response, result: string) => {
     res.clearCookie(OAUTH_COOKIE, oauthCookieOptions);
     res.redirect(`${webOrigin}/account?calendar=${result}`);
@@ -37,7 +33,6 @@ export function createIntegrationsController(service: IntegrationsService, webOr
       res.json(await service.status(getAuthUser(req).id));
     },
 
-    /** GET /integrations/google/connect: a full-page navigation that ends at Google. */
     connect(_req: Request, res: Response) {
       if (!service.available) return backToAccount(res, 'unavailable');
       const { url, state, verifier } = service.startConnect();
@@ -45,15 +40,12 @@ export function createIntegrationsController(service: IntegrationsService, webOr
       res.redirect(url);
     },
 
-    /** GET /integrations/google/callback: where Google sends the user back. */
     async callback(req: Request, res: Response) {
       const { code, state, error } = req.query;
-      if (typeof error === 'string') return backToAccount(res, 'denied'); // user clicked "Cancel"
+      if (typeof error === 'string') return backToAccount(res, 'denied');
 
       const cookie: unknown = req.cookies?.[OAUTH_COOKIE];
       const [expectedState, verifier] = typeof cookie === 'string' ? cookie.split('.') : [];
-      // CSRF protection: the state Google echoes back must be the one we put in this browser's
-      // cookie. Otherwise someone is trying to attach their Google account to this user.
       if (
         typeof code !== 'string' ||
         typeof state !== 'string' ||
@@ -78,7 +70,6 @@ export function createIntegrationsController(service: IntegrationsService, webOr
       res.status(204).end();
     },
 
-    /** POST /action-items/:id/calendar */
     async addToCalendar(req: Request, res: Response) {
       const itemId = uuidParam(req, 'id', 'Action item');
       res.json(await service.addToCalendar(getAuthUser(req).id, itemId));

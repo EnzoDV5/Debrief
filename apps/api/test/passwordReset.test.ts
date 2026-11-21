@@ -1,3 +1,4 @@
+// Forgot password: links, expiry and setting a new password.
 import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/app';
@@ -16,9 +17,6 @@ import {
   testAppDeps,
   WEB_ORIGIN,
 } from './helpers';
-
-// "Forgot password", end to end through the real routes and database. Email is a fake that
-// records what it would have sent; nothing ever reaches EmailJS.
 
 const NEW_PASSWORD = 'Lantern-orbit-Velvet-42';
 
@@ -54,11 +52,9 @@ const login = (password: string) =>
     .set('Origin', WEB_ORIGIN)
     .send({ email: 'alice@debrief.test', password });
 
-/** Asks for a link and returns the token from the email that was "sent". */
 async function tokenFromEmail(address = 'alice@debrief.test') {
   const before = email.sent.length;
   await forgot(address).expect(202);
-  // The api answers before it sends (so timing can't reveal accounts): wait for the send.
   await vi.waitFor(() => expect(email.sent.length).toBe(before + 1));
   const link = new URL(email.sent.at(-1)!.link);
   return new URLSearchParams(link.hash.slice(1)).get('token')!;
@@ -179,7 +175,6 @@ describe('using the link', () => {
     expect(res.body.error.fields).toEqual({
       password: 'Add 7 more characters, a number and a symbol',
     });
-    // The link wasn't used up by the rejected attempt.
     expect((await reset(token)).status).toBe(204);
   });
 

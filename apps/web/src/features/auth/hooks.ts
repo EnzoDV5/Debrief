@@ -1,3 +1,4 @@
+// Data hooks for the current user, logging in and out, and the account.
 import {
   authProvidersSchema,
   authResponseSchema,
@@ -14,10 +15,6 @@ import { setFlash } from '@/lib/flash';
 
 export const meQueryKey = ['auth', 'me'] as const;
 
-/**
- * Who is logged in. `data` is the user, or `null` when logged out: being logged out is a normal
- * state, not an error. Real errors (server down) still come through as `error`.
- */
 export function useMe() {
   return useQuery({
     queryKey: meQueryKey,
@@ -32,10 +29,6 @@ export function useMe() {
   });
 }
 
-/**
- * Which sign-in options the server offers (Google only when it's set up there). Fetched once per
- * visit: it only changes when the server's configuration does.
- */
 export function useAuthProviders() {
   return useQuery({
     queryKey: ['auth', 'providers'],
@@ -44,7 +37,6 @@ export function useAuthProviders() {
   });
 }
 
-/** For components inside RequireAuth, where a user is guaranteed. */
 export function useCurrentUser(): PublicUser {
   const { data } = useMe();
   if (!data) throw new Error('useCurrentUser must be used inside <RequireAuth>');
@@ -56,7 +48,6 @@ export function useLogin() {
   return useMutation({
     mutationFn: (input: LoginInput) =>
       request('/auth/login', { method: 'POST', body: input, schema: authResponseSchema }),
-    // Put the user straight into the cache: the app shell renders without another request.
     onSuccess: ({ user }) => queryClient.setQueryData(meQueryKey, user),
   });
 }
@@ -70,12 +61,9 @@ export function useRegister() {
   });
 }
 
-/** Clears every cached query on the way out, so the next person on this device sees nothing. */
 function useSignedOut() {
   const queryClient = useQueryClient();
   return () => {
-    // Forget everything this user loaded, except "who is logged in", which becomes "nobody".
-    // (Removing that one too would make the screens still showing ask the server again.)
     queryClient.removeQueries({
       predicate: (query) => !(query.queryKey[0] === 'auth' && query.queryKey[1] === 'me'),
     });
@@ -87,7 +75,6 @@ export function useLogout() {
   const signedOut = useSignedOut();
   return useMutation({
     mutationFn: () => requestNoContent('/auth/logout', { method: 'POST' }),
-    // Even if the request fails (e.g. offline), the user asked to leave: clear local state.
     onSettled: signedOut,
   });
 }
@@ -97,7 +84,6 @@ export function useDeleteAccount() {
   return useMutation({
     mutationFn: (input: DeleteAccountInput) =>
       requestNoContent('/auth/account', { method: 'DELETE', body: input }),
-    // The message first: signing out sends the page to /login straight away.
     onSuccess: () => {
       setFlash('account-deleted');
       signedOut();
@@ -105,7 +91,6 @@ export function useDeleteAccount() {
   });
 }
 
-/** "Forgot password": asks the server to email a reset link. Always succeeds (see the api). */
 export function useForgotPassword() {
   return useMutation({
     mutationFn: (input: ForgotPasswordInput) =>
@@ -113,10 +98,6 @@ export function useForgotPassword() {
   });
 }
 
-/**
- * Sets a new password with the token from the emailed link. The server ends every session, so
- * anything this browser still thinks about who's logged in is cleared too.
- */
 export function useResetPassword() {
   const signedOut = useSignedOut();
   return useMutation({

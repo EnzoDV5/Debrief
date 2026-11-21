@@ -1,3 +1,4 @@
+// HTTP layer for meetings: paste or upload, list, open, edit, delete and re-analyse.
 import {
   createMeetingFromTextSchema,
   meetingDetailsSchema,
@@ -13,19 +14,12 @@ import { getAuthUser } from '../../middleware/requireAuth';
 import { meetingsService } from './meetings.service';
 import type { AnalysisQueue } from '../analysis/queue';
 
-// HTTP in, HTTP out: validate the request, call the service, send the response. No SQL here.
-
-/**
- * A malformed id gets the same 404 as someone else's meeting: the response never reveals
- * whether an id exists, so ids can't be probed.
- */
 function meetingId(req: Request): string {
   const result = z.uuid().safeParse(req.params.id);
   if (!result.success) throw notFound('Meeting');
   return result.data;
 }
 
-/** POST /meetings takes either a JSON paste or a multipart file upload. */
 function readCreateInput(req: Request) {
   if (req.file) {
     const details = meetingDetailsSchema.parse(req.body);

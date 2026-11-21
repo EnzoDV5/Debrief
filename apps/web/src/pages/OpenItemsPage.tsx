@@ -1,3 +1,4 @@
+// "My open items" across all meetings, filtered by status, owner and overdue.
 import {
   ACTION_ITEM_STATUS_FILTERS,
   UNASSIGNED_OWNER,
@@ -27,14 +28,10 @@ const STATUS_FILTER_LABELS: Record<ActionItemStatusFilter, string> = {
   all: 'All',
 };
 
-/** Filters live in the URL: refresh, Back and shared links all keep them. */
 function useFilters(): [ActionItemFilters, (next: Partial<ActionItemFilters>) => void] {
   const [currentParams, setParams] = useSearchParams();
   const location = useLocation();
   const navigation = useNavigation();
-  // The router applies a URL change a moment later (~50ms). While that navigation to this same
-  // page is pending, read the URL it's going to, so a ticked box or chosen chip updates instantly
-  // instead of flickering back for a frame.
   const pending =
     navigation.location?.pathname === location.pathname
       ? new URLSearchParams(navigation.location.search)
@@ -175,7 +172,6 @@ function Filters({
 }) {
   return (
     <div className="flex flex-col gap-4 rounded-card border border-white/70 glass p-4 shadow-card lg:flex-row lg:items-center lg:justify-between">
-      {/* Toggle buttons for a single choice: aria-pressed marks the active one. */}
       <div role="group" aria-label="Status" className="flex flex-wrap gap-2">
         {ACTION_ITEM_STATUS_FILTERS.map((status) => (
           <button

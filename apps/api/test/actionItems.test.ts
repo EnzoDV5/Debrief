@@ -1,3 +1,4 @@
+// Action items: editing, ticking off, filters and overdue.
 import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app';
@@ -20,7 +21,6 @@ const send = (method: 'post' | 'patch' | 'delete', url: string, cookie: string, 
   request(app)[method](url).set('Origin', WEB_ORIGIN).set('Cookie', cookie).send(body);
 const get = (url: string, cookie: string) => request(app).get(url).set('Cookie', cookie);
 
-/** A meeting owned by `cookie`'s user, plus AI-made items inserted directly (no AI needed). */
 async function meetingWithItems(
   cookie: string,
   title = 'Plan',
@@ -155,7 +155,6 @@ describe('adding, editing and deleting action items', () => {
 
   it('keeps the transcript’s date words when an edit re-sends the same date', async () => {
     const { ids } = await meetingWithItems(alice, 'Plan', [{ text: 'Send', due: '2026-11-27' }]);
-    // What the edit dialog sends: every field, with only the owner actually changed.
     const res = await send('patch', `/api/action-items/${ids[0]}`, alice, {
       text: 'Send',
       owner: 'Ann',
@@ -171,7 +170,6 @@ describe('adding, editing and deleting action items', () => {
     ]);
     const url = `/api/action-items/${ids[0]}`;
 
-    // Ticking off and re-saving the same values aren't edits.
     const ticked = await send('patch', url, alice, { status: 'done' });
     expect(ticked.body.actionItem.editedAt).toBeNull();
     const same = await send('patch', url, alice, {
@@ -243,7 +241,7 @@ describe('GET /api/action-items ("my open items")', () => {
   it('filters overdue items relative to the user’s today, excluding done ones', async () => {
     await seed();
     const res = await get('/api/action-items?overdue=true&status=all&today=2026-11-24', alice);
-    expect(texts(res)).toEqual(['Overdue task']); // "Done task" is past due but done
+    expect(texts(res)).toEqual(['Overdue task']);
   });
 
   it('validates the query', async () => {
@@ -279,7 +277,6 @@ describe('items picked from the transcript (select text → create)', () => {
     const res = await addItem(meetingId, {
       text: 'Send the deck to Lerato',
       sourceLine: 2,
-      // Different capitals and punctuation still match, like the AI's quotes.
       sourceQuote: 'i will SEND the deck',
     });
     expect(res.status).toBe(201);
@@ -350,7 +347,6 @@ describe('decisions and summary', () => {
     expect(created.body.decision.editedAt).toBeNull();
 
     const id = created.body.decision.id;
-    // Saving the same text isn't an edit; changing it is.
     const same = await send('patch', `/api/decisions/${id}`, alice, { text: 'Use blue' });
     expect(same.body.decision.editedAt).toBeNull();
     const edited = await send('patch', `/api/decisions/${id}`, alice, { text: 'Use green' });

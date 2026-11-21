@@ -1,10 +1,6 @@
+// Plain HTTPS calls to Google Calendar: sign-in link, tokens, and creating events.
 import { createHash, randomBytes } from 'node:crypto';
 
-// Talks to Google with plain HTTPS calls (no SDK): build the consent URL, swap the returned code
-// for tokens, refresh an access token, create/update a calendar event, and revoke access.
-// Tests replace `fetchImpl`, so they never call Google.
-
-/** The only permission we ask for: create and edit calendar events. Nothing else. */
 export const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
 
 const AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
@@ -14,7 +10,6 @@ const EVENTS_URL = 'https://www.googleapis.com/calendar/v3/calendars/primary/eve
 
 export class GoogleError extends Error {
   constructor(
-    /** 'revoked': the user removed our access in their Google account; reconnect needed. */
     readonly kind: 'revoked' | 'failed' | 'no_refresh_token',
     message: string,
   ) {
@@ -24,16 +19,13 @@ export class GoogleError extends Error {
 }
 
 export type CalendarEvent = {
-  /** Our previous event for this item, to update instead of duplicating. */
   eventId: string | null;
   summary: string;
   description: string;
-  /** All-day event on this date (YYYY-MM-DD). */
   date: string;
 };
 
 export interface GoogleClient {
-  /** False when the server has no Google credentials: the feature is simply unavailable. */
   readonly configured: boolean;
   authUrl(state: string, codeChallenge: string): string;
   exchangeCode(
@@ -45,11 +37,6 @@ export interface GoogleClient {
   revoke(token: string): Promise<void>;
 }
 
-/**
- * PKCE (Proof Key for Code Exchange): we keep a random secret (the verifier) and send Google only
- * its hash (the challenge). When the code comes back, only someone holding the verifier can swap
- * it for tokens, so an intercepted code is useless on its own.
- */
 export function createPkcePair() {
   const verifier = randomBytes(32).toString('base64url');
   const challenge = createHash('sha256').update(verifier).digest('base64url');
@@ -96,8 +83,6 @@ export function createGoogleClient({
         redirect_uri: redirectUri,
         response_type: 'code',
         scope: CALENDAR_SCOPE,
-        // "offline" + "consent" = Google returns a refresh token, so we can add events later
-        // without sending the user through Google again each time.
         access_type: 'offline',
         prompt: 'consent',
         state,
@@ -126,7 +111,6 @@ export function createGoogleClient({
         grant_type: 'refresh_token',
         refresh_token: refreshToken,
       });
-      // invalid_grant = the user revoked access (or the token expired): they must reconnect.
       if (res.status === 400 && body.error === 'invalid_grant') {
         throw new GoogleError('revoked', 'Google access was revoked');
       }
@@ -140,7 +124,6 @@ export function createGoogleClient({
       const payload = JSON.stringify({
         summary: event.summary,
         description: event.description,
-        // All-day event: Google's end date is exclusive, so it's the next day.
         start: { date: event.date },
         end: { date: nextDay(event.date) },
       });
@@ -149,7 +132,6 @@ export function createGoogleClient({
         'Content-Type': 'application/json',
       };
 
-      // Update our existing event if there is one; if the user deleted it in Google, make a new one.
       if (event.eventId) {
         const res = await fetchImpl(`${EVENTS_URL}/${encodeURIComponent(event.eventId)}`, {
           method: 'PUT',

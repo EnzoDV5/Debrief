@@ -1,3 +1,4 @@
+// Projects, pinning and archiving meetings.
 import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app';

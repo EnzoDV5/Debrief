@@ -1,3 +1,4 @@
+// The signed-in layout: sidebar, top bar and the page panel.
 import {
   Archive,
   Folder,
@@ -27,13 +28,12 @@ import { SkipLink } from './SkipLink';
 
 const COLLAPSED_KEY = 'debrief.sidebarCollapsed';
 
-/** The sidebar's collapsed state, remembered in this browser (a per-viewer preference). */
 function useSidebarCollapsed() {
   const [collapsed, setCollapsed] = useState(() => {
     try {
       return localStorage.getItem(COLLAPSED_KEY) === '1';
     } catch {
-      return false; // storage blocked (private mode): just start expanded
+      return false;
     }
   });
   const toggle = () =>
@@ -41,20 +41,13 @@ function useSidebarCollapsed() {
       try {
         localStorage.setItem(COLLAPSED_KEY, current ? '0' : '1');
       } catch {
-        // Not remembered, but the toggle still works for this visit.
+        // Storage blocked: the toggle still works, it just isn't remembered.
       }
       return !current;
     });
   return { collapsed, toggle };
 }
 
-/**
- * Straight after signing in: play the entrance (panel grows from where the sign-in panel was,
- * sidebar slides in, page fades in). Told by navigation state from the sign-in forms, or by
- * ?signed_in=new|back after a Google sign-in (a full page load, so state can't be used). The
- * latter is turned into the same state and removed from the address bar, so a refresh or a
- * shared link never replays it, and the meetings page can welcome a new Google account.
- */
 function useEntrance() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -74,7 +67,6 @@ function useEntrance() {
     });
   }, [signedIn, location.pathname, location.search, location.hash, navigate]);
 
-  // Once it has played, later page changes use the normal page transition.
   useEffect(() => {
     if (!entering) return;
     const timer = setTimeout(() => setEntering(false), 1400);
@@ -84,22 +76,13 @@ function useEntrance() {
   return entering;
 }
 
-/**
- * Conversation-style workspace: history stays in reach while the current meeting is open.
- * On desktop the page sits in a rounded panel framed by the sidebar colour, and the panel (not
- * the window) scrolls, so the frame and sidebar never move. The sidebar can collapse to icons,
- * and the panel grows into the space. A page can put a bar above the panel (see PageBar) or pull
- * the panel in from the right to make room beside it (see shellFrame.ts).
- */
 export function AppShell() {
   const { mainRef, scrollRef } = useMainFocusOnNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const { collapsed, toggle } = useSidebarCollapsed();
   const entering = useEntrance();
-  // State (not a ref) so pages re-render with the element once it exists.
   const [pageBarSlot, setPageBarSlot] = useState<HTMLDivElement | null>(null);
   const [panelOverlay, setPanelOverlay] = useState<HTMLDivElement | null>(null);
-  // Classes from a page that narrows the panel (the meeting page), or null for full width.
   const [frame, setFrame] = useState<ShellFrameClasses | null>(null);
   const panelInset = frame?.panel ?? null;
   const { pathname } = useLocation();
@@ -138,7 +121,6 @@ export function AppShell() {
           to="/meetings"
           size="sm"
           icon={<Plus aria-hidden="true" className="size-4" />}
-          // Explicit label: a hidden " meeting" span can lose its space ("Newmeeting").
           aria-label="New meeting"
         >
           New
@@ -153,28 +135,19 @@ export function AppShell() {
           'min-w-0 outline-none lg:my-5 lg:mr-5 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col',
           entering && 'lg:animate-panel-expand',
         )}
-        // The entrance starts the panel where the sign-in page's panel was: that edge, measured
-        // from this panel's left (just right of the sidebar).
         style={
           {
             '--panel-from': `max(0px, calc(${AUTH_PANEL_LEFT} - var(${collapsed ? '--spacing-rail' : '--spacing-sidebar'})))`,
           } as CSSProperties
         }
       >
-        {/* Page bar slot: empty (no height) unless the page fills it. Layered above the page
-            (z-30), so its menus open over the content (e.g. the Ask card) and the mobile
-            backdrop, which comes later in the DOM, doesn't paint over it. */}
         <div ref={setPageBarSlot} className="relative z-30" />
         <div
           className={cn(
             'relative lg:min-h-0 lg:flex-1',
-            // Full-width panel: clip the content to its rounded corners. A narrowed panel can't,
-            // since the page's notes column sits outside it.
             !panelInset && 'lg:overflow-hidden lg:rounded-panel',
           )}
         >
-          {/* Desktop: the rounded panel, drawn behind the scrolling content, so its corners stay
-              round while the page scrolls. It slides when a page narrows or releases it. */}
           <div
             aria-hidden="true"
             className={cn(
@@ -184,18 +157,14 @@ export function AppShell() {
           >
             <PanelBackdrop contained />
           </div>
-          {/* Mobile: no panel; the blobs sit fixed behind the whole page. */}
           <div className="lg:hidden">
             <PanelBackdrop />
           </div>
           <div
             ref={scrollRef}
-            // Lets a page find the scrolling area (e.g. the transcript map follows its scroll).
             data-scroller=""
             className={cn(
               'relative lg:scrollbar-panel lg:h-full lg:overflow-y-auto',
-              // Beside a narrowed panel the scrollbar is on the dark frame: tint it light, and
-              // always reserve its width so the page can line up with the panel's edge.
               panelInset && 'lg:[scrollbar-gutter:stable] lg:text-sidebar-muted',
               frame?.scroller,
             )}
@@ -206,8 +175,6 @@ export function AppShell() {
               <ShellFrameContext.Provider value={setFrame}>
                 <PageBarSlot.Provider value={pageBarSlot}>
                   <PanelOverlaySlot.Provider value={panelOverlay}>
-                    {/* Keyed by path, so each newly opened page plays its fade-in while the
-                        panel slides to the new page's width. */}
                     <div
                       key={pathname}
                       className={entering ? 'animate-page-enter' : 'animate-page-in'}
@@ -219,9 +186,6 @@ export function AppShell() {
               </ShellFrameContext.Provider>
             </div>
           </div>
-          {/* Desktop: a layer the same size as the panel, over the scrolling content, for things
-              that stay fixed on the panel (PanelOverlay). Clicks pass through it except where a
-              page puts something. */}
           <div
             ref={setPanelOverlay}
             className={cn(
@@ -244,8 +208,6 @@ function useMainFocusOnNavigate() {
     if (previousPath.current === pathname) return;
     previousPath.current = pathname;
     mainRef.current?.focus({ preventScroll: true });
-    // On desktop the panel is the scroller, which ScrollRestoration (window only) doesn't reset.
-    // A #L12 link scrolls to its own line, so leave those alone.
     if (!hash) scrollRef.current?.scrollTo?.({ top: 0 });
   }, [pathname, hash]);
   return { mainRef, scrollRef };
@@ -281,10 +243,6 @@ function MobileSidebar({ open, onClose }: { open: boolean; onClose: () => void }
   );
 }
 
-/**
- * Collapsed (desktop only): icons only. Each label stays in the page for screen readers
- * (sr-only) and shows as a tooltip; the meeting history is hidden until it's expanded again.
- */
 function SidebarContent({
   onNavigate,
   onClose,

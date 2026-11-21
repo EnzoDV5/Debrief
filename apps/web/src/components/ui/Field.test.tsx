@@ -1,3 +1,4 @@
+// Field: labels, hints and errors are linked up for screen readers.
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { Field } from './Field';
@@ -19,7 +20,6 @@ describe('Field', () => {
         {(control) => <Input {...control} />}
       </Field>,
     );
-    // The error replaces the hint and marks the input invalid.
     expect(input).toHaveAccessibleDescription('Enter a valid email address');
     expect(input).toHaveAttribute('aria-invalid', 'true');
   });

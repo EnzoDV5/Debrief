@@ -1,3 +1,4 @@
+// Delete account: asks for the password (or the email, for Google accounts) first.
 import { deleteWithEmailSchema, deleteWithPasswordSchema } from '@debrief/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -10,14 +11,9 @@ import { Field } from '@/components/ui/Field';
 import { Input, PasswordInput } from '@/components/ui/Input';
 import { useDeleteAccount, useMe } from './hooks';
 
-// One "confirm" field, checked by whichever shared rule fits the account.
 const byPassword = z.object({ confirm: deleteWithPasswordSchema.shape.password });
 const byEmail = z.object({ confirm: deleteWithEmailSchema.shape.email });
 
-/**
- * Asks for confirmation before deleting, so a stray click (or someone at an open laptop) can't:
- * the password, or for an account made with Google (which has none) the account's email.
- */
 export function DeleteAccountDialog({
   open,
   onClose,
@@ -27,8 +23,6 @@ export function DeleteAccountDialog({
   onClose: () => void;
   onDeleted: () => void;
 }) {
-  // useMe, not useCurrentUser: right after deleting, the user is already gone while this
-  // dialog is still closing.
   const { data: user } = useMe();
   const withPassword = user?.hasPassword ?? true;
   const deleteAccount = useDeleteAccount();
@@ -44,7 +38,7 @@ export function DeleteAccountDialog({
   });
 
   const close = () => {
-    reset(); // never leave a typed password sitting in a hidden form
+    reset();
     onClose();
   };
 
@@ -53,7 +47,6 @@ export function DeleteAccountDialog({
       await deleteAccount.mutateAsync(withPassword ? { password: confirm } : { email: confirm });
       onDeleted();
     } catch (error) {
-      // "Password is incorrect" / "That isn't the email for this account" go under the field.
       const fieldMessage =
         error instanceof ApiError ? (error.fields?.password ?? error.fields?.email) : undefined;
       if (fieldMessage) {

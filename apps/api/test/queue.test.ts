@@ -1,3 +1,4 @@
+// The pg-boss queue: saving a meeting queues exactly one job.
 import { describe, expect, it } from 'vitest';
 import { startPgBossQueue } from '../src/modules/analysis/queue';
 import { TEST_DATABASE_URL } from './testDatabase';

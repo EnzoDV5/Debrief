@@ -1,3 +1,4 @@
+// Every page and its URL. Pages inside the app load lazily so the first visit stays fast.
 import { Navigate, Outlet, ScrollRestoration, type RouteObject } from 'react-router';
 import { AppShell } from '@/components/layout/AppShell';
 import { AuthLayout } from '@/components/layout/AuthLayout';
@@ -13,17 +14,12 @@ import { RouteErrorPage } from '@/pages/RouteErrorPage';
 function RootLayout() {
   return (
     <>
-      {/* New page → top; Back button → where you were. */}
       <ScrollRestoration />
       <Outlet />
     </>
   );
 }
 
-/**
- * Logged-out entry pages (login/register) are in the main bundle so they paint immediately.
- * Pages inside the app are lazy-loaded: each downloads as its own small chunk on first visit.
- */
 export const routes: RouteObject[] = [
   {
     element: <RootLayout />,
@@ -46,8 +42,6 @@ export const routes: RouteObject[] = [
         ],
       },
 
-      // The link from a "forgot password" email works whether or not this browser is logged in
-      // (e.g. still logged in on the phone that's opening it), so it's outside RedirectIfAuthed.
       {
         element: <AuthLayout />,
         children: [{ path: 'reset-password', element: <ResetPasswordPage /> }],
@@ -65,7 +59,6 @@ export const routes: RouteObject[] = [
                   Component: (await import('@/pages/MeetingsPage')).MeetingsPage,
                 }),
               },
-              // The old separate page: home (/meetings) is now where meetings start.
               { path: 'meetings/new', element: <Navigate to="/meetings" replace /> },
               {
                 path: 'meetings/:meetingId',

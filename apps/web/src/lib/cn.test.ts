@@ -1,8 +1,7 @@
+// cn(): later Tailwind classes win.
 import { describe, expect, it } from 'vitest';
 import { cn } from './cn';
 
-// The order of classes inside cn() is what these tests check, so Prettier's Tailwind plugin
-// must not re-sort them.
 // prettier-ignore
 describe('cn', () => {
   it('skips falsy values', () => {
@@ -14,8 +13,6 @@ describe('cn', () => {
     expect(cn('p-4', 'px-2')).toBe('p-4 px-2');
   });
 
-  // Our design tokens (tokens.css) aren't Tailwind's defaults; tailwind-merge must still
-  // recognise which property each one sets.
   it('understands our own tokens', () => {
     expect(cn('bg-surface', 'bg-surface-2')).toBe('bg-surface-2');
     expect(cn('rounded-md', 'rounded-card')).toBe('rounded-card');

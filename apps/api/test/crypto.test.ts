@@ -1,3 +1,4 @@
+// Session token hashing and secret encryption.
 import { randomBytes } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { decryptSecret, encryptSecret, parseEncryptionKey } from '../src/lib/crypto';
@@ -20,7 +21,7 @@ describe('encryptSecret / decryptSecret (AES-256-GCM)', () => {
   it('detects tampering with the stored value', () => {
     const [version, iv, tag, ciphertext] = encryptSecret(secret, key).split('.');
     const flipped = Buffer.from(ciphertext!, 'base64url');
-    flipped[0] = flipped[0]! ^ 1; // change a single bit
+    flipped[0] = flipped[0]! ^ 1;
     const tampered = [version, iv, tag, flipped.toString('base64url')].join('.');
     expect(() => decryptSecret(tampered, key)).toThrow();
   });

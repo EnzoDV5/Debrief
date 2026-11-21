@@ -1,3 +1,4 @@
+// safeRedirect(): only our own pages are allowed.
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_APP_PATH, safeRedirect } from './safeRedirect';
 

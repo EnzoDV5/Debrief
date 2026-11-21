@@ -1,3 +1,4 @@
+// A simple list of meetings, used for search results and the archive.
 import type { MeetingListItem } from '@debrief/shared';
 import { CalendarDays } from 'lucide-react';
 import { Link } from 'react-router';

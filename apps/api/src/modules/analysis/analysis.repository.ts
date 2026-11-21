@@ -1,10 +1,8 @@
+// The analysis worker's database work, always scoped to the meeting's owner.
 import { and, eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { actionItems, analysisRuns, decisions, meetings } from '../../db/schema';
 import type { ActionItemDraft, DecisionDraft } from './postChecks';
-
-// Database access for the analysis worker. Like every repository, each query is scoped by userId:
-// the job carries the userId, so a job can only ever read and write its own owner's data.
 
 export const analysisRepository = {
   async findMeeting(userId: string, meetingId: string) {
@@ -38,11 +36,6 @@ export const analysisRepository = {
     await db.insert(analysisRuns).values(run);
   },
 
-  /**
-   * Replaces the meeting's AI-generated results in one transaction: either all of the new results
-   * are saved (and the status becomes 'done'), or none are. Items the user added by hand
-   * (origin 'manual') are never touched.
-   */
   async saveResults(
     userId: string,
     meetingId: string,

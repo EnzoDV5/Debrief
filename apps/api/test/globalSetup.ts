@@ -1,4 +1,4 @@
-// Runs once before all test files: brings the test database schema up to date.
+// Runs once before the api tests: migrates the test database.
 import { fileURLToPath } from 'node:url';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';

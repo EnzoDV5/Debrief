@@ -1,3 +1,4 @@
+// One meeting. Someone else's meeting just shows as not found.
 import type { Meeting } from '@debrief/shared';
 import { FileSearch } from 'lucide-react';
 import { useParams } from 'react-router';
@@ -25,7 +26,6 @@ export function MeetingDetailPage() {
   if (isPending) return <DetailSkeleton />;
 
   if (error) {
-    // Someone else's meeting and a meeting that doesn't exist look the same (api returns 404).
     if (error instanceof ApiError && error.status === 404) return <MeetingNotFound />;
     return (
       <ErrorState
@@ -36,14 +36,9 @@ export function MeetingDetailPage() {
     );
   }
 
-  // Keyed: opening another meeting starts fresh (closed panels, no half-finished question).
   return <MeetingDetail key={meeting.id} meeting={meeting} />;
 }
 
-/**
- * The title, status and summary live in a bar above the transcript panel (see MeetingBar). The
- * panel holds the transcript, Ask, and the action items and decisions beside their lines.
- */
 function MeetingDetail({ meeting }: { meeting: Meeting }) {
   return (
     <>
@@ -68,14 +63,11 @@ function MeetingNotFound() {
 }
 
 function DetailSkeleton() {
-  // Narrow the panel already, as the loaded meeting will: switching meetings then keeps the frame
-  // still instead of widening for the skeleton and narrowing again.
   useShellPanelInset(PANEL_INSET);
   return (
     <div
       role="status"
       aria-label="Loading meeting"
-      // The panel keeps no padding while narrowed (pages pad themselves), so add it here.
       className={cn('px-4 py-7 sm:px-8 lg:py-10', PANEL_INSET_MARGIN)}
     >
       <Skeleton className="h-8 w-2/3 max-w-md" />

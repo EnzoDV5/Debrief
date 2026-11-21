@@ -1,10 +1,10 @@
+// An action item card on the meeting page, linked to its line in the transcript.
 import type { ActionItem, Meeting } from '@debrief/shared';
 import { useState } from 'react';
 import { ActionItemCard } from '@/features/actionItems/ActionItemCard';
 import { ActionItemDialog } from '@/features/actionItems/ActionItemDialog';
 import { DeleteActionItemDialog } from '@/features/actionItems/DeleteActionItemDialog';
 
-/** An action and its source context, rendered beside its transcript line. */
 export function MeetingActionCard({
   meeting,
   item,
@@ -44,7 +44,6 @@ export function MeetingActionCard({
   );
 }
 
-/** Older analyses lack a saved context summary, so give them a brief, source-aware paraphrase. */
 function ActionContext({ meeting, item }: { meeting: Meeting; item: ActionItem }) {
   const line = meeting.transcriptLines.find((entry) => entry.n === item.sourceLine);
   if (!line)
@@ -55,7 +54,6 @@ function ActionContext({ meeting, item }: { meeting: Meeting; item: ActionItem }
       </div>
     );
   const summary = contextSummary(item, line);
-  // A quiet quote line rather than a box: it's background, so it shouldn't compete with the task.
   return (
     <p className="border-l-2 border-line pl-3 text-sm leading-6 text-muted">
       <span className="font-semibold text-fg">In brief: </span>
@@ -71,7 +69,6 @@ function contextSummary(item: ActionItem, line: Meeting['transcriptLines'][numbe
       .toLocaleLowerCase()
       .replace(/[^\p{L}\p{N}]+/gu, ' ')
       .trim();
-  // A model can still copy the source despite the prompt. Never show that as a summary.
   if (
     saved &&
     normalise(saved) !== normalise(item.text) &&
@@ -84,7 +81,6 @@ function contextSummary(item: ActionItem, line: Meeting['transcriptLines'][numbe
     .trim()
     .replace(/[.!?]+$/, '')
     .replace(/^./, (letter) => letter.toLowerCase());
-  // Preserve a small article that the terse action title may have dropped.
   const phrase = task.match(/^(\S+)\s+([\p{L}\p{N}]+\s+[\p{L}\p{N}]+)(.*)$/u);
   if (phrase && line.text.toLocaleLowerCase().includes(`the ${phrase[2]?.toLocaleLowerCase()}`)) {
     task = `${phrase[1]} the ${phrase[2]}${phrase[3]}`;

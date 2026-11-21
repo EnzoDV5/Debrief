@@ -1,3 +1,4 @@
+// Accounts and sessions: argon2id passwords, fresh session on every login, soft delete.
 import type { DeleteAccountInput, LoginInput, PublicUser, RegisterInput } from '@debrief/shared';
 import argon2 from 'argon2';
 import type { UserRow } from '../../db/schema';
@@ -6,14 +7,9 @@ import { AppError, unauthenticated } from '../../lib/errors';
 import { authRepository } from './auth.repository';
 import { SESSION_TTL_MS } from './sessionCookie';
 
-// Business rules for accounts and sessions. No req/res here, and no SQL (that's the repository).
-
-// argon2id: memory-hard, so guessing passwords on GPUs is slow and expensive. The library's
-// defaults (64 MiB, 3 passes) follow the OWASP recommendation.
 export const hashPassword = (password: string) => argon2.hash(password, { type: argon2.argon2id });
 
-// Used when the email doesn't exist, so a failed login takes the same time either way.
-// Without it, a fast "no such user" response would reveal which emails have accounts.
+// Checked even when the email doesn't exist, so response times don't reveal which emails have accounts.
 const dummyHash = hashPassword('timing-equaliser-not-a-real-password');
 
 const invalidCredentials = () =>
@@ -29,7 +25,6 @@ export function toPublicUser(user: UserRow): PublicUser {
   };
 }
 
-/** Creates a session and returns the raw token for the cookie. Only its hash is stored. */
 export async function startSession(userId: string): Promise<string> {
   const token = generateSessionToken();
   await authRepository.createSession({
@@ -54,17 +49,13 @@ export const authService = {
     return { user: toPublicUser(user), token: await startSession(user.id) };
   },
 
-  /** `previousToken`: a session cookie the browser already had. It's ended, never reused. */
   async login(input: LoginInput, previousToken?: string) {
     const user = await authRepository.findActiveUserByEmail(input.email);
-    // No account, or an account made with Google (no password): check against the dummy hash so
-    // it takes as long as a real check, and fail with the same generic message either way.
     const passwordOk = user?.passwordHash
       ? await argon2.verify(user.passwordHash, input.password)
       : await argon2.verify(await dummyHash, input.password).then(() => false);
     if (!user || !passwordOk) throw invalidCredentials();
 
-    // Always issue a brand-new session on login (prevents session fixation).
     if (previousToken) await authRepository.deleteSession(hashSessionToken(previousToken));
     return { user: toPublicUser(user), token: await startSession(user.id) };
   },
@@ -73,17 +64,12 @@ export const authService = {
     await authRepository.deleteSession(hashSessionToken(token));
   },
 
-  /** Resolves a cookie token to its user, or null if the session is missing/expired/deleted. */
   async getSession(token: string) {
     const tokenHash = hashSessionToken(token);
     const user = await authRepository.findUserBySession(tokenHash);
     return user ? { user: toPublicUser(user), tokenHash } : null;
   },
 
-  /**
-   * Password accounts confirm with their password. Accounts made with Google have none, so they
-   * confirm by typing their account's email: enough to stop a stray click or a wrong tab.
-   */
   async deleteAccount(userId: string, input: DeleteAccountInput) {
     const user = await authRepository.findActiveUserById(userId);
     if (!user) throw unauthenticated();

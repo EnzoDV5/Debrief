@@ -1,18 +1,8 @@
-/**
- * Slowly drifting colour blobs behind the page, in the brand lime and cobalt. Glass cards sit
- * on top and pick up their tint.
- *
- * Why this is cheap: each blob is a soft radial gradient (no blur filter), and the animation
- * only moves and scales it (transform), which the GPU handles without repainting the page.
- * Decorative only: hidden from screen readers, ignores the mouse, and stands still when the
- * user prefers reduced motion (rule in base.css).
- */
+// The softly moving colour blobs behind the page. GPU-friendly, and they stop if motion is reduced.
 export function PanelBackdrop({ contained = false }: { contained?: boolean }) {
   return (
     <div
       aria-hidden="true"
-      // Desktop: fills the framed panel. Mobile: fixed to the screen behind the scrolling page.
-      // Contained: fills its parent at every size (the meeting page's own transcript sheet).
       className={
         contained
           ? 'pointer-events-none absolute inset-0 overflow-hidden'

@@ -1,12 +1,8 @@
+// When a user picks a quote for their own item, make sure it really is on that transcript line.
 import type { TranscriptLine } from '@debrief/shared';
 import { AppError } from '../../lib/errors';
 import { quoteIsOnLine } from '../analysis/postChecks';
 
-/**
- * A source the user picked for a hand-made item (by selecting text on the meeting page) gets the
- * same check as the AI's: the line must be in this meeting's transcript, and the quoted words
- * must really be on it. A wrong source is a 400 (the request is wrong), never saved silently.
- */
 export function assertPickedSource(
   lines: TranscriptLine[],
   sourceLine: number | null,

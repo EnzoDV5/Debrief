@@ -1,7 +1,7 @@
+// A plain card container.
 import type { ComponentProps } from 'react';
 import { cn } from '@/lib/cn';
 
-/** Liquid-glass panel (translucent, bright top rim): the main container for content. */
 export function Card({ className, ...props }: ComponentProps<'div'>) {
   return (
     <div

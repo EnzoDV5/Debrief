@@ -1,10 +1,7 @@
+// Shown when a list is empty: what will appear here, and how to add it.
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
-/**
- * Shown when a list has nothing in it yet. Always says what will appear here and, when
- * possible, offers the one action that fills it.
- */
 export function EmptyState({
   icon,
   title,

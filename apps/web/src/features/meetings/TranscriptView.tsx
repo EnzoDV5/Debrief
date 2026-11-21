@@ -1,40 +1,26 @@
+// The transcript with numbered, linkable lines.
 import type { TranscriptLine } from '@debrief/shared';
 import { useEffect } from 'react';
 import { Link, useLocation } from 'react-router';
 import { cn } from '@/lib/cn';
 
-/** "#L12" → 12. Anything else → null. */
 function lineFromHash(hash: string): number | null {
   const match = /^#L(\d+)$/.exec(hash);
   return match ? Number(match[1]) : null;
 }
 
-/**
- * Numbered transcript. Each line has an id ("L12") and its number is a link to it, so a line can
- * be shared or, from Phase 3, jumped to from an action item.
- *
- * The highlighted line comes from the URL (#L12) through React, not the CSS :target selector:
- * browsers decide :target when the page first loads, but our transcript arrives a moment later
- * from the api, so a shared link would otherwise land on nothing.
- *
- * The speaker name is only repeated when the speaker changes, like a chat log.
- * `content-visibility: auto` lets the browser skip rendering off-screen lines, which keeps a
- * 1 MB transcript (thousands of lines) smooth to scroll.
- */
 export function TranscriptView({
   lines,
   linkable = true,
   className,
 }: {
   lines: TranscriptLine[];
-  /** Off for previews, where the lines aren't on the page yet. */
   linkable?: boolean;
   className?: string;
 }) {
   const { hash } = useLocation();
   const targetLine = linkable ? lineFromHash(hash) : null;
 
-  // Bring the linked line into view once it exists (also after a reload or a shared link).
   useEffect(() => {
     if (targetLine === null) return;
     document.getElementById(`L${targetLine}`)?.scrollIntoView?.({ block: 'center' });

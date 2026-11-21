@@ -1,3 +1,4 @@
+// HTTP layer for decisions.
 import { createDecisionSchema, updateDecisionSchema, type Decision } from '@debrief/shared';
 import type { Request, Response } from 'express';
 import { uuidParam } from '../../lib/params';
@@ -5,7 +6,6 @@ import { getAuthUser } from '../../middleware/requireAuth';
 import { decisionsService } from './decisions.service';
 
 export const decisionsController = {
-  /** POST /meetings/:id/decisions */
   async create(req: Request, res: Response) {
     const meetingId = uuidParam(req, 'id', 'Meeting');
     const input = createDecisionSchema.parse(req.body);

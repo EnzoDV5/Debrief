@@ -1,8 +1,7 @@
+// All the database work for decisions. Every query is filtered by the logged-in user.
 import { and, eq, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { decisions, type DecisionRow } from '../../db/schema';
-
-// The only file in this module that talks to the database. Every query filters by userId.
 
 export const decisionsRepository = {
   async nextPosition(userId: string, meetingId: string): Promise<number> {

@@ -1,3 +1,4 @@
+// Ask for a password reset link by email.
 import { forgotPasswordSchema } from '@debrief/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { MailCheck } from 'lucide-react';
@@ -13,15 +14,9 @@ import { useForgotPassword } from '@/features/auth/hooks';
 import { applyApiError } from '@/lib/formErrors';
 import { usePageTitle } from '@/lib/usePageTitle';
 
-/**
- * "Forgot password": ask for a reset link by email. Afterwards it always says the same thing,
- * whether or not there's an account for that email (the api is built the same way), so this page
- * can't be used to find out who has an account.
- */
 export function ForgotPasswordPage() {
   usePageTitle('Reset your password');
   const forgot = useForgotPassword();
-  // The address the link went to, once sent: switches the page to "check your email".
   const [sentTo, setSentTo] = useState<string | null>(null);
   const {
     register,
@@ -39,7 +34,6 @@ export function ForgotPasswordPage() {
       await forgot.mutateAsync(values);
       setSentTo(values.email);
     } catch (error) {
-      // Offline, or too many requests: shown at the top of the form.
       applyApiError(error, setError, ['email']);
     }
   });
@@ -56,8 +50,6 @@ export function ForgotPasswordPage() {
           we&apos;ve sent it a link to choose a new password. Open it on this or any other device.
           It works for 30 minutes.
         </p>
-        {/* What to do if nothing comes. It never says whether the account exists (see above):
-            it points at the likely reasons instead, including "you may not have an account". */}
         <div className="mt-6 space-y-2 text-sm text-muted">
           <p className="font-semibold text-fg">Nothing after a few minutes?</p>
           <ul className="list-disc space-y-1 pl-5">

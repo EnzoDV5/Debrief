@@ -1,3 +1,4 @@
+// The meeting page: transcript on the left, notes lined up next to the lines they came from.
 import type { ActionItem, Decision, Meeting, TranscriptLine } from '@debrief/shared';
 import { Plus, Sparkle, TextSelect } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -23,13 +24,11 @@ import {
 
 type Annotations = { items: ActionItem[]; decisions: Decision[] };
 
-/** "#L12" → 12, so a shared link (or a click on a line number) highlights and scrolls to it. */
 function lineFromHash(hash: string): number | null {
   const match = /^#L(\d+)$/.exec(hash);
   return match ? Number(match[1]) : null;
 }
 
-/** The quote's words on its line. Models sometimes start the quote with "Name:", so retry without. */
 function findQuote(line: TranscriptLine, quote: string | null) {
   if (!quote) return null;
   return (
@@ -37,7 +36,6 @@ function findQuote(line: TranscriptLine, quote: string | null) {
   );
 }
 
-/** Highlights for one line: each item's quote, its date words, and decisions made on that line. */
 function marksFor(line: TranscriptLine, notes: Annotations | undefined): Mark[] {
   if (!notes) return [];
   const marks: Mark[] = [];
@@ -49,7 +47,6 @@ function marksFor(line: TranscriptLine, notes: Annotations | undefined): Mark[] 
     if (date) marks.push({ ...date, kind: 'date', itemId: item.id, edited });
   }
   for (const decision of notes.decisions) {
-    // Decisions are stored with their line, not a quote, so the whole line is the anchor.
     marks.push({
       start: 0,
       end: line.text.length,
@@ -61,30 +58,16 @@ function marksFor(line: TranscriptLine, notes: Annotations | undefined): Mark[] 
   return marks;
 }
 
-// Layout. From xl each row has two cells: the transcript (on the sheet) and its notes (beside
-// it, on the dark frame). Narrower, the notes stack under their line, inside the sheet.
 const columns =
   'xl:grid xl:grid-cols-[minmax(0,1fr)_var(--notes)] xl:items-start xl:gap-x-[var(--gap)]';
 const sheetCell = 'px-4 sm:px-8';
-// Where the shell's panel ends on wide screens: the notes width + the gap + the scrollbar, which
-// sits beside the panel and always keeps its space (14px, see scrollbar-panel in base.css).
-// Must match --notes and --gap on the section below. Exported for the loading skeleton, which
-// holds the same width so opening a meeting doesn't resize the frame twice.
 export const PANEL_INSET = 'xl:right-[calc(24rem+1.5rem+14px)] 2xl:right-[calc(27rem+1.5rem+14px)]';
-/** Keeps content inside the narrowed panel (the same distance, as a margin). */
 export const PANEL_INSET_MARGIN =
   'xl:mr-[calc(24rem+1.5rem+14px)] 2xl:mr-[calc(27rem+1.5rem+14px)]';
 const notesCell = 'px-4 sm:px-8 xl:px-0';
-// Under their line (narrow): indented to the text. Beside it (xl): solid cards, since see-through
-// glass turns grey on the dark frame, each in the scroll spotlight (base.css).
 const cardsCell =
   'space-y-3 pb-3 pl-16 sm:pl-22 xl:py-2.5 xl:pl-0 xl:[&_.glass]:bg-surface xl:[&_.glass]:bg-none xl:[&>*]:scroll-spotlight';
 
-/**
- * The transcript: a sheet with each line, and beside it the notes column with Ask at the top
- * and each line's action items and decisions (sharing a row, so both sides scroll together). New items come from the text itself:
- * click a sentence or select words, then choose Action item or Decision.
- */
 export function MeetingDocument({ meeting }: { meeting: Meeting }) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const analysisRunning =
@@ -92,11 +75,8 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
   const { hash } = useLocation();
   const targetLine = lineFromHash(hash);
 
-  // Pull the shell's rounded panel in from the right, making room for the notes column, and fade
-  // the transcript out at the frame's top and bottom edges (base.css).
   useShellPanelInset(PANEL_INSET, 'transcript-edge-fade');
 
-  // Click a sentence / select words / Enter on a line → toolbar → a pre-filled item.
   const transcriptRef = useRef<HTMLOListElement>(null);
   const [toolbar, setToolbar] = useState<PickToolbarState | null>(null);
   const [creating, setCreating] = useState<{ kind: PickKind; pick: TranscriptPick } | null>(null);
@@ -135,7 +115,6 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
     () => meeting.transcriptLines.map((line) => line.n),
     [meeting.transcriptLines],
   );
-  // Long ticks for the transcript map: one per line and kind, labelled with what's there.
   const mapMarkers = useMemo(() => {
     const markers: MapMarker[] = [];
     for (const [line, notes] of [...byLine].sort(([a], [b]) => a - b)) {
@@ -167,7 +146,6 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
     [meeting.transcriptLines, meeting.actionItems],
   );
 
-  // Bring a linked line into view once it exists (after a reload or from a shared link).
   useEffect(() => {
     if (targetLine !== null) {
       document.getElementById(`L${targetLine}`)?.scrollIntoView?.({ block: 'center' });
@@ -175,18 +153,10 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
   }, [targetLine, meeting.transcriptLines]);
 
   return (
-    // --notes / --gap: the notes column's width and the gap beside the sheet (wide screens).
     <section
       aria-labelledby="transcript-title"
-      // lg:pb-[45dvh]: room after the last line, so it can scroll up to the middle of the frame.
       className="relative min-w-0 pb-10 text-fg [--gap:1.5rem] [--notes:24rem] lg:pb-[45dvh] 2xl:[--notes:27rem]"
     >
-      {/* Header row: the transcript heading (on the panel) and Ask this meeting (top of the notes
-          column, level with the panel's top edge). On wide screens the Ask cell becomes a
-          full-height track down the notes column (absolute, against the section) with the card
-          sticky inside it: it stays in view while the transcript scrolls, and the cards slide up
-          underneath it. The row is just tall enough for the card at rest, so nothing sits under
-          it until the page scrolls. */}
       <div className={cn(columns, 'xl:min-h-31 xl:items-stretch')}>
         <div className={cn(sheetCell, 'flex flex-col pt-7 lg:pt-9')}>
           <div className="flex-1 border-b border-line pb-4">
@@ -208,9 +178,6 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
             'pt-4 pb-3 xl:pointer-events-none xl:absolute xl:inset-y-0 xl:right-0 xl:z-20 xl:flex xl:w-(--notes) xl:flex-col xl:p-0',
           )}
         >
-          {/* The track ignores the mouse (the cards below it stay clickable); the card doesn't.
-              Its frame-coloured backing hides cards sliding under it (behind the rounded corners
-              too), then fades out below it, so cards dissolve rather than being cut off. */}
           <div className="xl:sticky xl:top-0 xl:z-10">
             <div className="xl:pointer-events-auto xl:bg-sidebar xl:pb-2">
               <AskMeetingPanel meetingId={meeting.id} />
@@ -225,7 +192,6 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
               <AnalysisNotesLoader />
             </div>
           )}
-          {/* The same soft fade along the bottom edge of the column. */}
           <div
             aria-hidden="true"
             className="pointer-events-none sticky bottom-0 mt-auto hidden h-20 bg-linear-to-t from-sidebar to-transparent xl:block"
@@ -246,15 +212,12 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
               className={cn(
                 columns,
                 'scroll-mt-24',
-                // Off-screen plain lines skip rendering (smooth on 1 MB transcripts).
                 !notes && '[contain-intrinsic-size:auto_3rem] [content-visibility:auto]',
               )}
             >
-              {/* Spacing lives inside the sheet cell, so the sheet has no gaps between rows. */}
               <div className={cn(sheetCell, 'py-2.5', newSpeaker && i > 0 && 'pt-7')}>
                 <div
                   className={cn(
-                    // lg:scroll-spotlight-soft: sharp mid-frame, softer towards the edges (base.css).
                     '-mx-3 grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-3 rounded-md px-3 sm:grid-cols-[2.75rem_minmax(0,1fr)] lg:scroll-spotlight-soft',
                     line.n === targetLine && 'bg-accent-soft/60',
                   )}
@@ -262,7 +225,6 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
                   <a
                     href={`#L${line.n}`}
                     aria-label={`Line ${line.n}`}
-                    // The line text below is the line's tab stop; one per line is plenty.
                     tabIndex={-1}
                     className="pt-0.5 text-right font-mono text-xs text-muted tabular-nums hover:text-accent"
                   >
@@ -270,8 +232,6 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
                   </a>
                   <div className="min-w-0">
                     {newSpeaker && <p className="mb-1 text-base font-bold">{line.speaker}</p>}
-                    {/* data-line-text: what a selection reads (see transcriptPick.tsx).
-                        Focusable so keyboard users can make an item from a line with Enter. */}
                     <p
                       data-line-text={line.n}
                       tabIndex={0}
@@ -380,7 +340,6 @@ export function MeetingDocument({ meeting }: { meeting: Meeting }) {
   );
 }
 
-/** A quiet progress cue below Ask while the AI reads the transcript. */
 function AnalysisNotesLoader() {
   return (
     <div
@@ -420,23 +379,14 @@ const MARK_STYLES: Record<Mark['kind'], string> = {
   date: 'bg-spark/70 font-semibold',
 };
 
-// The card was reworded by the user: a dashed underline instead of a fill, so the words read as
-// "this is where it came from", not "the card quotes this". The transcript itself never changes.
 const EDITED_MARK_STYLES: Record<Mark['kind'], string> = {
   decision: 'decoration-success',
   action: 'decoration-accent',
-  // Lime is too faint as a thin line on the white sheet; the date belongs to its action anyway.
   date: 'decoration-accent font-semibold',
 };
 
-// Where marks overlap, the first kind here wins the colour.
 const MARK_PRIORITY: Mark['kind'][] = ['date', 'action', 'decision'];
 
-/**
- * A line's text, one hoverable, clickable span per sentence, with the item highlights inside.
- * Clicking a sentence opens the Action item / Decision toolbar for it. A click that ends a text
- * selection is left to the selection toolbar instead.
- */
 function LineText({
   line,
   marks,
@@ -454,7 +404,6 @@ function LineText({
     <>
       {sentencesOf(line.text).map((sentence) => {
         const text = line.text.slice(sentence.start, sentence.end);
-        // This sentence's share of each highlight, measured from the sentence's start.
         const local = marks
           .filter((m) => m.end > sentence.start && m.start < sentence.end)
           .map((m) => ({
@@ -506,10 +455,6 @@ function LineText({
                 </mark>
               );
             })}
-            {/* A "+" at the end of the hovered sentence says "make something from this". It sits
-                in a zero-width box, so the text never moves; it only takes clicks while shown (a
-                click on it is a click on the sentence), so it can't catch one meant for the next
-                sentence. No text inside, so selections and offsets ignore it. */}
             <span aria-hidden="true" className="relative inline-block w-0 align-middle">
               <span className="pointer-events-none absolute top-1/2 left-0.5 grid size-5 -translate-y-1/2 place-items-center rounded-pill bg-accent text-accent-fg opacity-0 shadow-card ring-2 ring-bg transition-opacity group-hover/sentence:pointer-events-auto group-hover/sentence:opacity-100">
                 <Plus className="size-3.5" strokeWidth={3} />

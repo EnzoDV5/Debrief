@@ -1,3 +1,4 @@
+// All the database work for projects. Every query is filtered by the logged-in user.
 import { and, asc, eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { projects } from '../../db/schema';

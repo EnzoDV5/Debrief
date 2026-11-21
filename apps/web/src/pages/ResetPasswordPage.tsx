@@ -1,3 +1,4 @@
+// Set a new password from the reset link.
 import { resetPasswordSchema } from '@debrief/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useId, useState } from 'react';
@@ -16,7 +17,6 @@ import { setFlash } from '@/lib/flash';
 import { applyApiError } from '@/lib/formErrors';
 import { usePageTitle } from '@/lib/usePageTitle';
 
-// The new password (same rules as sign-up) typed twice. The token comes from the link, not a field.
 const formSchema = z
   .object({
     password: resetPasswordSchema.shape.password,
@@ -32,23 +32,16 @@ const formSchema = z
     }
   });
 
-/** The token from the emailed link: /reset-password#token=... */
 function tokenFromHash(hash: string): string | null {
   return new URLSearchParams(hash.replace(/^#/, '')).get('token') || null;
 }
 
-/**
- * Opened from the "forgot password" email, on any device. Sets a new password; every session
- * then ends, and the person logs in again with it.
- */
 export function ResetPasswordPage() {
   usePageTitle('Choose a new password');
   const location = useLocation();
   const navigate = useNavigate();
   const reset = useResetPassword();
   const strengthId = useId();
-  // Read once: the token is then taken out of the address bar (below), so it doesn't linger in
-  // the history or show in a screenshot.
   const [token] = useState(() => tokenFromHash(location.hash));
   const [linkProblem, setLinkProblem] = useState<string | null>(null);
 
@@ -77,7 +70,6 @@ export function ResetPasswordPage() {
       setFlash('password-reset');
       navigate('/login', { replace: true });
     } catch (error) {
-      // Expired or already used: say so plainly, with the way to get a new link.
       if (error instanceof ApiError && error.code === 'RESET_LINK_INVALID') {
         setLinkProblem(error.message);
       } else {
@@ -121,7 +113,6 @@ export function ResetPasswordPage() {
         )}
 
         <div className="space-y-3">
-          {/* Its error shows in the strength hint line below (see PasswordStrength). */}
           <Field label="New password">
             {(field) => (
               <PasswordInput

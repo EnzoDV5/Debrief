@@ -1,11 +1,7 @@
+// A modal on the native <dialog>: focus trap, Esc to close and focus return come for free.
 import { X } from 'lucide-react';
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 
-/**
- * Modal built on the native <dialog> element, which gives us for free: focus moved inside,
- * focus trapped while open, Esc to close, focus returned to the trigger, and the rest of the
- * page made inert for screen readers.
- */
 export function Dialog({
   open,
   onClose,
@@ -23,7 +19,6 @@ export function Dialog({
   const titleId = useId();
   const descriptionId = useId();
 
-  // Keep the element in sync with the `open` prop.
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
@@ -36,9 +31,7 @@ export function Dialog({
       ref={ref}
       aria-labelledby={titleId}
       aria-describedby={description ? descriptionId : undefined}
-      // Fires on Esc and on dialog.close(): tell the parent so its state matches.
       onClose={onClose}
-      // A click on the backdrop lands on the <dialog> itself (the content is a child).
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}

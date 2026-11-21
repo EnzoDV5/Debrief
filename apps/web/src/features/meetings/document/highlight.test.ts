@@ -1,3 +1,4 @@
+// Finding quotes inside transcript lines.
 import { describe, expect, it } from 'vitest';
 import { findPhrase, segment, type Mark } from './highlight';
 
@@ -31,7 +32,6 @@ describe('segment', () => {
 
   it('splits overlapping marks so both apply where they overlap', () => {
     const text = 'send it by Friday please';
-    // quote "send it by Friday" (0–17) and date "by Friday" (8–17)
     const pieces = segment(text, [mark(0, 17, 'action'), mark(8, 17, 'date')]);
     expect(pieces.map((p) => [p.text, p.marks.map((m) => m.kind)])).toEqual([
       ['send it ', ['action']],

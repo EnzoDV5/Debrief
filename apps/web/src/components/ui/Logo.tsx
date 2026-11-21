@@ -1,9 +1,6 @@
+// The Debrief logo mark and wordmark.
 import { cn } from '@/lib/cn';
 
-/**
- * Debrief mark: three transcript lines, the last one "picked out" in lime, like an action item
- * lifted from the conversation. Plus the wordmark.
- */
 export function Logo({
   inverse = false,
   markOnly = false,
@@ -11,13 +8,9 @@ export function Logo({
   size = 'md',
   className,
 }: {
-  /** White wordmark for use on the dark frame. */
   inverse?: boolean;
-  /** Just the square mark, no wordmark (the collapsed sidebar). */
   markOnly?: boolean;
-  /** No square behind the lines: just the cobalt and lime lines (the sign-in panel). */
   bare?: boolean;
-  /** xl: the large centred logo on the sign-in panel. */
   size?: 'md' | 'xl';
   className?: string;
 }) {
@@ -27,8 +20,6 @@ export function Logo({
       className={cn('inline-flex items-center', size === 'xl' ? 'gap-4' : 'gap-2.5', className)}
     >
       <svg
-        // Bare: crop the view to the lines themselves, so the mark isn't padded by the
-        // (now invisible) square around them.
         viewBox={bare ? '7 8 18 16' : '0 0 32 32'}
         aria-hidden="true"
         className={cn('shrink-0', size === 'xl' ? 'size-16' : 'size-8')}

@@ -1,3 +1,4 @@
+// Rules for meetings: save the transcript first, then queue the analysis.
 import {
   parseTranscript,
   type Meeting,
@@ -12,9 +13,7 @@ import type { AnalysisQueue } from '../analysis/queue';
 import { toListItem, toMeeting } from './meetings.mappers';
 import { meetingsRepository } from './meetings.repository';
 
-// Business rules for meetings. No req/res here, and no SQL (that's the repository).
-
-// A job stuck in 'processing' this long almost certainly died with its server; allow a re-run.
+// If an analysis has been "processing" this long, its server probably died, so a retry is allowed.
 const STALE_PROCESSING_MS = 10 * 60 * 1000;
 
 async function withResults(userId: string, row: MeetingRow): Promise<Meeting> {
@@ -22,10 +21,6 @@ async function withResults(userId: string, row: MeetingRow): Promise<Meeting> {
 }
 
 export const meetingsService = {
-  /**
-   * Saves first, then queues the analysis. The order matters: the transcript is stored before
-   * any AI is involved, so it's never lost, and the response doesn't wait for the AI at all.
-   */
   async create(
     userId: string,
     input: { title: string; meetingDate: string; transcript: string; sourceType: SourceType },
@@ -49,7 +44,6 @@ export const meetingsService = {
     try {
       await queue.enqueue({ meetingId: row.id, userId });
     } catch (err) {
-      // The meeting is saved either way; show a Retry path instead of leaving it pending forever.
       logger.error({ err, meetingId: row.id }, 'Could not queue analysis');
       const message = "Couldn't start the analysis. Please try again.";
       await meetingsRepository.setAnalysisFailed(userId, row.id, message);
@@ -58,7 +52,6 @@ export const meetingsService = {
     return toMeeting(row, { decisions: [], actionItems: [] });
   },
 
-  /** Retry after a failure, or re-run a finished analysis. Hand-made items are kept. */
   async requestAnalysis(userId: string, meetingId: string, queue: AnalysisQueue): Promise<Meeting> {
     const current = await meetingsRepository.findForUser(userId, meetingId);
     if (!current) throw notFound('Meeting');

@@ -1,3 +1,4 @@
+// Data hooks for meetings. Polls while an analysis is running.
 import {
   meetingListResponseSchema,
   meetingResponseSchema,
@@ -14,7 +15,6 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { request, requestNoContent } from '@/api/client';
 
-// Query keys: the list and each meeting are cached separately.
 export const meetingKeys = {
   list: ['meetings'] as const,
   filtered: (filter: MeetingFilter) => ['meetings', 'filter', filter] as const,
@@ -52,7 +52,6 @@ export function useMeeting(id: string) {
     queryKey: meetingKeys.detail(id),
     queryFn: async () => {
       const meeting = (await request(`/meetings/${id}`, { schema: meetingResponseSchema })).meeting;
-      // The sidebar stays mounted while detail polling runs; keep its status and title current.
       queryClient.setQueryData<MeetingListItem[]>(meetingKeys.list, (list) => {
         if (!list) return list;
         return list.map((item) =>
@@ -64,7 +63,6 @@ export function useMeeting(id: string) {
       });
       return meeting;
     },
-    // Stop polling once the worker has a final result; no refresh is needed for a finished page.
     refetchInterval: (query) =>
       query.state.data?.analysisStatus === 'pending' ||
       query.state.data?.analysisStatus === 'processing'
@@ -112,7 +110,6 @@ export function useCreateMeeting() {
       const { title, meetingDate } = input;
       let body: FormData | object;
       if (input.source === 'upload') {
-        // Multipart form: the file plus its details as ordinary form fields.
         const form = new FormData();
         form.append('title', title);
         form.append('meetingDate', meetingDate);
@@ -125,7 +122,6 @@ export function useCreateMeeting() {
         .meeting;
     },
     onSuccess: (meeting) => {
-      // The detail page opens instantly from cache; the list refetches when next shown.
       queryClient.setQueryData(meetingKeys.detail(meeting.id), meeting);
       void invalidateMeetingLists(queryClient);
     },

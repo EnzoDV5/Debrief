@@ -1,3 +1,4 @@
+// The pg-boss job queue. It lives in our own Postgres, so jobs survive a restart.
 import { PgBoss } from 'pg-boss';
 import type { Logger } from 'pino';
 import { sslFor } from '../../db/client';
@@ -5,15 +6,10 @@ import type { AnalysisJob } from './analysis.service';
 
 export const ANALYZE_QUEUE = 'analyze-meeting';
 
-/** What the web side needs: "please analyse this meeting". Tests pass a fake that records jobs. */
 export interface AnalysisQueue {
   enqueue(job: AnalysisJob): Promise<void>;
 }
 
-/**
- * pg-boss keeps jobs in our own Postgres (its own `pgboss` schema), so no extra service like
- * Redis is needed, and a queued job survives a server restart.
- */
 export async function startPgBossQueue({
   connectionString,
   handler,
@@ -29,11 +25,7 @@ export async function startPgBossQueue({
 
   if (!(await boss.getQueue(ANALYZE_QUEUE))) {
     await boss.createQueue(ANALYZE_QUEUE, {
-      // "stately": at most one queued and one running job per meeting (singletonKey below),
-      // so double-clicking Retry can't start the same analysis twice.
       policy: 'stately',
-      // Our handler handles AI failures itself (marks the meeting 'failed'). pg-boss retries are
-      // for the process dying mid-job: the job expires and runs again.
       retryLimit: 2,
       retryDelay: 30,
       retryBackoff: true,
@@ -48,6 +40,7 @@ export async function startPgBossQueue({
 
   return {
     async enqueue(job: AnalysisJob) {
+      // One job per meeting at a time, even if Retry is clicked twice.
       await boss.send(ANALYZE_QUEUE, job, { singletonKey: job.meetingId });
     },
     async stop() {

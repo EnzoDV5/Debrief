@@ -1,3 +1,4 @@
+/* Where all the styles come together. */
 @import 'tailwindcss';
 @import './tokens.css';
 @import './fonts.css';

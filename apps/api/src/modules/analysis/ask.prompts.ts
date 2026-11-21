@@ -1,3 +1,4 @@
+// The prompt and answer format for "Ask this meeting".
 import { z } from 'zod';
 
 export const askOutput = z

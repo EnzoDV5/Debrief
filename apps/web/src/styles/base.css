@@ -1,3 +1,4 @@
+/* Base styles and the few animations Tailwind can't express. */
 @layer base {
   html {
     background-color: var(--color-bg);
@@ -6,7 +7,6 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    /* Stops iOS enlarging text in landscape. */
     -webkit-text-size-adjust: 100%;
   }
 
@@ -25,13 +25,11 @@
     text-wrap: pretty;
   }
 
-  /* One visible, consistent keyboard focus style everywhere (mouse clicks don't show it). */
   :focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
   }
 
-  /* Native <dialog> backdrop. */
   dialog::backdrop {
     background: rgb(12 14 22 / 0.45);
     backdrop-filter: blur(2px);
@@ -42,7 +40,6 @@
   }
 }
 
-/* Respect the OS "reduce motion" setting: no transitions or spinner rotation easing tricks. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -55,7 +52,6 @@
   }
 }
 
-/* Mono uppercase label, e.g. "LINE 12" or "DUE 28 NOV". From the Stack Studio type system. */
 @utility eyebrow {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
@@ -65,28 +61,19 @@
   text-transform: uppercase;
 }
 
-/* Tabular numerals so counts and dates line up in lists. */
 @utility numeric {
   font-variant-numeric: tabular-nums;
 }
 
-/*
- * The page panel's scrollbar: a thin rounded thumb (tinted from the text colour, so it shows on
- * light and dark areas alike) floating inside the panel, kept clear of its
- * rounded corners, instead of the browser's square bar clipped against the panel edge.
- * Chrome/Edge/Safari use the ::-webkit-scrollbar parts (only while scrollbar-width/color are
- * unset, so those are applied to Firefox alone, which has no ::-webkit-scrollbar).
- */
 @utility scrollbar-panel {
   &::-webkit-scrollbar {
     width: 14px;
   }
   &::-webkit-scrollbar-track {
     background: transparent;
-    margin-block: 20px; /* stop short of the rounded corners */
+    margin-block: 20px;
   }
   &::-webkit-scrollbar-thumb {
-    /* The transparent border + padding-box clip turns a 14px bar into a 6px pill with a gap. */
     border: 4px solid transparent;
     border-radius: var(--radius-pill);
     background-clip: padding-box;
@@ -101,12 +88,6 @@
   }
 }
 
-/*
- * Liquid glass: a translucent surface with a soft light sheen from the top-left, so the
- * colour behind shows through. Combine with shadow-card (the bright top rim) and a light
- * border. Cards use plain translucency: the blobs behind them are already soft, so blurring
- * them would look the same and cost a lot while they move.
- */
 @utility glass {
   background-color: color-mix(in srgb, var(--color-surface) 58%, transparent);
   background-image: linear-gradient(
@@ -117,17 +98,12 @@
   );
 }
 
-/*
- * Frosted glass for surfaces that float over content (menus, dialogs, sticky bars): more
- * opaque, and it blurs and enriches whatever passes behind it so text stays readable.
- */
 @utility glass-float {
   background-color: color-mix(in srgb, var(--color-surface) 78%, transparent);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   backdrop-filter: blur(20px) saturate(180%);
 }
 
-/* PanelBackdrop's colour blobs: a soft circle of brand colour fading to nothing at the edge. */
 @utility blob-lime {
   background-image: radial-gradient(
     circle,
@@ -150,13 +126,6 @@
   );
 }
 
-/*
- * Spotlight for the cards in the meeting's notes column: each card comes fully into focus as it
- * passes the middle of the panel and softens (smaller, faded, slightly blurred) towards the top
- * and bottom edges, so every card gets its moment. Driven by scrolling itself (CSS scroll-driven
- * animation, no JavaScript): the timeline is the card's journey through the scrolling panel.
- * Browsers without support, and anyone who prefers reduced motion, see the cards as normal.
- */
 @keyframes spotlight {
   0%,
   100% {
@@ -182,12 +151,6 @@
   }
 }
 
-/*
- * The same spotlight for the transcript's lines, so the line being read has its moment: sharp in
- * a band across the middle of the frame (the middle few lines), dimmer above and below, and
- * softest at the edges. Lighter on shrink and blur than the cards, since this is the text people
- * read. Scales from the left edge so lines don't drift sideways.
- */
 @keyframes spotlight-soft {
   0%,
   100% {
@@ -220,12 +183,6 @@
   }
 }
 
-/*
- * On the meeting page's scrolling panel (desktop): the transcript fades out at the top and bottom
- * edges of the frame, into whatever is behind it (panel, blobs), instead of being cut off. A
- * mask, not a coloured overlay, so there's no visible band. From xl the notes column on the right
- * (notes width + gap + scrollbar, as in MeetingDocument) stays fully visible: it has its own fades.
- */
 @utility transcript-edge-fade {
   @media (width >= 64rem) {
     --edge-fade: linear-gradient(
@@ -253,36 +210,22 @@
   }
 }
 
-/*
- * Content that sits straight on the dark frame (the sign-in form column), like the sidebar.
- * Instead of a dark variant of every form component, this re-points the colour tokens inside
- * it: labels, hints and errors turn light, inputs turn dark, and the shared Field, Input,
- * Button and Alert components work unchanged. Contrast notes are against the frame (sidebar).
- */
 @utility on-frame {
   --color-fg: var(--color-sidebar-fg);
-  --color-muted: var(--color-sidebar-muted); /* 7.6:1 */
-  --color-surface: var(--color-sidebar-hover); /* input fill */
+  --color-muted: var(--color-sidebar-muted);
+  --color-surface: var(--color-sidebar-hover);
   --color-surface-2: var(--color-sidebar-active);
-  --color-line-strong: #868c99; /* input borders: 4.2:1 on the input fill */
-  /* Brighter cobalt: white button text still 4.7:1, focus rings 3.8:1 on the frame. */
+  --color-line-strong: #868c99;
   --color-accent: #5560ff;
   --color-accent-hover: #2b36f5;
-  --color-accent-soft: color-mix(in srgb, #5560ff 18%, var(--color-sidebar)); /* info alerts */
+  --color-accent-soft: color-mix(in srgb, #5560ff 18%, var(--color-sidebar));
   --color-danger: var(--color-danger-light);
   --color-danger-soft: color-mix(in srgb, var(--color-danger-light) 14%, var(--color-sidebar));
   --color-success: #5fd394;
-  --color-warning: #f5b544; /* "Fair" on the password strength bar */
+  --color-warning: #f5b544;
   --color-success-soft: color-mix(in srgb, #5fd394 14%, var(--color-sidebar));
 }
 
-/*
- * Switching between log in and sign up (the links use React Router's viewTransition). The
- * browser snapshots the old and new form and animates between them: the old one fades up and
- * out, the new one rises in just after, and the box between them smoothly changes height. The
- * rest of the page swaps instantly, so the walkthrough on the right keeps running untouched.
- * Browsers without view transitions simply switch pages.
- */
 @media (prefers-reduced-motion: no-preference) {
   ::view-transition-old(root),
   ::view-transition-new(root) {
@@ -314,11 +257,6 @@
   }
 }
 
-/*
- * "The AI is working" look (AnalysisNotesLoader). One turning angle drives everything: the
- * orb's gradient and the card's border both rotate with it, so they move together.
- * @property makes the angle animatable; browsers without it just show the gradients still.
- */
 @property --ai-angle {
   syntax: '<angle>';
   inherits: false;
@@ -330,7 +268,6 @@
   }
 }
 
-/* The brand's AI gradient (cobalt, violet, lime), turning. */
 @utility ai-gradient {
   background-image: conic-gradient(
     from var(--ai-angle),
@@ -343,10 +280,6 @@
   animation: ai-angle 3.2s linear infinite;
 }
 
-/*
- * A card whose 1px border is that gradient, slowly travelling round. Set --ai-card to the card's
- * own background: the inside is painted in it, only the border shows the gradient.
- */
 @utility ai-border {
   border: 1px solid transparent;
   background:
@@ -355,10 +288,6 @@
   animation: ai-angle 4.5s linear infinite;
 }
 
-/*
- * Text with a highlight sweeping across it. --shimmer-base / --shimmer-hi are the text colour and
- * the highlight (set per background).
- */
 @keyframes ai-shimmer {
   from {
     background-position: 100% 0;
@@ -383,7 +312,6 @@
   animation: ai-shimmer 2.2s linear infinite;
 }
 
-/* A placeholder block with a soft light sweeping across (the ghost note cards). */
 @utility ai-skeleton {
   background-image: linear-gradient(
     90deg,

@@ -1,17 +1,6 @@
-// Talks to OpenRouter (an OpenAI-compatible API in front of many models). Only the api server
-// ever calls it: the key never reaches the browser.
-//
-// This file knows about HTTP, timeouts and retries. It knows nothing about meetings: it sends a
-// prompt and returns the model's raw text. Validating that text is the analysis service's job.
-
+// Talks to OpenRouter with timeouts and retries. Only the server calls it, so the key stays secret.
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
-/**
- * Why a call failed. The kind decides what happens next:
- * - retried on the same model: rate_limited, unavailable, timeout
- * - try the next model:       rejected, empty (and the above, once retries run out)
- * - stop everything:          daily_limit, auth, not_configured (no other model will help)
- */
 export type AiErrorKind =
   | 'daily_limit'
   | 'rate_limited'
@@ -40,12 +29,10 @@ export type AiRequest = {
   model: string;
   system: string;
   user: string;
-  /** Name + JSON Schema for OpenRouter's structured output (response_format: json_schema). */
   schemaName: string;
   jsonSchema: Record<string, unknown>;
 };
 
-/** The one thing the analysis service needs from an AI provider. Tests pass a fake. */
 export interface AiClient {
   complete(request: AiRequest): Promise<string>;
 }
@@ -54,7 +41,6 @@ type Options = {
   apiKey: string | undefined;
   appUrl: string;
   timeoutMs: number;
-  /** Waits before each retry on the same model. Two retries: ~1s, then ~3s. */
   retryDelaysMs?: number[];
   fetchImpl?: typeof fetch;
   sleep?: (ms: number) => Promise<void>;
@@ -73,7 +59,6 @@ export function createOpenRouterClient({
   async function callOnce(request: AiRequest): Promise<string> {
     if (!apiKey) throw new AiError('not_configured', 'OPENROUTER_API_KEY is not set');
 
-    // Abort the request if the model takes too long; a hung call must never block the worker.
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
@@ -98,7 +83,6 @@ export function createOpenRouterClient({
 
       const body = (await res.json().catch(() => null)) as OpenRouterBody | null;
       if (!res.ok) throw classify(res, body?.error?.message ?? '');
-      // OpenRouter can answer 200 with an error object when the upstream provider fails.
       if (body?.error) throw new AiError('unavailable', body.error.message ?? 'Provider error');
 
       const content = body?.choices?.[0]?.message?.content;
@@ -124,7 +108,6 @@ export function createOpenRouterClient({
         } catch (err) {
           const retryable = err instanceof AiError && RETRYABLE.has(err.kind);
           if (!retryable || attempt >= retryDelaysMs.length) throw err;
-          // Exponential-ish backoff; honour the server's Retry-After when it gives one.
           await sleep(err.retryAfterMs ?? retryDelaysMs[attempt] ?? 0);
         }
       }
@@ -140,7 +123,6 @@ type OpenRouterBody = {
 function buildBody(request: AiRequest) {
   return {
     model: request.model,
-    // 0 = as deterministic as possible: we want extraction, not creativity.
     temperature: 0,
     messages: [
       { role: 'system', content: request.system },
@@ -150,7 +132,7 @@ function buildBody(request: AiRequest) {
       type: 'json_schema',
       json_schema: { name: request.schemaName, strict: true, schema: request.jsonSchema },
     },
-    // For OpenAI models, only route to OpenAI itself, so it uses my own (BYOK) OpenAI key.
+    // OpenAI models go straight to OpenAI, so they run on our own key.
     ...(request.model.startsWith('openai/') ? { provider: { only: ['openai'] } } : {}),
   };
 }
@@ -160,7 +142,6 @@ function classify(res: Response, message: string): AiError {
   if (status === 401 || status === 403)
     return new AiError('auth', 'OpenRouter rejected the API key');
   if (status === 429) {
-    // The free tier's daily cap won't lift if we wait a few seconds, so don't retry it.
     if (/per[\s-]?day|daily|free-models-per-day/i.test(message)) {
       return new AiError('daily_limit', 'Daily free-model limit reached');
     }
@@ -174,7 +155,5 @@ function classify(res: Response, message: string): AiError {
   }
   if (status === 408) return new AiError('timeout', 'Upstream timeout');
   if (status >= 500) return new AiError('unavailable', `OpenRouter error ${status}`);
-  // 400/402/404/422: this model can't handle the request (no structured output support,
-  // removed, needs credits...). Another model might.
   return new AiError('rejected', `Model rejected the request (${status})`);
 }

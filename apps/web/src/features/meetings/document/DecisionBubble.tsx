@@ -1,3 +1,4 @@
+// The card for one decision.
 import type { Decision } from '@debrief/shared';
 import { Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -7,7 +8,6 @@ import { Input } from '@/components/ui/Input';
 import { IconButton, NoteCardHeader, noteCardClass } from '@/features/actionItems/ActionItemCard';
 import { useDeleteDecision, useUpdateDecision } from '@/features/actionItems/hooks';
 
-/** A decision card beside the transcript line where the choice was made. */
 export function DecisionBubble({
   meetingId,
   decision,
@@ -21,7 +21,7 @@ export function DecisionBubble({
 }) {
   const update = useUpdateDecision(meetingId);
   const remove = useDeleteDecision(meetingId);
-  const [draft, setDraft] = useState<string | null>(null); // null = not editing
+  const [draft, setDraft] = useState<string | null>(null);
 
   return (
     <article

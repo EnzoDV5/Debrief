@@ -1,12 +1,10 @@
-// One date style across the app, e.g. "19 Nov 2026". Fixed locale so it reads the same for
-// everyone (and in tests), regardless of browser settings.
+// Date, size and plural formatting, the same for everyone.
 const dateFormat = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',
   month: 'short',
   year: 'numeric',
 });
 
-/** For timestamps (ISO date-time), e.g. "Member since". */
 export function formatDate(iso: string): string {
   return dateFormat.format(new Date(iso));
 }
@@ -19,16 +17,10 @@ const calendarDateFormat = new Intl.DateTimeFormat('en-GB', {
   timeZone: 'UTC',
 });
 
-/**
- * For calendar dates ('YYYY-MM-DD'), e.g. a meeting date → "Tue, 24 Nov 2026".
- * Formatted in UTC on purpose: `new Date('2026-11-24')` is midnight UTC, which in a time zone
- * behind UTC would otherwise display as the day before.
- */
 export function formatCalendarDate(ymd: string): string {
   return calendarDateFormat.format(new Date(`${ymd}T00:00:00Z`));
 }
 
-/** Today's date in the user's own time zone, as 'YYYY-MM-DD' (toISOString() would use UTC). */
 export function todayDate(): string {
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, '0');

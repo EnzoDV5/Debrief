@@ -1,3 +1,4 @@
+// Sign in with Google, end to end with a fake Google.
 import request, { type Response } from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app';
@@ -12,15 +13,8 @@ import {
   WEB_ORIGIN,
 } from './helpers';
 
-// Sign in with Google, end to end through the real routes and database. Google itself is a fake
-// that hands back whatever identity the test chooses; it never calls the real Google.
-
 const SUB = '108234567890123456789';
 
-/**
- * A pretend Google. Like the real one, the ID token carries the nonce from the consent URL,
- * unless a test overrides it (to test a replayed token).
- */
 function fakeGoogle(identity: Partial<GoogleIdentity> = {}): GoogleSignInClient {
   let lastNonce = '';
   return {
@@ -41,7 +35,6 @@ function fakeGoogle(identity: Partial<GoogleIdentity> = {}): GoogleSignInClient 
 }
 
 let app: ReturnType<typeof createApp>;
-/** null = a server without Google keys. */
 function buildApp(google: GoogleSignInClient | null = fakeGoogle()) {
   app = createApp({ ...testAppDeps, googleSignIn: google ?? undefined });
 }
@@ -57,7 +50,6 @@ function setCookies(res: Response): string[] {
   return Array.isArray(raw) ? (raw as string[]) : [];
 }
 
-/** Runs the real redirect → Google → callback dance and returns the callback response. */
 async function signInWithGoogle({
   next,
   cookie,
@@ -65,11 +57,8 @@ async function signInWithGoogle({
   query,
 }: {
   next?: string;
-  /** Cookies the browser already has (e.g. an old session). */
   cookie?: string;
-  /** Replace the state Google echoes back. */
   state?: string;
-  /** Replace the whole callback query (e.g. ?error=access_denied). */
   query?: string;
 } = {}) {
   const start = await request(app)
@@ -139,7 +128,6 @@ describe('finishing a Google sign-in', () => {
       name: 'Thandi Nkosi',
       hasPassword: false,
     });
-    // The temporary sign-in cookie is cleared once it's been used.
     expect(setCookies(res).some((c) => /^debrief_google_signin=;/.test(c))).toBe(true);
   });
 
@@ -152,7 +140,6 @@ describe('finishing a Google sign-in', () => {
     const secondUser = (await me(sessionCookiePair(second))).body.user;
 
     expect(secondUser.id).toBe(firstUser.id);
-    // Returning, not new: the app plays its entrance but doesn't say "welcome" again.
     expect(second.headers.location).toBe(`${WEB_ORIGIN}/meetings?signed_in=back`);
   });
 
@@ -166,7 +153,6 @@ describe('finishing a Google sign-in', () => {
 
     expect(googleUser.id).toBe(passwordUser.id);
     expect(googleUser.hasPassword).toBe(true);
-    // The password still works too.
     const login = await request(app)
       .post('/api/auth/login')
       .set('Origin', WEB_ORIGIN)

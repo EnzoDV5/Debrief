@@ -1,10 +1,4 @@
-// Applies any migrations that haven't run yet, then exits. Safe to run on every start:
-// drizzle records applied migrations in its own table and skips them.
-//
-//   npm run db:migrate            → DATABASE_URL (local Docker Postgres; on Render, Supabase)
-//   npm run db:migrate:supabase   → SUPABASE_DATABASE_URL, from a developer machine
-//
-// The Docker api runs the first form before starting the server.
+// Runs any database migrations that haven't been applied yet, then exits.
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { env } from '../config/env';

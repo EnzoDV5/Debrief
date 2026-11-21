@@ -1,13 +1,9 @@
+// All the database work for meetings. Filtering by userId is what keeps users out of each other's data.
 import type { TranscriptLine } from '@debrief/shared';
 import { and, asc, desc, eq, ilike, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { actionItems, decisions, meetings, projects, type MeetingRow } from '../../db/schema';
 
-// The only file in the meetings module that talks to the database.
-// Every query filters by userId. That single rule is what stops one user reaching another user's
-// meetings: a wrong id simply finds nothing, which the service turns into a 404.
-
-/** Columns for the list: everything except the (potentially large) transcript text. */
 const listColumns = {
   id: meetings.id,
   title: meetings.title,
@@ -18,7 +14,6 @@ const listColumns = {
   pinnedAt: meetings.pinnedAt,
   archivedAt: meetings.archivedAt,
   projectId: meetings.projectId,
-  // Postgres counts the lines, so the list never loads the transcripts themselves.
   lineCount: sql<number>`jsonb_array_length(${meetings.transcriptLines})`.mapWith(Number),
 };
 export type MeetingListRow = Pick<
@@ -50,7 +45,6 @@ export const meetingsRepository = {
     return meeting;
   },
 
-  /** Newest first. Capped so one request can't return an unbounded list. */
   async listForUser(
     userId: string,
     filter: { archived?: boolean; q?: string; projectId?: string } = {},
@@ -94,7 +88,6 @@ export const meetingsRepository = {
     return meeting ?? null;
   },
 
-  /** The analysis results shown on the meeting page, in display order. */
   async findResultsForUser(userId: string, meetingId: string) {
     const [decisionRows, actionItemRows] = await Promise.all([
       db
@@ -129,7 +122,6 @@ export const meetingsRepository = {
     return meeting ?? null;
   },
 
-  /** Puts a meeting back in the queue state ('pending') before a new analysis job is sent. */
   async setAnalysisPending(userId: string, meetingId: string): Promise<MeetingRow | null> {
     const [meeting] = await db
       .update(meetings)
@@ -146,7 +138,6 @@ export const meetingsRepository = {
       .where(and(eq(meetings.id, meetingId), eq(meetings.userId, userId)));
   },
 
-  /** Returns false if there was nothing (of this user's) to delete. */
   async deleteForUser(userId: string, meetingId: string): Promise<boolean> {
     const deleted = await db
       .delete(meetings)

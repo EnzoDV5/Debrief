@@ -1,3 +1,4 @@
+// Asks before deleting an action item.
 import type { ActionItem } from '@debrief/shared';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';

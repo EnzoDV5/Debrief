@@ -1,3 +1,4 @@
+// A small coloured label.
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
@@ -11,7 +12,6 @@ const tones: Record<Tone, string> = {
   danger: 'bg-danger-soft text-danger',
 };
 
-/** Small status pill, e.g. "Done", "Needs review", "Overdue". */
 export function Badge({
   tone = 'neutral',
   icon,

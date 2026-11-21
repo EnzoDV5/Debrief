@@ -1,3 +1,4 @@
+// The buttons in the meeting bar: move to a project, archive and delete.
 import type { Meeting } from '@debrief/shared';
 import { Archive, ArchiveRestore, Check, ChevronDown, Folder, Trash2 } from 'lucide-react';
 import { useRef, useState, type ComponentProps } from 'react';
@@ -7,26 +8,20 @@ import { cn } from '@/lib/cn';
 import { DeleteMeetingDialog } from '../DeleteMeetingDialog';
 import { useProjects, useUpdateMeeting } from '../hooks';
 
-// The meeting bar's buttons. The bar sits on the light page on mobile and on the dark frame on
-// desktop (lg), so every style has both versions.
-
 type Tone = 'default' | 'highlight' | 'danger';
 
 const tones: Record<Tone, string> = {
   default:
     'border-line-strong bg-surface/60 text-fg shadow-card hover:bg-surface ' +
     'lg:border-sidebar-line lg:bg-sidebar-hover lg:text-sidebar-fg lg:shadow-none lg:hover:bg-sidebar-active lg:hover:text-white',
-  // The main action in the bar: lime, the brand's accent, with dark text (high contrast).
   highlight:
     'border-spark bg-spark text-fg shadow-card hover:bg-spark/85 ' +
     'lg:shadow-none lg:hover:bg-spark/85',
-  // Destructive: red. On the dark frame a lighter red, so the icon stays clearly visible.
   danger:
     'border-danger/40 bg-surface/60 text-danger shadow-card hover:bg-danger-soft ' +
     'lg:border-danger-light/40 lg:bg-transparent lg:text-danger-light lg:shadow-none lg:hover:bg-danger-light/15',
 };
 
-/** The classes for a bar button (also used by the project menu's <summary>). */
 export function barButtonClass(tone: Tone = 'default', expanded = false) {
   return cn(
     'inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-md border px-3 text-sm font-semibold transition-colors lg:focus-visible:outline-white',
@@ -49,10 +44,6 @@ export function BarButton({
   );
 }
 
-/**
- * "Add to project": shows the meeting's project (or "Add to project") and opens a short list.
- * A native <details> gives keyboard opening, focus and an expanded state for free.
- */
 export function ProjectMenu({ meeting }: { meeting: Meeting }) {
   const details = useRef<HTMLDetailsElement>(null);
   const [open, setOpen] = useState(false);
@@ -154,7 +145,6 @@ function ProjectOption({
   );
 }
 
-/** Archive (or restore) the meeting. It stays open, so the change can be undone right here. */
 export function ArchiveButton({ meeting }: { meeting: Meeting }) {
   const update = useUpdateMeeting(meeting.id);
   const archived = meeting.archivedAt !== null;
@@ -174,7 +164,6 @@ export function ArchiveButton({ meeting }: { meeting: Meeting }) {
   );
 }
 
-/** Delete: a red bin icon (no label shown) that asks to confirm first. */
 export function DeleteButton({ meeting }: { meeting: Meeting }) {
   const [confirming, setConfirming] = useState(false);
   const navigate = useNavigate();

@@ -1,7 +1,4 @@
-/*
- * Satoshi (Indian Type Foundry, Fontshare Free Font licence: web use allowed, see
- * ../assets/fonts/Satoshi-LICENSE.txt). Geist Mono comes from @fontsource-variable (main.tsx).
- */
+/* Our fonts: Satoshi for text and Geist Mono for monospaced bits. */
 @font-face {
   font-family: 'Satoshi';
   src: url('../assets/fonts/Satoshi-Variable.woff2') format('woff2-variations');
@@ -10,10 +7,6 @@
   font-display: swap;
 }
 
-/*
- * Metric-matched fallbacks (measured for my portfolio): while the web fonts load, the system
- * font is scaled to take up the same space, so text doesn't jump when Satoshi arrives (no CLS).
- */
 @font-face {
   font-family: 'Satoshi Fallback';
   src: local('Arial');

@@ -1,3 +1,4 @@
+// Rules for projects, like no two projects with the same name.
 import type { Project } from '@debrief/shared';
 import type { ProjectRow } from '../../db/schema';
 import { AppError, notFound } from '../../lib/errors';
@@ -7,7 +8,6 @@ function toProject(row: ProjectRow): Project {
   return { id: row.id, name: row.name, createdAt: row.createdAt.toISOString() };
 }
 
-// A duplicate project name is a user-facing conflict, including case-only duplicates.
 async function withNameConflict<T>(operation: () => Promise<T>): Promise<T> {
   try {
     return await operation();

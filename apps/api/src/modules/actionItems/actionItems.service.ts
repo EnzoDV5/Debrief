@@ -1,3 +1,4 @@
+// Rules for action items. Editing a flagged item counts as reviewing it, so the flag goes away.
 import {
   ACTION_ITEM_STATUSES,
   type ActionItem,
@@ -12,17 +13,13 @@ import { toActionItem } from '../meetings/meetings.mappers';
 import { actionItemsRepository } from './actionItems.repository';
 import { assertPickedSource } from './pickedSource';
 
-// Business rules for action items. No req/res, no SQL.
-
 type CreateInput = z.output<typeof createActionItemSchema>;
 type UpdateInput = z.output<typeof updateActionItemSchema>;
 type ListQuery = z.output<typeof actionItemsQuerySchema>;
 
-/** Today's date (UTC) as YYYY-MM-DD, used when the client doesn't send its own "today". */
 const utcToday = () => new Date().toISOString().slice(0, 10);
 
 export const actionItemsService = {
-  /** A hand-made item: never flagged (the user wrote it), and never replaced by re-analysis. */
   async create(userId: string, meetingId: string, input: CreateInput): Promise<ActionItem> {
     const lines = await actionItemsRepository.findTranscriptLines(userId, meetingId);
     if (!lines) throw notFound('Meeting');
@@ -42,15 +39,10 @@ export const actionItemsService = {
     if (!current) throw notFound('Action item');
     const changes: Parameters<typeof actionItemsRepository.updateForUser>[2] = { ...patch };
 
-    // Once a person has edited what the item says, who owns it or when it's due, they've reviewed
-    // it: the AI's warning no longer applies. Just ticking it off (status) doesn't count.
     if ('text' in patch || 'owner' in patch || 'dueDate' in patch) {
       changes.needsReview = false;
       changes.reviewReason = null;
     }
-    // A real change to what the item claims. The explanation describes the original task and
-    // owner, so it may now be stale; and the card no longer matches its source quote word for
-    // word, which editedAt tells the UI.
     if (
       (patch.text !== undefined && patch.text !== current.text) ||
       (patch.owner !== undefined && patch.owner !== current.owner) ||
@@ -59,8 +51,6 @@ export const actionItemsService = {
       changes.contextSummary = null;
       changes.editedAt = new Date();
     }
-    // A *different* date picked by hand replaces the transcript's words for it, so drop those
-    // words. An edit form re-sends the unchanged date too; that must keep "next Friday".
     if (patch.dueDate !== undefined && patch.dueDate !== current.dueDate) {
       changes.dueDateText = null;
     }

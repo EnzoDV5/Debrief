@@ -1,3 +1,4 @@
+// The little menu next to a meeting in the sidebar.
 import type { MeetingListItem } from '@debrief/shared';
 import {
   Archive,
@@ -16,7 +17,6 @@ import { DeleteMeetingDialog } from './DeleteMeetingDialog';
 import { EditMeetingDialog } from './EditMeetingDialog';
 import { useProjects, useUpdateMeeting } from './hooks';
 
-/** Native details gives the menu keyboard activation, focus, and an accessible expanded state. */
 export function MeetingMenu({ meeting }: { meeting: MeetingListItem }) {
   const details = useRef<HTMLDetailsElement>(null);
   const [dialog, setDialog] = useState<'edit' | 'delete' | null>(null);

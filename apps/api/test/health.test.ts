@@ -1,3 +1,4 @@
+// Health check, security headers and the error shape.
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../src/app';
@@ -12,7 +13,7 @@ describe('GET /api/health', () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ status: 'ok' });
     expect(res.headers['x-request-id']).toMatch(/^[0-9a-f-]{36}$/);
-    expect(res.headers['x-content-type-options']).toBe('nosniff'); // from helmet
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
     expect(res.headers['x-powered-by']).toBeUndefined();
   });
 });
@@ -33,7 +34,7 @@ describe('error responses', () => {
 
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('INVALID_JSON');
-    expect(JSON.stringify(res.body)).not.toContain('at '); // no stack frames leaked
+    expect(JSON.stringify(res.body)).not.toContain('at ');
   });
 
   it('rejects bodies over the size limit with 413', async () => {

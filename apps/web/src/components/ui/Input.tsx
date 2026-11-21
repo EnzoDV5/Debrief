@@ -1,10 +1,8 @@
+// Text input, textarea and password input with show/hide.
 import { Eye, EyeOff } from 'lucide-react';
 import { useState, type ComponentProps } from 'react';
 import { cn } from '@/lib/cn';
 
-// text-base (16px) on purpose: iOS zooms into any input with a smaller font when it's focused.
-// The red border comes from aria-invalid, so the visual state and the screen-reader state can
-// never disagree.
 const inputClasses =
   'block w-full min-h-11 rounded-md border border-line-strong bg-surface px-3 text-base text-fg ' +
   'placeholder:text-muted transition-colors duration-150 ' +
@@ -16,12 +14,10 @@ export function Input({ className, ...props }: ComponentProps<'input'>) {
   return <input {...props} className={cn(inputClasses, className)} />;
 }
 
-/** Multi-line text, same look and states as Input. */
 export function Textarea({ className, ...props }: ComponentProps<'textarea'>) {
   return <textarea {...props} className={cn(inputClasses, 'py-2.5 leading-relaxed', className)} />;
 }
 
-/** Password input with a show/hide toggle (instead of a "confirm password" field). */
 export function PasswordInput({ className, ...props }: Omit<ComponentProps<'input'>, 'type'>) {
   const [visible, setVisible] = useState(false);
   return (
@@ -30,7 +26,6 @@ export function PasswordInput({ className, ...props }: Omit<ComponentProps<'inpu
         {...props}
         type={visible ? 'text' : 'password'}
         className={cn('pr-12', className)}
-        // Stops browsers offering to "translate" or autocorrect a visible password.
         autoCapitalize="none"
         autoCorrect="off"
         spellCheck={false}

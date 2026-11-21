@@ -1,3 +1,4 @@
+// The form for adding or editing an action item.
 import { ACTION_ITEM_STATUSES, createActionItemSchema, type ActionItem } from '@debrief/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useId } from 'react';
@@ -12,14 +13,9 @@ import { applyApiError } from '@/lib/formErrors';
 import { STATUS_LABELS } from './ActionItemCard';
 import { useCreateActionItem, useUpdateActionItem } from './hooks';
 
-// What the inputs hold (strings) vs what the schema hands to onSubmit ("" owner/date → null).
 type FormInput = z.input<typeof createActionItemSchema>;
 type FormOutput = z.output<typeof createActionItemSchema>;
 
-/**
- * Add a new action item (no `item`) or edit an existing one. Saving an edit to an item the AI
- * flagged clears the flag: the user has now checked it.
- */
 export function ActionItemDialog({
   open,
   onClose,
@@ -33,11 +29,8 @@ export function ActionItemDialog({
   onClose: () => void;
   meetingId: string;
   item?: ActionItem;
-  /** Names to suggest for the owner field (the meeting's speakers and known owners). */
   ownerSuggestions?: string[];
-  /** New items only: start the task text with these words (picked from the transcript). */
   initialText?: string;
-  /** New items only: the transcript line and words they were picked from. */
   source?: { line: number; quote: string };
 }) {
   const create = useCreateActionItem(meetingId);
@@ -51,7 +44,6 @@ export function ActionItemDialog({
     reset,
     formState: { errors, isSubmitting },
   } = useForm<FormInput, unknown, FormOutput>({
-    // The same schema the api enforces.
     resolver: zodResolver(createActionItemSchema),
     values: {
       text: item?.text ?? initialText ?? '',
@@ -69,7 +61,6 @@ export function ActionItemDialog({
   const onSubmit = handleSubmit(async (values) => {
     try {
       if (item) {
-        // The source can't be changed by editing, so it isn't sent.
         const { sourceLine: _line, sourceQuote: _quote, ...patch } = values;
         await update.mutateAsync({ id: item.id, patch });
       } else {

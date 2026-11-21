@@ -1,3 +1,4 @@
+// The Google Calendar section on the account page.
 import { CalendarCheck, CalendarDays } from 'lucide-react';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
@@ -6,7 +7,6 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { formatDate } from '@/lib/format';
 import { CONNECT_CALENDAR_URL, useCalendarStatus, useDisconnectCalendar } from './hooks';
 
-/** What Google's redirect back means, as shown to the user (?calendar=… on /account). */
 const RESULTS = {
   connected: { tone: 'success', text: 'Google Calendar is connected.' },
   denied: { tone: 'info', text: 'Connecting was cancelled. Nothing was changed.' },
@@ -79,7 +79,6 @@ export function CalendarCard({ result }: { result: string | null }) {
                 </Button>
               </div>
             ) : (
-              // A real link: OAuth needs a full-page visit to Google, not a background request.
               <a
                 href={CONNECT_CALENDAR_URL}
                 className="inline-flex min-h-11 items-center gap-2 rounded-md bg-accent px-4 text-sm font-semibold text-accent-fg transition-colors hover:bg-accent-hover"

@@ -1,3 +1,4 @@
+// A coloured message box for errors, warnings and info.
 import { CircleAlert, CircleCheck, Info, TriangleAlert } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/cn';
@@ -11,7 +12,6 @@ const tones: Record<Tone, { classes: string; Icon: typeof Info }> = {
   danger: { classes: 'bg-danger-soft text-danger', Icon: CircleAlert },
 };
 
-/** A message box. Errors use role="alert" so screen readers announce them immediately. */
 export function Alert({
   tone = 'info',
   title,

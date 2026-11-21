@@ -1,3 +1,4 @@
+// The Google sign-in client against fake HTTP responses.
 import { describe, expect, it } from 'vitest';
 import {
   createGoogleSignInClient,
@@ -5,13 +6,9 @@ import {
   readIdToken,
 } from '../src/modules/auth/googleSignIn';
 
-// The Google sign-in client on its own: reading the ID token, and the token request (with a fake
-// fetch, never the real Google).
-
 const CLIENT_ID = 'debrief-test.apps.googleusercontent.com';
 const NOW = Date.parse('2026-11-20T10:00:00Z');
 
-/** A JWT-shaped string with these claims (signature part is irrelevant here, see readIdToken). */
 function idToken(claims: Record<string, unknown>) {
   const part = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
   return `${part({ alg: 'RS256' })}.${part(claims)}.signature`;

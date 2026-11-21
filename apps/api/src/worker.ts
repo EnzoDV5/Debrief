@@ -1,14 +1,10 @@
+// Hooks the real AI client and model list into the background job that analyses meetings.
 import { aiModelChain, env } from './config/env';
 import { logger } from './lib/logger';
 import { analyzeMeeting } from './modules/analysis/analysis.service';
 import { createOpenRouterClient } from './modules/analysis/openRouterClient';
 import { startPgBossQueue } from './modules/analysis/queue';
 
-/**
- * Wires the real dependencies (OpenRouter, the model chain, pg-boss) into the analysis worker.
- * It runs inside the api process (see server.ts): one service to deploy on Render's free tier.
- * Splitting it into its own process later would only mean calling this from a separate entry.
- */
 export function startAnalysisWorker() {
   const ai = createOpenRouterClient({
     apiKey: env.OPENROUTER_API_KEY,

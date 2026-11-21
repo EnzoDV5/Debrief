@@ -1,3 +1,4 @@
+// HTTP layer for projects.
 import { createProjectSchema, type Project } from '@debrief/shared';
 import type { Request, Response } from 'express';
 import { z } from 'zod';

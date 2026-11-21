@@ -1,3 +1,4 @@
+// HTTP layer for "Ask this meeting".
 import { askMeetingInputSchema, type AskMeetingResponse } from '@debrief/shared';
 import type { Request, Response } from 'express';
 import { uuidParam } from '../../lib/params';

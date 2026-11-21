@@ -1,3 +1,4 @@
+// Projects and the meetings in each one.
 import { Folder, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';

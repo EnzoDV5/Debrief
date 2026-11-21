@@ -1,21 +1,16 @@
+// Slows down password guessing and spammy questions by limiting requests per IP.
 import type { ApiErrorBody } from '@debrief/shared';
 import { rateLimit } from 'express-rate-limit';
 import { getAuthUser } from './requireAuth';
 
 const FIFTEEN_MINUTES = 15 * 60 * 1000;
 
-/**
- * Slows down password guessing: 10 attempts per 15 minutes per IP.
- * A factory, so each app instance (and each test) gets its own counter.
- * `skipSuccessfulRequests` is for login: only failed attempts count, so logging in and out
- * during a demo never locks you out.
- */
 export function createAuthRateLimiter({ skipSuccessfulRequests = false } = {}) {
   return rateLimit({
     windowMs: FIFTEEN_MINUTES,
     limit: 10,
     skipSuccessfulRequests,
-    standardHeaders: 'draft-8', // RateLimit-* headers tell clients when to retry
+    standardHeaders: 'draft-8',
     legacyHeaders: false,
     handler: (_req, res) => {
       res.status(429).json({
@@ -25,7 +20,6 @@ export function createAuthRateLimiter({ skipSuccessfulRequests = false } = {}) {
   });
 }
 
-/** Bound question calls per account so repeated prompts cannot exhaust the shared AI quota. */
 export function createAskRateLimiter() {
   return rateLimit({
     windowMs: FIFTEEN_MINUTES,

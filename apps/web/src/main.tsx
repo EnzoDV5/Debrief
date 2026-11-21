@@ -1,3 +1,4 @@
+// Where the web app starts: load fonts and styles, then render.
 import '@fontsource-variable/geist-mono';
 import './styles/index.css';
 import { StrictMode } from 'react';

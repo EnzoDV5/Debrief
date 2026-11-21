@@ -1,3 +1,4 @@
+// The form for adding a decision by hand.
 import { useState } from 'react';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
@@ -13,9 +14,7 @@ export function NewDecisionDialog({
 }: {
   meetingId: string;
   onClose: () => void;
-  /** Start with these words (picked from the transcript). */
   initialText?: string;
-  /** The transcript line it was picked from: the decision will sit beside it. */
   sourceLine?: number | null;
 }) {
   const create = useCreateDecision(meetingId);

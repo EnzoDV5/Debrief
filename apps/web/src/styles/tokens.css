@@ -1,25 +1,14 @@
-/*
- * Design tokens: the single source of truth for colour, type, radius and motion.
- * Tailwind v4 turns each one into utilities (bg-surface, text-muted, rounded-card, ...).
- *
- * Direction: the cool chalk + ink + cobalt identity from my portfolio, tuned for a working app:
- * white surfaces for content, semantic status colours, and every text colour checked for
- * WCAG AA (4.5:1) on both `bg` and `surface`. Contrast notes are next to each colour.
- */
-
+/* Design tokens: colours, radii and shadows used everywhere. */
 @theme {
-  /* Only our palette. Tailwind's default colours are switched off on purpose. */
   --color-*: initial;
   --color-transparent: transparent;
   --color-current: currentColor;
   --color-white: #ffffff;
 
-  /* Surfaces */
-  --color-bg: #f7f8f7; /* quiet reading surface */
-  --color-surface: #ffffff; /* cards, inputs, panels */
-  --color-surface-2: #f0f2f2; /* hover rows, subtle fills */
+  --color-bg: #f7f8f7;
+  --color-surface: #ffffff;
+  --color-surface-2: #f0f2f2;
 
-  /* Conversation history sidebar */
   --color-sidebar: #171923;
   --color-sidebar-fg: #e9ebf2;
   --color-sidebar-muted: #a7adbb;
@@ -27,50 +16,34 @@
   --color-sidebar-active: #353a49;
   --color-sidebar-line: #333746;
 
-  /* Text */
-  --color-fg: #0c0e16; /* ink: body text, 19.3:1 on surface */
-  --color-muted: #535968; /* secondary text, 7.0:1 on surface, 6.1:1 on bg */
+  --color-fg: #0c0e16;
+  --color-muted: #535968;
 
-  /* Lines */
-  --color-line: #e1e4ea; /* dividers and card borders (decorative) */
-  --color-line-strong: #868c99; /* input borders: 3.4:1, meets the 3:1 rule for controls */
+  --color-line: #e1e4ea;
+  --color-line-strong: #868c99;
 
-  /* Brand */
-  --color-accent: #2b36f5; /* cobalt: primary actions, links, focus. 7.1:1 on white */
+  --color-accent: #2b36f5;
   --color-accent-hover: #1b23b8;
-  --color-accent-soft: #e8eafe; /* selected nav item, highlighted line */
+  --color-accent-soft: #e8eafe;
   --color-accent-fg: #ffffff;
-  --color-spark: #d4ff3c; /* lime: brand panel detail only, never text on light */
+  --color-spark: #d4ff3c;
 
-  /* Status (text colour / soft background pairs, all ≥ 5.3:1 together) */
   --color-success: #11713c;
   --color-success-soft: #e3f4e9;
-  --color-warning: #8a4b00; /* "needs review" */
+  --color-warning: #8a4b00;
   --color-warning-soft: #fff1d6;
   --color-danger: #b42318;
   --color-danger-soft: #fdeceb;
   --color-danger-hover: #8f1c13;
-  --color-danger-light: #f97066; /* red on the dark frame/sidebar: 5:1 on sidebar-hover */
+  --color-danger-light: #f97066;
 
-  /* Type */
   --font-sans:
     'Satoshi', 'Satoshi Fallback', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono:
     'Geist Mono Variable', 'Geist Mono Fallback', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  /* App type scale: fixed sizes (a dashboard shouldn't grow with the viewport like a
-     marketing page), with tighter tracking on the larger steps. */
-  /* Wide spacing for small uppercase labels ("RECENT MEETINGS", eyebrows). */
   --tracking-label: 0.12em;
 
-  /*
-   * Type scale. One job per size, so the same kind of text looks the same everywhere:
-   *   2xl  page titles          lg    section and panel headings
-   *   base reading text (transcript, summary, answers)
-   *   sm   secondary text: descriptions, details, counts, notes, buttons, chips
-   *   xs   only badges, uppercase labels, line numbers and initials, never a sentence
-   * (xl is the meeting title in the top bar; 3xl the sign-in page headline.)
-   */
   --text-xs: 0.75rem;
   --text-xs--line-height: 1.4;
   --text-sm: 0.875rem;
@@ -85,39 +58,28 @@
   --text-2xl: 1.75rem;
   --text-2xl--line-height: 1.15;
   --text-2xl--letter-spacing: -0.02em;
-  --text-3xl: clamp(2rem, 1.5rem + 2vw, 2.75rem); /* auth brand panel headline only */
+  --text-3xl: clamp(2rem, 1.5rem + 2vw, 2.75rem);
   --text-3xl--line-height: 1.05;
   --text-3xl--letter-spacing: -0.03em;
 
-  /* Radius */
   --radius-sm: 6px;
-  --radius-md: 10px; /* inputs, buttons */
+  --radius-md: 10px;
   --radius-card: 16px;
-  --radius-panel: 24px; /* the framed page area beside the sidebar (desktop) */
+  --radius-panel: 24px;
   --radius-pill: 999px;
-  --radius-mark: 3px; /* highlighted words in the transcript */
+  --radius-mark: 3px;
 
-  /*
-   * Shadows: soft and low. Each starts with a thin white inset line along the top edge, the
-   * light catching the rim of a glass surface (pairs with the glass utilities in base.css).
-   */
   --shadow-card:
     inset 0 1px 0 rgb(255 255 255 / 0.85), 0 1px 2px rgb(12 14 22 / 0.04),
     0 8px 24px -14px rgb(12 14 22 / 0.14);
   --shadow-raised:
     inset 0 1px 0 rgb(255 255 255 / 0.9), 0 18px 40px -14px rgb(12 14 22 / 0.24),
     0 2px 6px rgb(12 14 22 / 0.06);
-  /* Primary button: a faint top shine and a cobalt glow underneath. */
   --shadow-glow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 8px 20px -10px var(--color-accent);
 
-  /* Motion: short and calm. Turned off entirely for prefers-reduced-motion (base.css). */
   --ease-out-3: cubic-bezier(0.215, 0.61, 0.355, 1);
   --duration-fast: 150ms;
-  /* The page panel resizing between pages: quick to start, long soft landing, so the frame
-     glides instead of snapping. Used with duration-500. */
   --ease-panel: cubic-bezier(0.32, 0.72, 0, 1);
-  /* A newly opened page fades and rises in, just after the panel starts moving, so its content
-     is never seen sticking out over the frame while the panel catches up. */
   --animate-page-in: page-in 420ms var(--ease-panel) 60ms both;
 
   @keyframes page-in {
@@ -127,11 +89,6 @@
     }
   }
 
-  /*
-   * Arriving in the app straight after signing in (AppShell): the light panel starts where the
-   * sign-in page's panel was (--panel-from in from its left edge) and grows to the left, the
-   * sidebar slides in from the left edge, then the page fades in inside the panel.
-   */
   --animate-panel-expand: panel-expand 900ms var(--ease-panel) both;
   --animate-sidebar-in: sidebar-in 800ms var(--ease-panel) 150ms both;
   --animate-page-enter: page-in 600ms var(--ease-panel) 550ms both;
@@ -151,7 +108,6 @@
     }
   }
 
-  /* The sign-in demo's pointer clicking: the arrow presses in, and a ring spreads from the tip. */
   --animate-click-press: click-press 380ms var(--ease-out-3);
   --animate-click-ripple: click-ripple 650ms var(--ease-out-3) both;
 
@@ -171,7 +127,6 @@
     }
   }
 
-  /* The center star slows briefly before the fast part of each turn; the others twinkle in place. */
   --animate-ai-spark-spin: ai-spark-spin 2.6s linear infinite;
   --animate-ai-spark-flicker: ai-spark-flicker 2.1s ease-in-out infinite;
 
@@ -225,7 +180,6 @@
     }
   }
 
-  /* Background blobs (PanelBackdrop): slow, out of step with each other, never looping visibly. */
   --animate-blob-1: blob-1 26s ease-in-out infinite alternate;
   --animate-blob-2: blob-2 32s ease-in-out infinite alternate;
   --animate-blob-3: blob-3 38s ease-in-out infinite alternate;
@@ -255,9 +209,8 @@
     }
   }
 
-  /* Layout */
   --spacing-sidebar: 17.5rem;
-  --spacing-rail: 4.5rem; /* the sidebar collapsed to icons */
+  --spacing-rail: 4.5rem;
   --spacing-topbar: 3.5rem;
   --spacing-tabbar: 4rem;
   --container-content: 72rem;

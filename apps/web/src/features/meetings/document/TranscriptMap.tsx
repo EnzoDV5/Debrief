@@ -1,16 +1,14 @@
+// A slim map of the transcript at the side, marking where items and decisions are.
 import { useEffect, useMemo, useRef, useState, type PointerEvent, type RefObject } from 'react';
 import { PanelOverlay } from '@/components/layout/PageBar';
 import { cn } from '@/lib/cn';
 
 export type MapMarker = { line: number; kind: 'action' | 'decision'; label: string };
 
-/** Past this many lines, plain lines are sampled so the map stays calm (marked lines always show). */
 const MAX_PLAIN_TICKS = 80;
 
 type Geometry = {
-  /** Each shown line's position, 0–1 down the page (measured: rows with cards are taller). */
   tops: Map<number, number>;
-  /** The part of the page on screen, 0–1. */
   viewStart: number;
   viewEnd: number;
 };
@@ -18,15 +16,6 @@ type Geometry = {
 const smooth = (): ScrollBehavior =>
   window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
 
-/**
- * A slim map of the transcript on the right edge of the frame (desktop), drawn as a column of
- * short horizontal ticks, one per line, at the line's height. Plain lines are short and dark;
- * action items (cobalt) and decisions (green) are longer. Every tick grows on hover and jumps
- * to its exact line. Dragging the space between ticks scrubs the whole transcript.
- *
- * It lives on the panel overlay (fixed while the page scrolls) and follows the shell's scrolling
- * area: positions are measured on resize, and only the "on screen" range changes on scroll.
- */
 export function TranscriptMap({
   listRef,
   lines,
@@ -40,7 +29,6 @@ export function TranscriptMap({
   const [geometry, setGeometry] = useState<Geometry | null>(null);
   const scroller = () => listRef.current?.closest<HTMLElement>('[data-scroller]') ?? null;
 
-  // Which lines get a tick: every marked line, plus plain lines (sampled on long transcripts).
   const shownLines = useMemo(() => {
     const marked = new Set(markers.map((m) => m.line));
     const step = Math.max(1, Math.ceil(lines.length / MAX_PLAIN_TICKS));
@@ -63,7 +51,6 @@ export function TranscriptMap({
       viewStart: area.scrollTop / (area.scrollHeight || 1),
       viewEnd: (area.scrollTop + area.clientHeight) / (area.scrollHeight || 1),
     });
-    // Where each line sits on the page: only changes when sizes change, not on scroll.
     const measure = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
@@ -82,7 +69,6 @@ export function TranscriptMap({
       setGeometry((current) => (current ? { ...current, ...view() } : current));
     measure();
     area.addEventListener('scroll', onScroll, { passive: true });
-    // Every browser has ResizeObserver; the test environment doesn't, so it's optional.
     const resize = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
     resize?.observe(list);
     resize?.observe(area);
@@ -93,7 +79,6 @@ export function TranscriptMap({
     };
   }, [listRef, shownLines]);
 
-  // Centre the transcript on the point of the map under the pointer.
   const scrollToPointer = (clientY: number) => {
     const rail = railRef.current?.getBoundingClientRect();
     const area = scroller();
@@ -102,7 +87,6 @@ export function TranscriptMap({
     area.scrollTo({ top: at * area.scrollHeight - area.clientHeight / 2 });
   };
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    // Keep following the pointer while dragging, even off the map (optional in tests).
     event.currentTarget.setPointerCapture?.(event.pointerId);
     scrollToPointer(event.clientY);
   };
@@ -118,7 +102,6 @@ export function TranscriptMap({
         aria-label="Transcript map"
         className="pointer-events-auto absolute top-12 right-2 bottom-12 w-9"
       >
-        {/* Click or drag anywhere to move. Wheel scrolling over it still scrolls the page. */}
         <div
           ref={railRef}
           onPointerDown={onPointerDown}
@@ -138,7 +121,6 @@ export function TranscriptMap({
                     key={line}
                     type="button"
                     aria-label={`Jump to line ${line}`}
-                    // Plain ticks can be clicked, but don't add up to 80 stops to the Tab order.
                     tabIndex={-1}
                     onPointerDown={(event) => event.stopPropagation()}
                     onClick={() => goToLine(line)}
@@ -155,13 +137,11 @@ export function TranscriptMap({
                   </button>
                 );
               }
-              // Longer ticks for action items and decisions; both on one line: two, just apart.
               return marked.map((marker, index) => (
                 <button
                   key={`${line}-${marker.kind}`}
                   type="button"
                   aria-label={`Line ${line}: ${marker.label}`}
-                  // Don't start a drag when pressing a tick.
                   onPointerDown={(event) => event.stopPropagation()}
                   onClick={() => goToLine(line)}
                   style={{

@@ -1,9 +1,7 @@
+// Turns database rows into API responses, so internal columns never leak out.
 import type { ActionItem, Decision, Meeting, MeetingListItem } from '@debrief/shared';
 import type { ActionItemRow, DecisionRow, MeetingRow } from '../../db/schema';
 import type { MeetingListRow } from './meetings.repository';
-
-// Database rows → api responses. Kept in one place so dates are always ISO strings and internal
-// columns (user_id, transcript_original, timestamps) never leak into responses by accident.
 
 export function toListItem(row: MeetingListRow): MeetingListItem {
   return {

@@ -1,8 +1,8 @@
+// Shown when something failed to load, with a "try again" button.
 import { CircleAlert, RotateCw } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { Button } from './Button';
 
-/** Shown when loading data failed. Says what happened and offers a retry. */
 export function ErrorState({
   title = 'Something went wrong',
   message,

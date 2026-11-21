@@ -1,31 +1,19 @@
+// The "Sign in with Google" button.
 import { useEffect, useState } from 'react';
 import { Spinner } from '@/components/ui/Spinner';
 import { cn } from '@/lib/cn';
 import { useAuthProviders } from './hooks';
 
-/**
- * "or", then "Sign in with Google" / "Sign up with Google", beside the form's own button.
- * Both start the same
- * flow: the server sends the user to Google and back, then logs them in, creating the account
- * the first time.
- *
- * A plain link, not a fetch: signing in with Google is a full-page trip to Google and back.
- * Shown only when the server has Google set up. While that's being checked it's already in the
- * page but invisible (and out of the tab order), so the form doesn't jump down when it appears.
- */
 export function GoogleSignInButton({
   label,
   next,
 }: {
   label: 'Sign in with Google' | 'Sign up with Google';
-  /** Where to land after signing in (the page the user originally asked for). */
   next: string | null;
 }) {
   const providers = useAuthProviders();
   const [leaving, setLeaving] = useState(false);
 
-  // Coming back with the browser's Back button can restore this page from memory, still showing
-  // the spinner from before. Reset it, so the button works again.
   useEffect(() => {
     const onPageShow = (event: PageTransitionEvent) => {
       if (event.persisted) setLeaving(false);
@@ -38,8 +26,6 @@ export function GoogleSignInButton({
   if (!checking && !providers.data?.google) return null;
 
   const href = `/api/auth/google/start${next ? `?next=${encodeURIComponent(next)}` : ''}`;
-  // Two pieces, not one wrapper: they sit in the form's button row (see LoginForm's
-  // `alternative`), side by side with the submit button from sm up, stacked below that.
   return (
     <>
       <span
@@ -54,13 +40,11 @@ export function GoogleSignInButton({
       <a
         href={href}
         onClick={(event) => {
-          // A second click while Google is loading would start a second sign-in.
           if (leaving) event.preventDefault();
           setLeaving(true);
         }}
         aria-disabled={leaving || undefined}
         aria-hidden={checking || undefined}
-        // Google's "dark" sign-in button colours, which sit naturally on the dark frame.
         className={cn(
           'flex min-h-11 items-center justify-center gap-2.5 rounded-md border border-[#8e918f] bg-[#131314] px-3 text-sm font-semibold whitespace-nowrap text-[#e3e3e3] transition-colors sm:flex-1',
           'hover:border-[#c4c7c5] hover:bg-[#1f1f20]',
@@ -75,7 +59,6 @@ export function GoogleSignInButton({
   );
 }
 
-/** Google's four-colour "G", as Google's sign-in branding guidelines ask. */
 function GoogleMark() {
   return (
     <svg viewBox="0 0 48 48" aria-hidden="true" className="size-5 shrink-0">

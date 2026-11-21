@@ -1,12 +1,10 @@
+// The welcome email goes out once, and never breaks sign-up.
 import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/app';
 import type { EmailClient, WelcomeEmail } from '../src/modules/auth/emailClient';
 import type { GoogleSignInClient } from '../src/modules/auth/googleSignIn';
 import { closeDatabase, PASSWORD, resetDatabase, testAppDeps, WEB_ORIGIN } from './helpers';
-
-// The welcome letter: sent to a brand-new account only, never to anyone else, and never in the
-// way of signing up. Email is a fake that records what it would have sent.
 
 function fakeEmail({ fail = false } = {}) {
   const welcomed: WelcomeEmail[] = [];
@@ -22,7 +20,6 @@ function fakeEmail({ fail = false } = {}) {
   return { client, welcomed };
 }
 
-/** A pretend Google that always signs in the same person (see googleAuth.test.ts). */
 function fakeGoogle(): GoogleSignInClient {
   let nonce = '';
   return {
@@ -89,7 +86,7 @@ describe('the welcome email', () => {
     await register().expect(201);
     await vi.waitFor(() => expect(email.welcomed).toHaveLength(1));
 
-    expect((await register()).status).toBe(409); // same email again
+    expect((await register()).status).toBe(409);
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(email.welcomed).toHaveLength(1);
   });

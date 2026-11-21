@@ -1,3 +1,4 @@
+// The sign-up form.
 import { registerSchema } from '@debrief/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useId, useState, type ReactNode } from 'react';
@@ -12,8 +13,6 @@ import { applyApiError } from '@/lib/formErrors';
 import { useRegister } from './hooks';
 import { PasswordStrength } from './PasswordStrength';
 
-// The api's sign-up rules (shared), plus "type it again", which only the form needs: it catches
-// a typo in a password the person can't see before it locks them out of their new account.
 const registerFormSchema = registerSchema
   .extend({ confirmPassword: z.string().min(1, 'Type your password again') })
   .superRefine((values, ctx) => {
@@ -31,12 +30,10 @@ export function RegisterForm({
   alternative,
 }: {
   onSuccess: () => void;
-  /** Another way in, shown beside the Create account button (the Google button). */
   alternative?: ReactNode;
 }) {
   const registerUser = useRegister();
   const strengthId = useId();
-  // Shown on the button for the moment before the app opens, so it's clear it worked.
   const [created, setCreated] = useState(false);
   const {
     register,
@@ -49,7 +46,6 @@ export function RegisterForm({
     defaultValues: { name: '', email: '', password: '', confirmPassword: '' },
     mode: 'onTouched',
   });
-  // Live values for the strength bar and the "passwords match" note.
   const [password, confirmPassword] = useWatch({ control, name: ['password', 'confirmPassword'] });
   const matches = confirmPassword.length > 0 && confirmPassword === password;
 
@@ -59,8 +55,6 @@ export function RegisterForm({
       setCreated(true);
       onSuccess();
     } catch (error) {
-      // e.g. "An account with this email already exists" appears under the email field;
-      // anything without a field (offline, too many attempts) shows at the top of the form.
       applyApiError(error, setError, ['name', 'email', 'password']);
     }
   });
@@ -93,10 +87,8 @@ export function RegisterForm({
       </Field>
 
       <div className="space-y-2">
-        {/* Its error shows in the strength hint line below (see PasswordStrength). */}
         <Field label="Password">
           {(field) => (
-            // "new-password" lets password managers suggest a strong one.
             <PasswordInput
               {...field}
               {...register('password')}
@@ -120,7 +112,6 @@ export function RegisterForm({
         )}
       </Field>
 
-      {/* Side by side from sm up, stacked on narrow phones. */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="sm:flex-1">
           <Button type="submit" fullWidth loading={isSubmitting} disabled={created}>

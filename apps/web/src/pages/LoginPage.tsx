@@ -1,3 +1,4 @@
+// The log-in page.
 import { GOOGLE_SIGN_IN_ERRORS, type GoogleSignInError } from '@debrief/shared';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
@@ -11,13 +12,11 @@ import { clearFlash, peekFlash, type FlashMessage } from '@/lib/flash';
 import { safeRedirect } from '@/lib/safeRedirect';
 import { usePageTitle } from '@/lib/usePageTitle';
 
-/** One-off messages other pages leave for the login page (see lib/flash.ts). */
 const notices: Record<FlashMessage, string> = {
   'account-deleted': 'Your account has been deleted.',
   'password-reset': 'Your password has been changed. Log in with your new password.',
 };
 
-/** Why Google sign-in sent the user back here (?google=...), in words. */
 const googleMessages: Record<GoogleSignInError, string> = {
   denied: 'Google sign-in was cancelled. You can try again, or log in with your email.',
   unverified:
@@ -38,7 +37,7 @@ export function LoginPage() {
   const [searchParams] = useSearchParams();
   const next = searchParams.get('next');
   const [notice] = useState(peekFlash);
-  useEffect(clearFlash, []); // shown once: gone on the next visit
+  useEffect(clearFlash, []);
 
   const google = googleError(searchParams.get('google'));
 
@@ -54,15 +53,12 @@ export function LoginPage() {
       )}
 
       {google && (
-        // Cancelling is the user's own choice, so it's information, not an error.
         <AuthMessage>
           <Alert tone={google === 'denied' ? 'info' : 'danger'}>{googleMessages[google]}</Alert>
         </AuthMessage>
       )}
 
       <div className="mt-6 space-y-5">
-        {/* After logging in: the sign-in page fades away and the app grows in (authExit.ts),
-            continuing to the page the user originally asked for. */}
         <LoginForm
           alternative={<GoogleSignInButton label="Sign in with Google" next={next} />}
           onSuccess={() =>
@@ -85,7 +81,6 @@ export function LoginPage() {
         >
           Create an account
         </Link>
-        {/* Only when the server can send the email (see GET /api/auth/providers). */}
         {providers.data?.passwordReset && (
           <>
             <span aria-hidden="true" className="mx-2">

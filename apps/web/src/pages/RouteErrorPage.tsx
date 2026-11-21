@@ -1,11 +1,8 @@
+// Shown if a page crashes, so the user never gets a white screen.
 import { useEffect } from 'react';
 import { useRouteError } from 'react-router';
 import { ErrorState } from '@/components/ui/ErrorState';
 
-/**
- * Last line of defence: shown if a page crashes while rendering (or a lazy page chunk fails to
- * download, e.g. after a deploy). Better than a white screen.
- */
 export function RouteErrorPage() {
   const error = useRouteError();
   useEffect(() => {

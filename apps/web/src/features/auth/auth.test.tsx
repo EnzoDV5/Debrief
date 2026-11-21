@@ -1,9 +1,8 @@
+// Sign-up and log-in forms: validation, errors and redirects.
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { mockApi, renderApp, testUser, unauthenticated } from '@/test/renderApp';
-
-// These render the real routes and components; only the network is faked.
 
 describe('route guards', () => {
   it('sends a logged-out visitor to login, remembering where they were going', async () => {
@@ -44,7 +43,6 @@ describe('login', () => {
     expect(await screen.findByText('Enter your email address')).toBeInTheDocument();
     expect(screen.getByText('Enter your password')).toBeInTheDocument();
     expect(screen.getByLabelText('Email')).toHaveAttribute('aria-invalid', 'true');
-    // Only the page's own checks (session, sign-in options), never a login attempt.
     expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/login', expect.anything());
   });
 
@@ -186,7 +184,6 @@ describe('register', () => {
     const user = userEvent.setup();
     renderApp('/register');
 
-    // Empty: the rule itself, and nothing marked as done yet.
     expect(
       await screen.findByText('Use at least 12 characters, with letters, numbers and symbols.'),
     ).toBeInTheDocument();

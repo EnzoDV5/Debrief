@@ -1,3 +1,4 @@
+// The meeting page's top bar: title, status and actions.
 import type { Meeting } from '@debrief/shared';
 import { CalendarDays, ChevronDown, Pencil, RotateCcw, Rows3 } from 'lucide-react';
 import { useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
@@ -20,12 +21,6 @@ const sourceLabels: Record<Meeting['sourceType'], string> = {
   md: 'Markdown file',
 };
 
-/**
- * The meeting page's top bar, rendered above the transcript panel (see PageBar).
- * Desktop: it sits on the dark frame, so the title, status and actions stay in view while the
- * transcript scrolls. Summary opens under the bar and the transcript panel shrinks to make
- * room. Mobile: the same bar at the top of the page. (Ask lives in the transcript panel.)
- */
 export function MeetingBar({ meeting }: { meeting: Meeting }) {
   usePageTitle(meeting.title);
   const analyze = useAnalyzeMeeting(meeting.id);
@@ -38,8 +33,6 @@ export function MeetingBar({ meeting }: { meeting: Meeting }) {
   const analysed = meeting.summary !== null;
   const rerun = () => analyze.mutate(undefined, { onSuccess: () => setConfirmRerun(false) });
 
-  // Esc closes the summary and returns focus to its button (the panel becomes inert, so
-  // focus can't stay inside it).
   const closeOnEscape = (event: KeyboardEvent) => {
     if (event.key !== 'Escape' || !summaryOpen || confirmRerun) return;
     summaryToggle.current?.focus();
@@ -53,7 +46,6 @@ export function MeetingBar({ meeting }: { meeting: Meeting }) {
     >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
-          {/* The analysis status sits with the title it describes. */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <h1 className="min-w-0 text-2xl font-bold lg:truncate lg:text-xl lg:text-white">
               {meeting.title}
@@ -97,7 +89,6 @@ export function MeetingBar({ meeting }: { meeting: Meeting }) {
         </div>
       </div>
 
-      {/* Progress and failures stay visible: they aren't hidden inside a closed panel. */}
       {running && (
         <Alert className="mt-4">
           {meeting.analysisStatus === 'pending'
@@ -120,7 +111,6 @@ export function MeetingBar({ meeting }: { meeting: Meeting }) {
       )}
 
       <Collapsible id={summaryId} open={summaryOpen}>
-        {/* No card: the summary reads as plain text on the page (light) or the dark frame. */}
         <section
           aria-label="Meeting summary"
           className="px-1 lg:scrollbar-panel lg:max-h-[40vh] lg:overflow-y-auto lg:pr-3 lg:text-sidebar-fg"
@@ -161,7 +151,7 @@ export function MeetingBar({ meeting }: { meeting: Meeting }) {
 
 function SummaryText({ meeting }: { meeting: Meeting }) {
   const update = useUpdateMeeting(meeting.id);
-  const [draft, setDraft] = useState<string | null>(null); // null = not editing
+  const [draft, setDraft] = useState<string | null>(null);
 
   const save = (event: FormEvent) => {
     event.preventDefault();
@@ -199,11 +189,7 @@ function SummaryText({ meeting }: { meeting: Meeting }) {
   return (
     <div className="mt-3 flex items-start gap-3">
       <p className="flex-1 text-base leading-7 whitespace-pre-wrap">{meeting.summary}</p>
-      <BarButton
-        onClick={() => setDraft(meeting.summary ?? '')}
-        // Explicit label: a visually hidden " summary" span can lose its space ("Editsummary").
-        aria-label="Edit summary"
-      >
+      <BarButton onClick={() => setDraft(meeting.summary ?? '')} aria-label="Edit summary">
         <Pencil aria-hidden="true" className="size-4" />
         Edit
       </BarButton>

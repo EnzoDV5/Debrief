@@ -1,3 +1,4 @@
+// Config checks: bad settings stop the app from starting.
 import { describe, expect, it } from 'vitest';
 import { aiModelChain, parseEnv } from '../src/config/env';
 

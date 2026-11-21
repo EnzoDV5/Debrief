@@ -1,3 +1,4 @@
+// Data hooks for action items. Ticking one off updates the screen straight away.
 import {
   actionItemListResponseSchema,
   actionItemResponseSchema,
@@ -26,7 +27,6 @@ export const actionItemKeys = {
   list: (filters: ActionItemFilters) => ['action-items', filters] as const,
 };
 
-/** "My open items": every meeting's action items, filtered on the server. */
 export function useActionItems(filters: ActionItemFilters) {
   return useQuery({
     queryKey: actionItemKeys.list(filters),
@@ -36,16 +36,11 @@ export function useActionItems(filters: ActionItemFilters) {
       if (filters.overdue) params.set('overdue', 'true');
       return request(`/action-items?${params}`, { schema: actionItemListResponseSchema });
     },
-    // Keep showing the previous results while a new filter loads (no flash of empty list).
     placeholderData: (previous) => previous,
   });
 }
 
-// ---------------------------------------------------------------------------------------------
-// Keeping every cached copy of an item in sync (meeting page + every "open items" filter)
-// ---------------------------------------------------------------------------------------------
-
-type ItemUpdate = (item: ActionItem) => ActionItem | null; // null = remove
+type ItemUpdate = (item: ActionItem) => ActionItem | null;
 
 export function updateItemEverywhere(queryClient: QueryClient, id: string, update: ItemUpdate) {
   const apply = <T extends ActionItem>(items: T[]) =>
@@ -55,7 +50,6 @@ export function updateItemEverywhere(queryClient: QueryClient, id: string, updat
       return next ? [{ ...item, ...next }] : [];
     });
 
-  // Meeting detail caches (the meetings *list* cache is an array, so it's skipped).
   queryClient.setQueriesData<Meeting>({ queryKey: meetingKeys.list }, (data) =>
     data && !Array.isArray(data) && 'actionItems' in data
       ? { ...data, actionItems: apply(data.actionItems) }
@@ -67,7 +61,6 @@ export function updateItemEverywhere(queryClient: QueryClient, id: string, updat
   );
 }
 
-/** Snapshot every cache we're about to touch, so a failed request can be undone exactly. */
 async function snapshot(queryClient: QueryClient) {
   await queryClient.cancelQueries({ queryKey: actionItemKeys.all });
   await queryClient.cancelQueries({ queryKey: meetingKeys.list });
@@ -81,10 +74,6 @@ function restore(queryClient: QueryClient, saved: Awaited<ReturnType<typeof snap
   for (const [key, data] of saved) queryClient.setQueryData(key, data);
 }
 
-/**
- * Edit or tick off an item. Optimistic: the screen changes immediately, and if the server says
- * no (offline, validation), the change is rolled back and the error is shown.
- */
 export function useUpdateActionItem() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -108,7 +97,6 @@ export function useUpdateActionItem() {
       if (context) restore(queryClient, context.saved);
     },
     onSuccess: (item) => updateItemEverywhere(queryClient, item.id, () => item),
-    // Filters may no longer match (e.g. a done item in the "open" view): refetch those lists.
     onSettled: () => queryClient.invalidateQueries({ queryKey: actionItemKeys.all }),
   });
 }
@@ -129,7 +117,6 @@ export function useDeleteActionItem() {
   });
 }
 
-/** Updates one meeting's cached copy (for creating items and editing decisions). */
 function updateMeeting(
   queryClient: QueryClient,
   meetingId: string,
@@ -160,10 +147,6 @@ export function useCreateActionItem(meetingId: string) {
     },
   });
 }
-
-// ---------------------------------------------------------------------------------------------
-// Decisions (only shown on their meeting's page)
-// ---------------------------------------------------------------------------------------------
 
 export function useCreateDecision(meetingId: string) {
   const queryClient = useQueryClient();

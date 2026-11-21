@@ -1,3 +1,4 @@
+// Accounts: register, log in, log out, delete, sessions and rate limits.
 import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app';
@@ -12,7 +13,6 @@ import {
   testAppDeps,
 } from './helpers';
 
-// A fresh app per test = fresh rate-limit counters. A fresh database per test = no leftovers.
 let app: ReturnType<typeof createApp>;
 beforeEach(async () => {
   await resetDatabase();
@@ -49,7 +49,7 @@ describe('POST /api/auth/register', () => {
     expect(cookie).toMatch(/HttpOnly/);
     expect(cookie).toMatch(/SameSite=Lax/);
     expect(cookie).toMatch(/Path=\//);
-    expect(cookie).toMatch(/Max-Age=604800/); // 7 days
+    expect(cookie).toMatch(/Max-Age=604800/);
   });
 
   it('stores an argon2id hash, not the password, and only a hash of the session token', async () => {
@@ -61,7 +61,7 @@ describe('POST /api/auth/register', () => {
     expect(user.rows[0].password_hash).not.toContain(PASSWORD);
 
     const session = await pool.query('SELECT id FROM sessions');
-    expect(session.rows[0].id).toMatch(/^[0-9a-f]{64}$/); // SHA-256 hex
+    expect(session.rows[0].id).toMatch(/^[0-9a-f]{64}$/);
     expect(session.rows[0].id).not.toBe(token);
   });
 
@@ -82,8 +82,6 @@ describe('POST /api/auth/register', () => {
     });
   });
 
-  // The same rules the sign-up form shows (shared password.ts), enforced here too, so a request
-  // that skips the form can't get a weak password in. The message says exactly what's missing.
   it.each([
     ['letters only', 'onlylettersherexyz', 'Add a number and a symbol'],
     ['missing a symbol', 'lantern orbit 42', 'Add a symbol'],
@@ -179,7 +177,6 @@ describe('GET /api/auth/me and POST /api/auth/logout', () => {
     expect(res.status).toBe(204);
     expect(sessionCookieHeader(res)).toMatch(/Expires=Thu, 01 Jan 1970/);
     expect((await pool.query('SELECT 1 FROM sessions')).rowCount).toBe(0);
-    // Even if someone kept a copy of the old cookie, it no longer works.
     expect((await me(cookie)).status).toBe(401);
   });
 });
@@ -211,11 +208,11 @@ describe('DELETE /api/auth/account', () => {
     expect(res.status).toBe(204);
 
     const rows = await pool.query('SELECT deleted_at FROM users');
-    expect(rows.rowCount).toBe(1); // soft delete: the row is still there
+    expect(rows.rowCount).toBe(1);
     expect(rows.rows[0].deleted_at).not.toBeNull();
 
     expect((await me(laptop)).status).toBe(401);
-    expect((await me(phone)).status).toBe(401); // other devices are signed out too
+    expect((await me(phone)).status).toBe(401);
     const again = await login();
     expect(again.status).toBe(401);
     expect(again.body.error.message).toBe('Invalid email or password');
@@ -253,7 +250,7 @@ describe('security middleware', () => {
         401,
       );
     }
-    const blocked = await login(); // even the right password is refused now
+    const blocked = await login();
     expect(blocked.status).toBe(429);
     expect(blocked.body.error.code).toBe('RATE_LIMITED');
   });

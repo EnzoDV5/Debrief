@@ -1,10 +1,10 @@
+// Asks before deleting a meeting.
 import type { Meeting } from '@debrief/shared';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
 import { useDeleteMeeting } from './hooks';
 
-/** Deleting is permanent, so it always asks first and names exactly what will go. */
 export function DeleteMeetingDialog({
   meeting,
   open,

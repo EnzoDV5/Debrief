@@ -1,3 +1,4 @@
+// Meetings in the UI: new meeting, list, detail and analysis states.
 import type { Meeting } from '@debrief/shared';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -71,7 +72,6 @@ describe('workspace history', () => {
     expect(
       within(screen.getByRole('main')).queryByRole('link', { name: /Sprint review/ }),
     ).not.toBeInTheDocument();
-    // Home IS the drop zone: the one obvious thing to do.
     expect(within(screen.getByRole('main')).getByLabelText('Transcript file')).toBeInTheDocument();
   });
 
@@ -141,7 +141,6 @@ describe('new meeting: drop, review, then analyse', () => {
       new File([vtt], 'q1-planning_call.vtt', { type: 'text/vtt' }),
     );
 
-    // Review step: the parsed transcript, a suggested title, and nothing sent yet.
     expect(
       await screen.findByRole('heading', { name: 'Check your transcript' }),
     ).toBeInTheDocument();
@@ -210,7 +209,6 @@ describe('new meeting: drop, review, then analyse', () => {
 
   it('rejects a file type the app does not accept, without leaving the drop zone', async () => {
     mockApi(me);
-    // applyAccept: false lets the test pick a file the picker would normally hide.
     const user = userEvent.setup({ applyAccept: false });
     renderApp('/meetings');
 
@@ -261,7 +259,6 @@ describe('meeting detail', () => {
     const user = userEvent.setup();
     const { router } = renderApp(`/meetings/${meeting.id}`);
 
-    // Ask is always open, at the top of the notes column.
     await screen.findByRole('region', { name: 'Ask this meeting' });
     await user.click(screen.getByRole('button', { name: 'What decisions were made?' }));
     const input = screen.getByRole('textbox', { name: 'Ask a question about this meeting' });
@@ -353,7 +350,6 @@ describe('meeting detail', () => {
     mockApi({ ...me, [`GET ${detailUrl}`]: { status: 200, body: { meeting: analysed } } });
     renderApp(`/meetings/${meeting.id}`);
 
-    // Wait for the meeting to load before looking up its transcript lines.
     expect(await screen.findByText('The team chose Resend.')).toBeInTheDocument();
     const decisionLine = document.getElementById('L1')!;
     expect(
@@ -362,7 +358,6 @@ describe('meeting detail', () => {
     expect(within(decisionLine).getByText('Edited by you')).toBeInTheDocument();
     expect(within(document.getElementById('L2')!).getByText('Edited by you')).toBeInTheDocument();
 
-    // The transcript keeps the original words, now marked as the source rather than a quote.
     const decisionMark = within(decisionLine).getByText(said);
     expect(decisionMark).toHaveAttribute('data-edited', 'true');
     expect(decisionMark).toHaveClass('decoration-dashed');
@@ -413,7 +408,6 @@ describe('meeting detail', () => {
     const decisionLine = document.getElementById('L1')!;
     expect(within(decisionLine).getByText('Use blue')).toBeInTheDocument();
     expect(within(decisionLine).getByText('Decision')).toBeInTheDocument();
-    // Nothing edited yet: no label, and the highlights are solid fills (the card quotes them).
     expect(screen.queryByText('Edited by you')).not.toBeInTheDocument();
     expect(document.querySelector('mark[data-edited]')).toBeNull();
     expect(screen.getAllByText('Use blue')).toHaveLength(1);
@@ -433,7 +427,6 @@ describe('meeting detail', () => {
     await user.click(within(sourceLine).getByRole('link', { name: 'Line 2' }));
     expect(screen.getByRole('heading', { name: 'Transcript' })).toBeInTheDocument();
 
-    // The transcript map has short plain ticks and labelled result ticks; both jump precisely.
     const map = screen.getByRole('navigation', { name: 'Transcript map' });
     expect(
       await within(map).findByRole('button', { name: 'Line 1: decision: Use blue' }),
@@ -451,7 +444,7 @@ describe('meeting detail', () => {
       await userEvent.click(within(map).getByRole('button', { name: 'Jump to line 3' }));
       expect(scrolled.at(-1)?.id).toBe('L3');
     } finally {
-      Element.prototype.scrollIntoView = original; // jsdom has none; don't leak the stub
+      Element.prototype.scrollIntoView = original;
     }
     expect(screen.getByRole('link', { name: 'Line 2' })).toBeInTheDocument();
     expect(document.getElementById('L2')).toBeInTheDocument();
@@ -521,7 +514,6 @@ describe('meeting detail', () => {
       'The team chose blue.',
     );
 
-    // Escape from inside the panel closes it and puts focus back on its button.
     await user.click(screen.getByRole('button', { name: 'Edit summary' }));
     await user.keyboard('{Escape}');
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
@@ -570,7 +562,6 @@ describe('meeting detail', () => {
     const user = userEvent.setup();
     renderApp(`/meetings/${meeting.id}`);
 
-    // Each line's text is one tab stop; Enter opens the toolbar with focus inside it.
     const line = (await screen.findByText('I will send the deck to Lerato.')).closest(
       '[data-line-text]',
     );
@@ -626,17 +617,14 @@ describe('meeting detail', () => {
     const user = userEvent.setup();
     renderApp(`/meetings/${meeting.id}`);
 
-    // Project menu: shows the chosen project's name afterwards.
     await user.click(await screen.findByText('Add to project'));
     await user.click(await screen.findByRole('button', { name: 'Launch' }));
     expect(await screen.findByText('Launch', { selector: 'summary span' })).toBeInTheDocument();
 
-    // Archive toggles to Restore (the meeting stays open, so it can be undone here).
     await user.click(screen.getByRole('button', { name: 'Archive' }));
     expect(await screen.findByRole('button', { name: 'Restore' })).toBeInTheDocument();
     expect(patches).toEqual([{ projectId }, { archived: true }]);
 
-    // Delete is an icon button that asks first.
     await user.click(screen.getByRole('button', { name: 'Delete meeting' }));
     expect(screen.getByRole('dialog')).toHaveTextContent(meeting.title);
   });

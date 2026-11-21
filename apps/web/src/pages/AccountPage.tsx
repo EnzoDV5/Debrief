@@ -1,3 +1,4 @@
+// The account page: profile, Google Calendar and delete account.
 import { LogOut, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -14,7 +15,6 @@ export function AccountPage() {
   const logout = useLogout();
   const navigate = useNavigate();
   const [deleteOpen, setDeleteOpen] = useState(false);
-  // Set by the api when Google sends the user back: connected / denied / error / unavailable.
   const calendarResult = useSearchParams()[0].get('calendar');
 
   return (
@@ -24,8 +24,6 @@ export function AccountPage() {
       <div className="max-w-2xl space-y-6">
         <Card className="p-6">
           <h2 className="text-lg font-bold">Profile</h2>
-          {/* Each label/value pair is grouped: stacked tightly on phones, side by side on wider
-              screens, so a label always reads as belonging to its own value. */}
           <dl className="mt-4 space-y-4">
             {[
               { label: 'Name', value: user.name },
@@ -42,7 +40,6 @@ export function AccountPage() {
 
         <CalendarCard result={calendarResult} />
 
-        {/* The sidebar has a log-out button on desktop; on mobile this is where it lives. */}
         <Card className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-lg font-bold">Session</h2>

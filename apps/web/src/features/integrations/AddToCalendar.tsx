@@ -1,19 +1,15 @@
+// The "Add to calendar" button on an action item that has a due date.
 import type { ActionItem } from '@debrief/shared';
 import { CalendarCheck, CalendarPlus, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/Button';
 import { useAddToCalendar, useCalendarStatus } from './hooks';
 
-/**
- * "Add to calendar" on an action item. Shown only when it can work: the item has a due date and
- * the user has connected Google Calendar. Adding again updates the same event.
- */
 export function AddToCalendar({ item }: { item: ActionItem }) {
   const { data: status } = useCalendarStatus();
   const add = useAddToCalendar();
 
   if (!item.dueDate || !status?.available) return null;
-  // Has a date, calendar not linked yet: show the way to it instead of hiding the feature.
   if (!status.connected) {
     return (
       <Link
@@ -29,8 +25,6 @@ export function AddToCalendar({ item }: { item: ActionItem }) {
   return (
     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
       <Button
-        // A light, secondary action on the card: ghost, pulled left so its icon lines up with
-        // the text above.
         variant="ghost"
         size="sm"
         className="-ml-2.5"

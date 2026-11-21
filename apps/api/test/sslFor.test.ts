@@ -1,3 +1,4 @@
+// Which database connections get SSL.
 import { describe, expect, it } from 'vitest';
 import { closeDatabase } from './helpers';
 import { sslFor } from '../src/db/client';
