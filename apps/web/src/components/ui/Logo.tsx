@@ -1,35 +1,32 @@
-// The Debrief logo mark and wordmark.
+// The Debrief logo mark and wordmark. No background tile: the two top lines are blue on light
+// backgrounds and white on dark ones (`inverse`); the short bottom line and the dot are lime.
 import { cn } from '@/lib/cn';
 
 export function Logo({
   inverse = false,
   markOnly = false,
-  bare = false,
   size = 'md',
   animated = false,
   className,
 }: {
   inverse?: boolean;
   markOnly?: boolean;
-  bare?: boolean;
   size?: 'md' | 'xl';
   animated?: boolean;
   className?: string;
 }) {
   const line = animated ? 'motion-safe:logo-line' : undefined;
-  const lineFill = inverse ? 'var(--color-accent)' : bare ? 'var(--color-accent)' : '#fff';
+  const lineFill = inverse ? '#fff' : 'var(--color-accent)';
   return (
     <span
       className={cn('inline-flex items-center', size === 'xl' ? 'gap-4' : 'gap-2.5', className)}
     >
+      {/* The viewBox is cropped to the lines themselves, so the mark fills its box. */}
       <svg
-        viewBox={bare ? '7 8 18 16' : '0 0 32 32'}
+        viewBox="7 8 18 16"
         aria-hidden="true"
         className={cn('shrink-0', size === 'xl' ? 'size-16' : 'size-8')}
       >
-        {!bare && (
-          <rect width="32" height="32" rx="9" fill={inverse ? '#ffffff' : 'var(--color-accent)'} />
-        )}
         <rect x="8" y="9" width="16" height="2.5" rx="1.25" fill={lineFill} className={line} />
         <rect
           x="8"

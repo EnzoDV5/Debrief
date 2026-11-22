@@ -1,4 +1,5 @@
-// The transcript with numbered, linkable lines.
+// The transcript with numbered, linkable lines. 'compact' is small text for boxes; 'document'
+// matches the meeting page (large text, bold speakers, roomy lines) for a full-frame view.
 import type { TranscriptLine } from '@debrief/shared';
 import { useEffect } from 'react';
 import { Link, useLocation } from 'react-router';
@@ -12,12 +13,15 @@ function lineFromHash(hash: string): number | null {
 export function TranscriptView({
   lines,
   linkable = true,
+  variant = 'compact',
   className,
 }: {
   lines: TranscriptLine[];
   linkable?: boolean;
+  variant?: 'compact' | 'document';
   className?: string;
 }) {
+  const doc = variant === 'document';
   const { hash } = useLocation();
   const targetLine = linkable ? lineFromHash(hash) : null;
 
@@ -27,7 +31,7 @@ export function TranscriptView({
   }, [targetLine, lines]);
 
   return (
-    <ol className={cn('text-sm', className)}>
+    <ol className={cn(doc ? 'pt-3' : 'text-sm', className)}>
       {lines.map((line, i) => {
         const newSpeaker = line.speaker && line.speaker !== lines[i - 1]?.speaker;
         const isTarget = line.n === targetLine;
@@ -37,9 +41,12 @@ export function TranscriptView({
             id={linkable ? `L${line.n}` : undefined}
             aria-current={isTarget ? 'location' : undefined}
             className={cn(
-              'grid scroll-mt-24 grid-cols-[2.75rem_minmax(0,1fr)] gap-x-2 rounded-sm py-1 pr-2 transition-colors [contain-intrinsic-size:auto_2rem] [content-visibility:auto]',
+              'grid scroll-mt-24 rounded-sm transition-colors [content-visibility:auto]',
+              doc
+                ? 'grid-cols-[2.25rem_minmax(0,1fr)] gap-x-3 px-4 py-2.5 [contain-intrinsic-size:auto_3rem] sm:grid-cols-[2.75rem_minmax(0,1fr)] sm:px-8'
+                : 'grid-cols-[2.75rem_minmax(0,1fr)] gap-x-2 py-1 pr-2 [contain-intrinsic-size:auto_2rem]',
               isTarget && 'bg-accent-soft ring-1 ring-accent/30',
-              newSpeaker && i > 0 && 'mt-3',
+              newSpeaker && i > 0 && (doc ? 'pt-7' : 'mt-3'),
             )}
           >
             {linkable ? (
@@ -59,8 +66,19 @@ export function TranscriptView({
               </span>
             )}
             <div className="min-w-0">
-              {newSpeaker && <p className="font-semibold text-fg">{line.speaker}</p>}
-              <p className="wrap-break-word text-fg/90">{line.text}</p>
+              {newSpeaker && (
+                <p className={cn('text-fg', doc ? 'mb-1 text-base font-bold' : 'font-semibold')}>
+                  {line.speaker}
+                </p>
+              )}
+              <p
+                className={cn(
+                  'wrap-break-word text-fg/90',
+                  doc && 'text-lg leading-8 sm:text-xl sm:leading-9',
+                )}
+              >
+                {line.text}
+              </p>
             </div>
           </li>
         );

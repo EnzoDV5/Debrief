@@ -14,6 +14,16 @@
     min-height: 100dvh;
   }
 
+  /* On desktop the app shell fills the screen and only panels inside it scroll. Without this,
+     macOS rubber-bands the whole page past its edges and shows the light page background behind
+     the dark shell. Phones keep the bounce (and pull-to-refresh): there the page itself scrolls. */
+  @media (width >= 64rem) {
+    html,
+    body {
+      overscroll-behavior: none;
+    }
+  }
+
   h1,
   h2,
   h3 {
@@ -240,6 +250,34 @@
     @media (prefers-reduced-motion: no-preference) {
       animation: spotlight linear both;
       animation-timeline: view();
+      animation-range: cover;
+    }
+  }
+}
+
+/* Like scroll-spotlight, but sharp the whole time the element is fully in view; it only blurs
+   while crossing the top or bottom edge. Set --spotlight-top to start the view lower, e.g. below
+   a sticky header (meeting page cards: below the Ask card). */
+@keyframes spotlight-edges {
+  entry 0%,
+  exit 100% {
+    opacity: 0.3;
+    transform: scale(0.93);
+    filter: blur(3px);
+  }
+  entry 100%,
+  exit 0% {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+@utility scroll-spotlight-edges {
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      animation: spotlight-edges linear both;
+      animation-timeline: view(block var(--spotlight-top, 0px) 0px);
       animation-range: cover;
     }
   }

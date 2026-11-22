@@ -29,6 +29,7 @@ import { ActionItemCard, Initials, isOverdue } from '@/features/actionItems/Acti
 import { ActionItemDialog } from '@/features/actionItems/ActionItemDialog';
 import { DeleteActionItemDialog } from '@/features/actionItems/DeleteActionItemDialog';
 import { useActionItems, type ActionItemFilters } from '@/features/actionItems/hooks';
+import { noteLinkState } from '@/features/meetings/noteLink';
 import { cn } from '@/lib/cn';
 import { useLeavingList } from '@/lib/useLeavingList';
 import { useLingering } from '@/lib/useLingering';
@@ -178,11 +179,13 @@ export function OpenItemsPage() {
                         key={item.id}
                         onClick={(event) => {
                           if ((event.target as HTMLElement).closest(INTERACTIVE)) return;
-                          navigate(lineLink(item));
+                          navigate(lineLink(item), { state: noteLinkState(item.id) });
                         }}
                         inert={item.leaving}
                         className={cn(
-                          'h-76 w-[min(82vw,22rem)] shrink-0 cursor-pointer snap-start',
+                          // min-h, not h: a card with more to say grows instead of being cut off,
+                          // and the carousel (a flex row) stretches the others to match.
+                          'min-h-76 w-[min(82vw,22rem)] shrink-0 cursor-pointer snap-start',
                           item.leaving &&
                             'pointer-events-none overflow-hidden motion-safe:animate-card-leave',
                         )}
@@ -196,6 +199,7 @@ export function OpenItemsPage() {
                             item.sourceLine ? (
                               <Link
                                 to={lineLink(item)}
+                                state={noteLinkState(item.id)}
                                 className="inline-flex items-center gap-1 font-semibold text-accent hover:underline"
                               >
                                 <TextQuote aria-hidden="true" className="size-3.5" />

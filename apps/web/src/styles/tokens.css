@@ -240,6 +240,24 @@
       opacity: 0;
     }
   }
+  /* Swapping one panel for another in place (new meeting: drop box ↔ paste box). The old one
+     softly leaves, then the new one rises in while the space around it glides to its height. */
+  --animate-swap-out: swap-out 180ms ease-in forwards;
+  --animate-swap-in: swap-in 420ms var(--ease-panel) backwards;
+  @keyframes swap-out {
+    to {
+      opacity: 0;
+      transform: translateY(-6px) scale(0.98);
+      filter: blur(2px);
+    }
+  }
+  @keyframes swap-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px) scale(0.98);
+      filter: blur(4px);
+    }
+  }
   --animate-search-out: search-out 180ms ease-in both;
   --animate-fade-out: fade-out 180ms ease-in both;
   @keyframes search-out {
@@ -332,6 +350,17 @@
     from {
       opacity: 0;
       transform: translateY(14px) scale(0.98);
+    }
+  }
+  /* The card you jumped to (e.g. from the Actions page) sends out two ripples so your eye finds it.
+     Set --flash on the element to change the colour (decisions use green). */
+  --animate-note-flash: note-flash 900ms ease-out 2 backwards;
+  @keyframes note-flash {
+    from {
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--flash, var(--color-accent)) 60%, transparent);
+    }
+    to {
+      box-shadow: 0 0 0 16px transparent;
     }
   }
   --animate-loader-bar: loader-bar 1.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;

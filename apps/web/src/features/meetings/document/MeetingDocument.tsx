@@ -16,8 +16,10 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { ActionItemDialog } from '@/features/actionItems/ActionItemDialog';
 import { cn } from '@/lib/cn';
 import { useLingering } from '@/lib/useLingering';
+import { highlightFrom } from '../noteLink';
 import { AnalysisNotesLoader } from './AnalysisNotesLoader';
 import { AskMeetingPanel } from './AskMeetingPanel';
+import { keepRowCentered, scrollRowToCenter } from './centerRow';
 import { DecisionBubble } from './DecisionBubble';
 import { findPhrase, segment, type Mark } from './highlight';
 import { MeetingActionCard } from './MeetingActionCard';
@@ -78,8 +80,12 @@ export const PANEL_INSET = 'xl:right-[calc(24rem+1.5rem+14px)] 2xl:right-[calc(2
 export const PANEL_INSET_MARGIN =
   'xl:mr-[calc(24rem+1.5rem+14px)] 2xl:mr-[calc(27rem+1.5rem+14px)]';
 const notesCell = 'px-4 sm:px-8 xl:px-0';
+// xl:pr-4 (here and on the Ask column) leaves room on the right for a card's highlight ring and
+// arrival ripple: the scrolling panel clips anything drawn past its edge.
+// The spotlight measures from below the Ask card and its 2.5rem fade (--spotlight-top), so a card
+// is sharp whenever it's fully in view there and only blurs as it slides under the Ask card.
 const cardsCell =
-  'space-y-3 pb-3 pl-16 sm:pl-22 xl:py-2.5 xl:pl-0 xl:[&_.glass]:bg-surface xl:[&_.glass]:bg-none xl:[&>*]:scroll-spotlight';
+  'space-y-3 pb-3 pl-16 sm:pl-22 xl:py-2.5 xl:pr-4 xl:pl-0 xl:[&_.glass]:bg-surface xl:[&_.glass]:bg-none xl:[--spotlight-top:calc(var(--notes-head,9rem)+2.5rem)] xl:[&>*]:scroll-spotlight-edges';
 
 export function MeetingDocument({
   meeting,
@@ -88,11 +94,21 @@ export function MeetingDocument({
   meeting: Meeting;
   loading?: boolean;
 }) {
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const { hash, state, key: locationKey } = useLocation();
+  const targetLine = lineFromHash(hash);
+  // The card you clicked on the Actions page or in search: it starts highlighted, together with
+  // its words in the transcript, until you point at another card.
+  const highlightId = highlightFrom(state);
+  const [activeId, setActiveId] = useState<string | null>(highlightId);
+  // A new jump while this page is open (e.g. from search) highlights the new card instead.
+  // Adjusting state during render is React's recommended way to react to a changed prop.
+  const [jumpKey, setJumpKey] = useState(locationKey);
+  if (jumpKey !== locationKey) {
+    setJumpKey(locationKey);
+    if (highlightId) setActiveId(highlightId);
+  }
   const analysisRunning =
     meeting.analysisStatus === 'pending' || meeting.analysisStatus === 'processing';
-  const { hash } = useLocation();
-  const targetLine = lineFromHash(hash);
 
   useShellPanelInset(PANEL_INSET, 'transcript-edge-fade');
 
@@ -158,7 +174,7 @@ export function MeetingDocument({
     [byLine],
   );
 
-  // When the AI finishes while you watch, bring the first card into view if it's off screen.
+  // When the AI finishes while you watch, glide the first card to the middle of the screen.
   const wasRunning = useRef(analysisRunning);
   useEffect(() => {
     const finished = wasRunning.current && meeting.analysisStatus === 'done';
@@ -166,10 +182,24 @@ export function MeetingDocument({
     const first = noteOrder.keys().next().value;
     if (!finished || first === undefined) return;
     const row = document.getElementById(`L${first}`);
-    const box = row?.getBoundingClientRect();
-    if (!row || !box || (box.top >= 0 && box.bottom <= window.innerHeight)) return;
-    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    row.scrollIntoView?.({ block: 'start', behavior: reduce ? 'auto' : 'smooth' });
+    if (!row) return;
+    // Wait for its card to finish growing open, so we centre the row at its final height.
+    let done = false;
+    const center = () => {
+      if (done || !row.isConnected) return;
+      done = true;
+      row.removeEventListener('animationend', onGrown);
+      const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      scrollRowToCenter(row, notesHeadRef.current, reduce ? 'auto' : 'smooth');
+    };
+    const onGrown = (event: AnimationEvent) => {
+      if (event.animationName === 'card-grow') center();
+    };
+    row.addEventListener('animationend', onGrown);
+    // Fallback when nothing grows (reduced motion). card-grow lasts 560ms (styles/tokens.css).
+    window.setTimeout(center, 700);
+    // No cleanup on purpose: a refetch right after "done" re-runs this effect, and cancelling
+    // here would drop the scroll. `done` and `isConnected` make a late call harmless.
   }, [meeting.analysisStatus, analysisRunning, noteOrder]);
 
   const mapMarkers = useMemo(() => {
@@ -203,11 +233,13 @@ export function MeetingDocument({
     [meeting.transcriptLines, meeting.actionItems],
   );
 
+  // Arriving with #L15 (e.g. from a card on the Actions page): centre that line and its cards.
   useEffect(() => {
-    if (targetLine !== null) {
-      document.getElementById(`L${targetLine}`)?.scrollIntoView?.({ block: 'start' });
-    }
-  }, [targetLine, meeting.transcriptLines]);
+    const row = targetLine === null ? null : document.getElementById(`L${targetLine}`);
+    const list = transcriptRef.current;
+    if (!row || !list) return;
+    return keepRowCentered(row, notesHeadRef.current, list);
+  }, [targetLine, meeting.transcriptLines, loading]);
 
   return (
     <section
@@ -215,10 +247,14 @@ export function MeetingDocument({
       style={notesHead ? ({ '--notes-head': `${notesHead}px` } as CSSProperties) : undefined}
       className="relative min-w-0 pb-10 text-fg [--gap:1.5rem] [--notes:24rem] lg:pb-[45dvh] 2xl:[--notes:27rem]"
     >
-      <div className={cn(columns, 'xl:min-h-31 xl:items-stretch')}>
+      {/* As tall as the Ask card, so this row's bottom border lines up with the card's bottom edge.
+          --notes-head is the measured Ask box, which has 0.5rem (pb-2) of padding under the card. */}
+      <div
+        className={cn(columns, 'xl:min-h-[calc(var(--notes-head,9rem)-0.5rem)] xl:items-stretch')}
+      >
         <div className={cn(sheetCell, 'flex flex-col pt-7 lg:pt-9')}>
           <div className="flex-1 border-b border-line pb-4">
-            <h2 id="transcript-title" className="text-lg font-bold">
+            <h2 id="transcript-title" className="text-2xl font-bold">
               Transcript
             </h2>
             <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-muted">
@@ -233,7 +269,7 @@ export function MeetingDocument({
         <div
           className={cn(
             notesCell,
-            'pt-4 pb-3 xl:pointer-events-none xl:absolute xl:inset-y-0 xl:right-0 xl:z-20 xl:flex xl:w-(--notes) xl:flex-col xl:p-0',
+            'pt-4 pb-3 xl:pointer-events-none xl:absolute xl:inset-y-0 xl:right-0 xl:z-20 xl:flex xl:w-(--notes) xl:flex-col xl:p-0 xl:pr-4',
           )}
         >
           <div className="xl:sticky xl:top-0 xl:z-10">
@@ -252,12 +288,15 @@ export function MeetingDocument({
               aria-hidden="true"
               className="pointer-events-none hidden h-10 bg-linear-to-b from-sidebar to-transparent xl:block"
             />
+            {/* Inside the Ask card's sticky box, so it stays exactly still while the transcript
+                scrolls. (As its own sticky box it started lower than where it stuck, so it
+                drifted up 56px first.) mt-14 + the 2.5rem fade = 6rem below the Ask card. */}
+            {analysisRunning && !loading && (
+              <div className="mt-12 px-4 pb-8 xl:mt-14 xl:px-0 xl:pb-0">
+                <AnalysisNotesLoader />
+              </div>
+            )}
           </div>
-          {analysisRunning && !loading && (
-            <div className="mt-12 px-4 pb-8 xl:sticky xl:top-[calc(var(--notes-head,9rem)+6rem)] xl:mt-28 xl:px-0 xl:pb-0">
-              <AnalysisNotesLoader />
-            </div>
-          )}
           <div
             aria-hidden="true"
             className="pointer-events-none sticky bottom-0 mt-auto hidden h-20 bg-linear-to-t from-sidebar to-transparent xl:block"
@@ -269,7 +308,8 @@ export function MeetingDocument({
         <TranscriptSkeleton />
       ) : (
         <>
-          <ol ref={transcriptRef} className="relative pt-3 motion-safe:animate-step-in">
+          {/* xl:pt-10: line 1's card starts below the Ask card's fade (0.5rem + 2.5rem under it). */}
+          <ol ref={transcriptRef} className="relative pt-3 motion-safe:animate-step-in xl:pt-10">
             {meeting.transcriptLines.map((line, i) => {
               const notes = byLine.get(line.n);
               const newSpeaker =
@@ -354,6 +394,7 @@ export function MeetingDocument({
                           key={decision.id}
                           late={settled}
                           delay={Math.min(noteOrder.get(line.n) ?? 0, 8) * 80}
+                          flash={highlightId === decision.id ? 'decision' : null}
                         >
                           <DecisionBubble
                             meetingId={meeting.id}
@@ -368,6 +409,7 @@ export function MeetingDocument({
                           key={item.id}
                           late={settled}
                           delay={Math.min(noteOrder.get(line.n) ?? 0, 8) * 80}
+                          flash={highlightId === item.id ? 'action' : null}
                         >
                           <MeetingActionCard
                             meeting={meeting}
@@ -458,26 +500,40 @@ export function MeetingDocument({
 
 // Cards there when the page opens slide in one after another. A card added later first grows its
 // row open, so the transcript below glides down instead of jumping. The outer div is left free for
-// the scroll spotlight effect; the inner one animates.
+// the scroll spotlight effect; the inner one animates. `flash` marks the card you jumped to: it
+// ripples once it has arrived (after its entrance: card-in is 520ms, card-grow 560ms).
 function CardEntrance({
   late,
   delay,
+  flash = null,
   children,
 }: {
   late: boolean;
   delay: number;
+  flash?: 'action' | 'decision' | null;
   children: ReactNode;
 }) {
   const [grows] = useState(late);
+  const card = (
+    <div
+      className={cn(
+        flash && 'rounded-card motion-safe:animate-note-flash',
+        flash === 'decision' && '[--flash:var(--color-success)]',
+      )}
+      style={flash ? { animationDelay: `${grows ? 560 : delay + 520}ms` } : undefined}
+    >
+      {children}
+    </div>
+  );
   return (
     <div>
       {grows ? (
         <div className="grid grid-rows-[1fr] motion-safe:animate-card-grow">
-          <div className="min-h-0 overflow-clip [overflow-clip-margin:1rem]">{children}</div>
+          <div className="min-h-0 overflow-clip [overflow-clip-margin:1rem]">{card}</div>
         </div>
       ) : (
         <div className="motion-safe:animate-card-in" style={{ animationDelay: `${delay}ms` }}>
-          {children}
+          {card}
         </div>
       )}
     </div>
@@ -519,6 +575,14 @@ const EDITED_MARK_STYLES: Record<Mark['kind'], string> = {
   date: 'decoration-accent font-semibold',
 };
 
+// The phrase of the card you're pointing at, or jumped to from Actions: a clear tint and a solid
+// ring, so it stands out from the soft everyday highlights. Applied last, so it wins over both.
+const ACTIVE_MARK_STYLES: Record<Mark['kind'], string> = {
+  decision: 'bg-success/20 ring-2 ring-success',
+  action: 'bg-accent/20 ring-2 ring-accent',
+  date: 'bg-spark ring-2 ring-accent',
+};
+
 const MARK_PRIORITY: Mark['kind'][] = ['date', 'action', 'decision'];
 
 function LineText({
@@ -557,7 +621,7 @@ function LineText({
                 source: 'click',
               });
             }}
-            className="group/sentence cursor-pointer rounded-mark transition-colors hover:bg-accent-soft/60"
+            className="group/sentence cursor-pointer rounded-mark transition-colors hover:bg-accent/15"
           >
             {segment(text, local).map((piece, i) => {
               if (piece.marks.length === 0) return <span key={i}>{piece.text}</span>;
@@ -568,6 +632,7 @@ function LineText({
                 <mark
                   key={i}
                   data-kind={kind}
+                  data-active={active || undefined}
                   data-edited={owner.edited ? 'true' : undefined}
                   title={
                     owner.edited ? 'Card edited since. This is the original source.' : undefined
@@ -582,7 +647,7 @@ function LineText({
                           EDITED_MARK_STYLES[kind],
                         )
                       : MARK_STYLES[kind],
-                    active && 'ring-2 ring-accent/50',
+                    active && ACTIVE_MARK_STYLES[kind],
                   )}
                 >
                   {piece.text}

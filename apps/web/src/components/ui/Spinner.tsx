@@ -20,7 +20,7 @@ export function FullPageSpinner({ label = 'Loading' }: { label?: string }) {
     <div role="status" className="relative grid min-h-dvh place-items-center overflow-hidden bg-bg">
       <PanelBackdrop contained />
       <div className="relative flex flex-col items-center motion-safe:animate-loader-in">
-        <Logo markOnly bare size="xl" animated />
+        <Logo markOnly size="xl" animated />
         <span aria-hidden="true" className="mt-5 text-3xl font-bold tracking-tight text-fg">
           Debrief
         </span>

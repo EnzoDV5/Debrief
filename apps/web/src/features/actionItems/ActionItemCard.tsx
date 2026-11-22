@@ -30,7 +30,11 @@ export function isOverdue(item: Pick<ActionItem, 'dueDate' | 'status'>, today = 
 export function noteCardClass(kind: NoteKind, active: boolean) {
   return cn(
     'group overflow-hidden rounded-card border border-line glass p-4 shadow-card transition-[box-shadow,border-color] duration-200',
-    active && (kind === 'decision' ? 'ring-2 ring-success/40' : 'ring-2 ring-accent/40'),
+    // Hovered, focused, or the card you jumped to from Actions: a solid ring and border.
+    active &&
+      (kind === 'decision'
+        ? 'border-success ring-2 ring-success'
+        : 'border-accent ring-2 ring-accent'),
   );
 }
 
@@ -56,7 +60,8 @@ export function NoteCardHeader({
 }) {
   const { label, icon: Icon, chip } = KIND[kind];
   return (
-    <div className="flex min-h-8 items-center gap-2">
+    // Wraps on narrow cards (phones) instead of pushing the edit buttons out of the card.
+    <div className="flex min-h-8 flex-wrap items-center gap-x-2 gap-y-1">
       <span
         className={cn(
           'inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-xs font-semibold',
@@ -118,15 +123,32 @@ export function ActionItemCard({
   onDelete: () => void;
   active?: boolean;
   onActiveChange?: (active: boolean) => void;
-  // Fills a fixed-size box (the Actions carousel): long text is cut, links sit at the bottom.
+  // The Actions carousel: the card fills its slot (links sit at the bottom) and, to stay compact,
+  // the due date moves up next to the Action tag.
   fixed?: boolean;
 }) {
   const update = useUpdateActionItem();
   const done = item.status === 'done';
   const overdue = isOverdue(item);
 
+  const dueChip = (
+    <span
+      className={cn(
+        cardChip,
+        overdue ? 'bg-danger-soft text-danger' : 'bg-surface-2',
+        !item.dueDate && 'text-muted',
+      )}
+    >
+      <CalendarDays aria-hidden="true" className="size-3.5" />
+      {/* In the carousel the chip replaces the separate Overdue badge, so it says so itself. */}
+      {fixed && overdue && 'Overdue · '}
+      {item.dueDate ? formatCalendarDate(item.dueDate) : 'No due date'}
+    </span>
+  );
+
   return (
     <article
+      data-active={active || undefined}
       onMouseEnter={() => onActiveChange?.(true)}
       onMouseLeave={() => onActiveChange?.(false)}
       onFocus={() => onActiveChange?.(true)}
@@ -152,7 +174,7 @@ export function ActionItemCard({
         edited={item.editedAt !== null}
         tags={
           <>
-            {overdue && <Badge tone="danger">Overdue</Badge>}
+            {fixed ? dueChip : overdue && <Badge tone="danger">Overdue</Badge>}
             {item.status === 'in_progress' && <Badge tone="accent">In progress</Badge>}
           </>
         }
@@ -181,7 +203,6 @@ export function ActionItemCard({
             className={cn(
               'leading-snug font-semibold text-pretty',
               done && 'text-muted line-through',
-              fixed && 'line-clamp-2',
             )}
           >
             {item.text}
@@ -189,10 +210,10 @@ export function ActionItemCard({
           {fixed && item.needsReview && (
             <p
               title={item.reviewReason ?? undefined}
-              className="mt-1.5 flex min-w-0 items-center gap-1.5 text-sm text-warning"
+              className="mt-1.5 flex min-w-0 items-start gap-1.5 text-sm text-warning"
             >
-              <TriangleAlert aria-hidden="true" className="size-4 shrink-0" />
-              <span className="truncate">
+              <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+              <span className="line-clamp-3">
                 <strong>Needs review:</strong> {item.reviewReason ?? 'Check this item.'}
               </span>
             </p>
@@ -209,21 +230,10 @@ export function ActionItemCard({
               )}
               {item.owner ?? 'No owner'}
             </span>
-            <span
-              className={cn(
-                cardChip,
-                overdue ? 'bg-danger-soft text-danger' : 'bg-surface-2',
-                !item.dueDate && 'text-muted',
-              )}
-            >
-              <CalendarDays aria-hidden="true" className="size-3.5" />
-              {item.dueDate ? formatCalendarDate(item.dueDate) : 'No due date'}
-            </span>
+            {!fixed && dueChip}
           </div>
           {item.dueDateText && (
-            <p className={cn('mt-2 text-sm text-muted', fixed && 'truncate')}>
-              Said as “{item.dueDateText}”
-            </p>
+            <p className="mt-2 text-sm text-muted">Said as “{item.dueDateText}”</p>
           )}
 
           <div className={cn(fixed && 'mt-auto')}>

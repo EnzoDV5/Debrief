@@ -1,7 +1,7 @@
 // Renders the real app in tests, with a fresh cache each time.
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react';
-import { createMemoryRouter, RouterProvider } from 'react-router';
+import { createMemoryRouter, RouterProvider, type InitialEntry } from 'react-router';
 import { vi } from 'vitest';
 import { createQueryClient } from '@/api/queryClient';
 import { routes } from '@/app/routes';
@@ -47,7 +47,8 @@ export function mockApi(overrides: Record<string, Handler>) {
   return fetchMock;
 }
 
-export function renderApp(path: string) {
+// `path` is a URL, or an object when the test also needs navigation state ({ pathname, hash, state }).
+export function renderApp(path: InitialEntry) {
   const queryClient = createQueryClient();
   queryClient.setDefaultOptions({ queries: { retry: false } });
   const router = createMemoryRouter(routes, { initialEntries: [path] });

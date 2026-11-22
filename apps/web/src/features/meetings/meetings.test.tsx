@@ -255,7 +255,8 @@ describe('new meeting: drop, review, then analyse', () => {
     renderApp('/meetings');
 
     await user.click(await screen.findByRole('button', { name: 'Paste text instead' }));
-    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
+    // The paste box appears once the drop box has animated out.
+    expect(await screen.findByRole('button', { name: 'Continue' })).toBeDisabled();
     await user.click(screen.getByLabelText('Transcript text'));
     await user.paste('Ann: Hello\nBen: Hi there');
     await user.click(screen.getByRole('button', { name: 'Continue' }));
@@ -280,7 +281,7 @@ describe('new meeting: drop, review, then analyse', () => {
     renderApp('/meetings');
 
     await user.click(await screen.findByRole('button', { name: 'Paste text instead' }));
-    await user.click(screen.getByLabelText('Transcript text'));
+    await user.click(await screen.findByLabelText('Transcript text'));
     await user.paste('Ann: Hello');
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await user.clear(await screen.findByLabelText('Title'));
@@ -788,6 +789,56 @@ describe('meeting detail', () => {
 
     expect(await screen.findByRole('status', { name: 'AI is finding notes' })).toBeInTheDocument();
     expect(screen.queryByText('Nothing to action')).not.toBeInTheDocument();
+  });
+
+  it('highlights the card you jumped to from Actions or search, and its transcript words', async () => {
+    const decisionId = crypto.randomUUID();
+    const itemId = crypto.randomUUID();
+    const analysed = {
+      ...meeting,
+      analysisStatus: 'done' as const,
+      summary: 'The team chose blue.',
+      transcriptLines: [
+        { n: 1, speaker: 'Ann', text: 'We chose blue for the design.' },
+        { n: 2, speaker: 'Ben', text: 'Can you send the files to the team?' },
+      ],
+      decisions: [{ id: decisionId, text: 'Use blue', sourceLine: 1, position: 0, editedAt: null }],
+      actionItems: [
+        {
+          id: itemId,
+          meetingId: meeting.id,
+          text: 'Send the files',
+          owner: 'Ann',
+          dueDate: null,
+          dueDateText: null,
+          status: 'todo',
+          needsReview: false,
+          reviewReason: null,
+          sourceLine: 2,
+          sourceQuote: 'send the files',
+          contextSummary: null,
+          inCalendar: false,
+          origin: 'ai',
+          position: 0,
+          editedAt: null,
+        },
+      ],
+    };
+    mockApi({ ...me, [`GET ${detailUrl}`]: { status: 200, body: { meeting: analysed } } });
+    // What clicking the card on the Actions page does: the line in the URL, the card in state.
+    renderApp({
+      pathname: `/meetings/${meeting.id}`,
+      hash: '#L2',
+      state: { highlight: itemId },
+    });
+
+    const card = (await screen.findByText('Send the files')).closest('article')!;
+    expect(card).toHaveAttribute('data-active');
+    expect(within(document.getElementById('L2')!).getByText('send the files')).toHaveAttribute(
+      'data-active',
+    );
+    // Only that card: the decision on line 1 stays as it was.
+    expect(screen.getByText('Use blue').closest('article')).not.toHaveAttribute('data-active');
   });
 
   it('shows analysis results, review flags, and transcript links', async () => {

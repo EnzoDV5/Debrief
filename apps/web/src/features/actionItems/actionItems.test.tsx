@@ -283,7 +283,8 @@ describe('Actions page', () => {
     expect(
       within(carousel).getByRole('link', { name: 'Line 2 in the transcript' }),
     ).toHaveAttribute('href', `/meetings/${MEETING_ID}#L2`);
-    expect(screen.getByText('Overdue')).toBeInTheDocument();
+    // In the carousel the date chip sits by the Action tag and says "Overdue" itself.
+    expect(within(carousel).getByText(/^Overdue · /)).toHaveTextContent('1 Jan 2020');
     expect(screen.getByRole('status')).toHaveTextContent('1 item in 1 meeting · 1 overdue');
   });
 

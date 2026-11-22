@@ -29,6 +29,7 @@ export function DecisionBubble({
       onMouseLeave={() => onActiveChange?.(false)}
       onFocus={() => onActiveChange?.(true)}
       onBlur={() => onActiveChange?.(false)}
+      data-active={active || undefined}
       className={noteCardClass('decision', active)}
     >
       <NoteCardHeader

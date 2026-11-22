@@ -7,6 +7,7 @@ import { Select, type SelectOption } from '@/components/ui/Select';
 import { cn } from '@/lib/cn';
 import { formatCalendarDate } from '@/lib/format';
 import { useSearch } from './hooks';
+import { noteLinkState, type NoteLinkState } from './noteLink';
 
 const CLOSE_MS = 180;
 
@@ -31,6 +32,8 @@ type Hit = {
   title: string;
   detail: string;
   to: string;
+  // Action items and decisions: which card to highlight on the meeting page.
+  state?: NoteLinkState;
 };
 
 const lineLink = (meetingId: string, line: number | null) =>
@@ -83,6 +86,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
         .filter(Boolean)
         .join(' · '),
       to: lineLink(a.meetingId, a.sourceLine),
+      state: noteLinkState(a.id),
     })),
     ...(found.data?.decisions ?? []).map((d) => ({
       key: `d-${d.id}`,
@@ -92,6 +96,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
       title: d.text,
       detail: [d.meetingTitle, d.sourceLine && `line ${d.sourceLine}`].filter(Boolean).join(' · '),
       to: lineLink(d.meetingId, d.sourceLine),
+      state: noteLinkState(d.id),
     })),
   ];
   const hits = kind === 'all' ? allHits : allHits.filter((hit) => hit.kind === kind);
@@ -119,7 +124,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
       reduce ? 0 : CLOSE_MS,
     );
   };
-  const go = (hit: Hit) => close(() => navigate(hit.to));
+  const go = (hit: Hit) => close(() => navigate(hit.to, { state: hit.state }));
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
