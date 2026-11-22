@@ -33,7 +33,11 @@ export function AnalysisNotesLoader() {
         <span className="absolute inset-0 motion-safe:animate-ai-orbit">
           <Star position="top-1 left-1/2 -ml-2 size-4" colour="bg-spark" />
           <Star position="bottom-4 left-2 size-3" colour="bg-violet" delay="-0.8s" />
-          <Star position="right-2 bottom-7 size-2.5" colour="bg-accent xl:bg-white" delay="-1.4s" />
+          <Star
+            position="right-2 bottom-7 size-2.5"
+            colour="bg-accent xl:bg-sidebar-strong"
+            delay="-1.4s"
+          />
         </span>
 
         <span className="relative size-16 motion-safe:animate-ai-spark-spin">

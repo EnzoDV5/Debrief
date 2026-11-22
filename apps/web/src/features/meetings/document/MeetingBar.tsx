@@ -47,13 +47,13 @@ export function MeetingBar({ meeting, loading = false }: { meeting: Meeting; loa
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         {loading ? (
           <div role="status" aria-label="Loading meeting" className="min-w-0 flex-1 space-y-2.5">
-            <span className="block h-6 w-64 max-w-full animate-pulse rounded-md bg-fg/10 lg:bg-white/10" />
-            <span className="block h-4 w-48 max-w-full animate-pulse rounded-md bg-fg/10 lg:bg-white/10" />
+            <span className="block h-6 w-64 max-w-full animate-pulse rounded-md bg-fg/10 lg:bg-sidebar-strong/10" />
+            <span className="block h-4 w-48 max-w-full animate-pulse rounded-md bg-fg/10 lg:bg-sidebar-strong/10" />
           </div>
         ) : (
           <div className="min-w-0 motion-safe:animate-step-in">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <h1 className="min-w-0 text-2xl font-bold lg:truncate lg:text-xl lg:text-white">
+              <h1 className="min-w-0 text-2xl font-bold lg:truncate lg:text-xl lg:text-sidebar-strong">
                 {meeting.title}
               </h1>
               <AnalysisStatusBadge status={meeting.analysisStatus} />

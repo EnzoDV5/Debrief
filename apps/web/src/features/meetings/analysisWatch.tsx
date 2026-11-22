@@ -155,7 +155,7 @@ function AnalysisToast({
     <div
       role="status"
       className={cn(
-        'pointer-events-auto relative w-[min(92vw,23rem)] overflow-hidden rounded-card border border-white/70 glass-float text-fg shadow-raised',
+        'pointer-events-auto relative w-[min(92vw,23rem)] overflow-hidden rounded-card border border-glass-edge glass-float text-fg shadow-raised',
         leaving ? 'motion-safe:animate-toast-out' : 'motion-safe:animate-toast-in',
       )}
     >
@@ -163,7 +163,7 @@ function AnalysisToast({
         <span
           className={cn(
             'grid size-9 shrink-0 place-items-center rounded-pill',
-            toast.ok ? 'bg-spark text-fg' : 'bg-danger-soft text-danger',
+            toast.ok ? 'bg-spark text-spark-fg' : 'bg-danger-soft text-danger',
           )}
         >
           {toast.ok ? (

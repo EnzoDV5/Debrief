@@ -160,7 +160,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
     >
       {open && (
         <div className="space-y-3">
-          <div className="flex items-center gap-3 rounded-panel border border-white/70 glass-float py-1 pr-2 pl-5 shadow-raised">
+          <div className="flex items-center gap-3 rounded-panel border border-glass-edge glass-float py-1 pr-2 pl-5 shadow-raised">
             <Search aria-hidden="true" className="size-5 shrink-0 text-muted" />
             <input
               autoFocus
@@ -198,7 +198,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
             </button>
           </div>
 
-          <div className="flex h-[min(60vh,30rem)] flex-col overflow-hidden rounded-panel border border-white/70 glass-float shadow-raised">
+          <div className="flex h-[min(60vh,30rem)] flex-col overflow-hidden rounded-panel border border-glass-edge glass-float shadow-raised">
             <div className="scrollbar-soft min-h-0 flex-1 overflow-y-auto p-2">
               {error ? (
                 <p className="px-3 py-4 text-sm text-danger">

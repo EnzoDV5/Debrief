@@ -37,7 +37,7 @@ export function ErrorState({
       role="alert"
       className={cn(
         'mx-auto w-full max-w-md px-6 py-10 text-center motion-safe:animate-loader-in sm:px-10',
-        variant === 'card' && 'rounded-panel border border-white/70 glass-float shadow-raised',
+        variant === 'card' && 'rounded-panel border border-glass-edge glass-float shadow-raised',
         className,
       )}
     >

@@ -76,8 +76,8 @@ function DetailSkeleton() {
     <>
       <PageBar>
         <div aria-hidden="true" className="space-y-2.5 px-4 pt-7 sm:px-8 lg:px-1 lg:pt-0 lg:pb-5">
-          <span className="block h-6 w-64 max-w-full animate-pulse rounded-md bg-fg/10 lg:bg-white/10" />
-          <span className="block h-4 w-48 max-w-full animate-pulse rounded-md bg-fg/10 lg:bg-white/10" />
+          <span className="block h-6 w-64 max-w-full animate-pulse rounded-md bg-fg/10 lg:bg-sidebar-strong/10" />
+          <span className="block h-4 w-48 max-w-full animate-pulse rounded-md bg-fg/10 lg:bg-sidebar-strong/10" />
         </div>
       </PageBar>
       <div

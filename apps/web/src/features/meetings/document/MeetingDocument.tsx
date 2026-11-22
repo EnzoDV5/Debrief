@@ -356,7 +356,7 @@ export function MeetingDocument({
                   <div className={cn(sheetCell, 'py-2.5', newSpeaker && i > 0 && 'pt-7')}>
                     <div
                       className={cn(
-                        '-mx-3 grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-3 rounded-md px-3 sm:grid-cols-[2.75rem_minmax(0,1fr)] lg:scroll-spotlight-soft',
+                        '-mx-3 grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-3 rounded-md px-3 sm:grid-cols-[2.75rem_minmax(0,1fr)]',
                         line.n === targetLine && 'bg-accent-soft/60',
                       )}
                     >

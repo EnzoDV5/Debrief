@@ -58,7 +58,7 @@ export function ForgotPasswordPage() {
               Check the address is spelled right, or{' '}
               <button
                 type="button"
-                className="font-semibold text-spark underline-offset-4 hover:underline"
+                className="font-semibold text-spark underline-offset-4 hover:underline light:text-accent"
                 onClick={() => setSentTo(null)}
               >
                 try a different email
@@ -70,7 +70,7 @@ export function ForgotPasswordPage() {
               <Link
                 viewTransition
                 to="/register"
-                className="font-semibold text-spark underline-offset-4 hover:underline"
+                className="font-semibold text-spark underline-offset-4 hover:underline light:text-accent"
               >
                 Create one
               </Link>
@@ -82,7 +82,7 @@ export function ForgotPasswordPage() {
           <Link
             viewTransition
             to="/login"
-            className="font-semibold text-spark underline-offset-4 hover:underline"
+            className="font-semibold text-spark underline-offset-4 hover:underline light:text-accent"
           >
             Back to log in
           </Link>
@@ -127,7 +127,7 @@ export function ForgotPasswordPage() {
         <Link
           viewTransition
           to="/login"
-          className="font-semibold text-spark underline-offset-4 hover:underline"
+          className="font-semibold text-spark underline-offset-4 hover:underline light:text-accent"
         >
           Back to log in
         </Link>

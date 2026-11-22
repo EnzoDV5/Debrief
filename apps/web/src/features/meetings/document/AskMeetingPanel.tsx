@@ -4,7 +4,7 @@ import { ArrowUp, Sparkles, X } from 'lucide-react';
 import { useRef, useState, type FormEvent } from 'react';
 import { Alert } from '@/components/ui/Alert';
 import { Spinner } from '@/components/ui/Spinner';
-import { LineLink } from '@/features/actionItems/ActionItemCard';
+import { LineLink } from '@/components/ui/NoteCard';
 import { cn } from '@/lib/cn';
 import { useAskMeeting } from '../hooks';
 

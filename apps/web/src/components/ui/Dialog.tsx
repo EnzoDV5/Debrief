@@ -95,7 +95,7 @@ export function Dialog({
       className={cn(
         'm-auto outline-none',
         size === 'lg' ? 'w-[min(100%-2rem,46rem)]' : 'w-[min(100%-2rem,30rem)]',
-        'overflow-visible rounded-panel border border-white/70 glass-float p-0 text-fg shadow-raised',
+        'overflow-visible rounded-panel border border-glass-edge glass-float p-0 text-fg shadow-raised',
         'backdrop:bg-sidebar/50 backdrop:backdrop-blur-sm',
         closing
           ? 'pointer-events-none animate-dialog-out backdrop:animate-fade-out'

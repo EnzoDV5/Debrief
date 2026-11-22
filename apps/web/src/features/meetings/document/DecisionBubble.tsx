@@ -8,19 +8,12 @@ import { AnimatedHeight } from '@/components/ui/AnimatedHeight';
 import { Button } from '@/components/ui/Button';
 import { Initials } from '@/components/ui/Initials';
 import { Input } from '@/components/ui/Input';
-import {
-  IconButton,
-  NoteCardHeader,
-  isOverdue,
-  noteCardClass,
-} from '@/features/actionItems/ActionItemCard';
+import { IconButton, NoteCardHeader, noteCardClass } from '@/components/ui/NoteCard';
+import { isOverdue } from '@/features/actionItems/ActionItemCard';
 import { ActionItemDialog } from '@/features/actionItems/ActionItemDialog';
-import {
-  useDeleteDecision,
-  useUpdateActionItem,
-  useUpdateDecision,
-} from '@/features/actionItems/hooks';
+import { useUpdateActionItem } from '@/features/actionItems/hooks';
 import { useLingering } from '@/lib/useLingering';
+import { useDeleteDecision, useUpdateDecision } from '../hooks';
 import { cn } from '@/lib/cn';
 import { formatShortCalendarDate } from '@/lib/format';
 

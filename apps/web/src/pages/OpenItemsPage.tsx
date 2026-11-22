@@ -44,6 +44,8 @@ const STATUS_FILTER_LABELS: Record<ActionItemStatusFilter, string> = {
   all: 'All',
 };
 
+const NO_ITEMS: ActionItemWithMeeting[] = [];
+
 function useFilters(): [ActionItemFilters, (next: Partial<ActionItemFilters>) => void] {
   const [currentParams, setParams] = useSearchParams();
   const location = useLocation();
@@ -79,7 +81,9 @@ export function OpenItemsPage() {
   const [deleting, setDeleting] = useState<ActionItem | null>(null);
   const shownEditing = useLingering(editing);
 
-  const items = data?.actionItems ?? [];
+  // One shared empty list while loading: a new `[]` each render would look like a changed list to
+  // useLeavingList, which updates state, renders again, gets another new `[]`... forever.
+  const items = data?.actionItems ?? NO_ITEMS;
   const filtered = filters.status !== 'open' || Boolean(filters.owner) || filters.overdue;
   const overdueCount = items.filter((item) => isOverdue(item)).length;
   // Ticked-off or deleted items animate out of their row before they go.
@@ -297,8 +301,8 @@ function Filters({
             className={cn(
               'inline-flex min-h-8 items-center rounded-pill px-3.5 text-sm font-semibold transition-[background-color,color,box-shadow] duration-200',
               filters.status === status
-                ? 'bg-fg text-white shadow-card lg:bg-white lg:text-fg'
-                : 'text-muted hover:text-fg lg:text-sidebar-muted lg:hover:text-white',
+                ? 'bg-fg text-surface shadow-card lg:bg-sidebar-strong lg:text-sidebar'
+                : 'text-muted hover:text-fg lg:text-sidebar-muted lg:hover:text-sidebar-strong',
             )}
           >
             {STATUS_FILTER_LABELS[status]}
@@ -322,7 +326,7 @@ function Filters({
           className={cn(
             'inline-flex min-h-10 items-center gap-2 rounded-pill border px-4 text-sm font-semibold transition-[background-color,border-color,color] duration-200',
             filters.overdue
-              ? 'border-danger bg-danger text-white shadow-card'
+              ? 'border-danger bg-danger text-danger-fg shadow-card'
               : 'border-line-strong/50 bg-surface text-fg shadow-card hover:border-danger/50 hover:text-danger lg:border-sidebar-line lg:bg-sidebar-hover lg:text-sidebar-fg lg:shadow-none lg:hover:text-danger-light',
           )}
         >

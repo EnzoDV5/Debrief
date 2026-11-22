@@ -467,6 +467,19 @@ describe('Actions page', () => {
     expect(screen.getByRole('status')).toHaveTextContent('1 item in 1 meeting · 1 overdue');
   });
 
+  it('shows a loading state, not a crash, while the items are still on their way', async () => {
+    let answer: (value: { status: number; body: unknown }) => void = () => {};
+    mockApi({
+      ...me,
+      'GET /api/action-items': () => new Promise((resolve) => (answer = resolve)),
+    });
+    renderApp('/items');
+
+    expect(await screen.findByRole('status', { name: 'Loading action items' })).toBeInTheDocument();
+    answer({ status: 200, body: { actionItems: [listed()], owners: ['Ann'] } });
+    expect(await screen.findByText('Send the files')).toBeInTheDocument();
+  });
+
   it('removes an item from the Open list as soon as it is ticked off', async () => {
     let status: ActionItem['status'] = 'todo';
     mockApi({

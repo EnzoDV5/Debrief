@@ -37,7 +37,7 @@ export function RegisterPage() {
         <Link
           viewTransition
           to={next ? `/login?next=${encodeURIComponent(next)}` : '/login'}
-          className="font-semibold text-spark underline-offset-4 hover:underline"
+          className="font-semibold text-spark underline-offset-4 hover:underline light:text-accent"
         >
           Log in
         </Link>

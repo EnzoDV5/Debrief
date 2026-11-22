@@ -59,7 +59,7 @@ export function Field({
         // An id too, for controls that build their name from it (DatePicker: label + date).
         id={`${id}-label`}
         htmlFor={id}
-        className={cn('block text-sm font-semibold text-fg', bar && 'lg:text-white')}
+        className={cn('block text-sm font-semibold text-fg', bar && 'lg:text-sidebar-strong')}
       >
         {label}
         {optional && <span className="font-normal text-muted"> (optional)</span>}

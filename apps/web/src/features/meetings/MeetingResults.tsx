@@ -19,7 +19,7 @@ export function MeetingResults({ meetings }: { meetings: MeetingListItem[] }) {
 function ProjectMeetingCard({ meeting }: { meeting: MeetingListItem }) {
   const update = useUpdateMeeting(meeting.id);
   return (
-    <li className="rounded-card border border-white/70 glass p-4 shadow-card">
+    <li className="rounded-card border border-glass-edge glass p-4 shadow-card">
       <h3 className="truncate text-base font-semibold" title={meeting.title}>
         {meeting.title}
       </h3>

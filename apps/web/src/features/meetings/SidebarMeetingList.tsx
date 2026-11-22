@@ -416,14 +416,19 @@ function MeetingRow({
         className={({ isActive }) =>
           cn(
             'flex min-h-10 min-w-0 flex-1 items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
-            isActive ? 'bg-sidebar-active text-white' : 'text-sidebar-fg hover:bg-sidebar-hover',
-            isNew && 'font-semibold text-white',
+            isActive
+              ? 'bg-sidebar-active text-sidebar-strong'
+              : 'text-sidebar-fg hover:bg-sidebar-hover',
+            isNew && 'font-semibold text-sidebar-strong',
             failed && 'text-danger-light',
           )
         }
       >
         {analysing && (
-          <LoaderCircle aria-hidden="true" className="size-4 shrink-0 animate-spin text-spark" />
+          <LoaderCircle
+            aria-hidden="true"
+            className="size-4 shrink-0 animate-spin text-spark light:text-accent"
+          />
         )}
         {failed && <CircleAlert aria-hidden="true" className="size-4 shrink-0 text-danger-light" />}
         {isNew && !analysing && (
@@ -444,7 +449,7 @@ function MeetingRow({
         {isNew && !analysing && (
           <span
             aria-hidden="true"
-            className="shrink-0 rounded-pill bg-spark px-1.5 text-[0.6875rem] leading-5 font-bold text-fg"
+            className="shrink-0 rounded-pill bg-spark px-1.5 text-[0.6875rem] leading-5 font-bold text-spark-fg"
           >
             New
           </span>

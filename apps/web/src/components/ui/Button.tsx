@@ -23,13 +23,13 @@ const variants: Record<Variant, string> = {
   primary:
     'bg-[linear-gradient(to_top,var(--color-accent-hover)_50%,var(--color-accent)_50%)] text-accent-fg shadow-glow hover:shadow-[0_8px_20px_-10px_var(--color-accent)]',
   secondary:
-    'border border-line-strong bg-[linear-gradient(to_top,var(--color-fg)_50%,var(--color-surface)_50%)] text-fg shadow-card hover:border-fg hover:text-white hover:shadow-none',
+    'border border-line-strong bg-[linear-gradient(to_top,var(--color-fg)_50%,var(--color-surface)_50%)] text-fg shadow-card hover:border-fg hover:text-surface hover:shadow-none',
   ghost:
     'bg-[linear-gradient(to_top,var(--color-accent-soft)_50%,transparent_50%)] hover:text-accent',
   danger:
-    'bg-[linear-gradient(to_top,var(--color-danger-hover)_50%,var(--color-danger)_50%)] text-white shadow-card hover:shadow-none',
+    'bg-[linear-gradient(to_top,var(--color-danger-hover)_50%,var(--color-danger)_50%)] text-danger-fg shadow-card hover:shadow-none',
   dangerOutline:
-    'border border-danger/40 bg-[linear-gradient(to_top,var(--color-danger)_50%,var(--color-surface)_50%)] text-danger hover:border-danger hover:text-white',
+    'border border-danger/40 bg-[linear-gradient(to_top,var(--color-danger)_50%,var(--color-surface)_50%)] text-danger hover:border-danger hover:text-danger-fg',
 };
 
 const sizes: Record<Size, string> = {

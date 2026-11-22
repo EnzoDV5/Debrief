@@ -14,14 +14,14 @@ type Tone = 'default' | 'highlight' | 'danger';
 // dark bar (wide screens) the wipe is white with dark text; on the light page it's dark with white.
 const tones: Record<Tone, string> = {
   default:
-    'border-line-strong bg-[linear-gradient(to_top,var(--color-fg)_50%,var(--color-surface)_50%)] text-fg shadow-card hover:border-fg hover:text-white hover:shadow-none ' +
-    'lg:border-sidebar-line lg:bg-[linear-gradient(to_top,#fff_50%,var(--color-sidebar-hover)_50%)] lg:text-sidebar-fg lg:shadow-none lg:hover:border-white lg:hover:text-fg ' +
+    'border-line-strong bg-[linear-gradient(to_top,var(--color-fg)_50%,var(--color-surface)_50%)] text-fg shadow-card hover:border-fg hover:text-surface hover:shadow-none ' +
+    'lg:border-sidebar-line lg:bg-[linear-gradient(to_top,var(--color-sidebar-strong)_50%,var(--color-sidebar-hover)_50%)] lg:text-sidebar-fg lg:shadow-none lg:hover:border-sidebar-strong lg:hover:text-sidebar ' +
     // A disabled button keeps its resting colours on hover (the wipe doesn't run, so the text would vanish).
     'disabled:hover:border-line-strong disabled:hover:text-fg lg:disabled:hover:border-sidebar-line lg:disabled:hover:text-sidebar-fg',
   highlight:
-    'border-spark bg-[linear-gradient(to_top,#fff_50%,var(--color-spark)_50%)] text-fg shadow-card hover:border-white hover:shadow-none lg:shadow-none',
+    'border-spark bg-[linear-gradient(to_top,var(--color-sidebar-strong)_50%,var(--color-spark)_50%)] text-spark-fg shadow-card hover:border-sidebar-strong hover:text-sidebar hover:shadow-none lg:shadow-none',
   danger:
-    'border-danger/40 bg-[linear-gradient(to_top,var(--color-danger)_50%,var(--color-surface)_50%)] text-danger shadow-card hover:border-danger hover:text-white hover:shadow-none ' +
+    'border-danger/40 bg-[linear-gradient(to_top,var(--color-danger)_50%,var(--color-surface)_50%)] text-danger shadow-card hover:border-danger hover:text-danger-fg hover:shadow-none ' +
     'lg:border-danger-light/40 lg:bg-[linear-gradient(to_top,var(--color-danger-light)_50%,transparent_50%)] lg:text-danger-light lg:shadow-none lg:hover:border-danger-light lg:hover:text-sidebar',
 };
 
@@ -29,10 +29,11 @@ export function barButtonClass(tone: Tone = 'default', expanded = false) {
   return cn(
     'inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-md border bg-clip-padding px-3 text-sm font-semibold ' +
       '[background-size:100%_210%] bg-top hover:bg-bottom ' +
-      'transition-[background-position,color,border-color,box-shadow,scale] duration-300 ease-out-3 active:scale-[0.97] lg:focus-visible:outline-white ' +
+      'transition-[background-position,color,border-color,box-shadow,scale] duration-300 ease-out-3 active:scale-[0.97] lg:focus-visible:outline-sidebar-strong ' +
       'disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-top disabled:active:scale-100',
     tones[tone],
-    expanded && 'bg-accent-soft bg-none text-accent lg:border-white lg:bg-white lg:text-fg',
+    expanded &&
+      'bg-accent-soft bg-none text-accent lg:border-sidebar-strong lg:bg-sidebar-strong lg:text-sidebar',
   );
 }
 
@@ -92,7 +93,7 @@ export function ProjectMenu({ meeting }: { meeting: Meeting }) {
       <div
         role="group"
         aria-label="Choose a project"
-        className="absolute right-0 z-50 mt-2 w-60 origin-top-right rounded-card border border-white/70 glass-float p-1.5 text-fg shadow-raised motion-safe:animate-search-in"
+        className="absolute right-0 z-50 mt-2 w-60 origin-top-right rounded-card border border-glass-edge glass-float p-1.5 text-fg shadow-raised motion-safe:animate-search-in"
       >
         {update.error && (
           <Alert tone="danger" className="mb-1 text-sm">

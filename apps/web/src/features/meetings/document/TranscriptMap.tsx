@@ -10,6 +10,9 @@ export type MapMarker = { line: number; kind: 'action' | 'decision'; label: stri
 const MAX_PLAIN_TICKS = 80;
 // How far (as a share of the map) the hover magnification reaches.
 const LIFT_REACH = 0.06;
+// Full widths in px of a plain tick and an item tick; they grow towards these by scaling.
+const PLAIN_MAX = 26;
+const MARKED_MAX = 36;
 
 type Geometry = {
   tops: Map<number, number>;
@@ -69,8 +72,19 @@ export function TranscriptMap({
         setGeometry({ tops, ...view() });
       });
     };
+    // Scroll fires every frame, but the map only changes when a tick moves on or off screen.
+    // Returning the same object tells React there's nothing to re-render.
     const onScroll = () =>
-      setGeometry((current) => (current ? { ...current, ...view() } : current));
+      setGeometry((current) => {
+        if (!current) return current;
+        const next = view();
+        const sameTicks = [...current.tops.values()].every(
+          (top) =>
+            (top >= current.viewStart && top <= current.viewEnd) ===
+            (top >= next.viewStart && top <= next.viewEnd),
+        );
+        return sameTicks ? current : { ...current, ...next };
+      });
     measure();
     area.addEventListener('scroll', onScroll, { passive: true });
     const resize = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
@@ -142,13 +156,15 @@ export function TranscriptMap({
                     style={{ top: `${top * 100}%` }}
                     className="group/tick absolute right-0 z-0 flex h-3 w-9 -translate-y-1/2 cursor-pointer items-center justify-end hover:z-20"
                   >
+                    {/* Grows by scaling, not by changing width: scaling is drawn by the graphics
+                        card, while a width change makes the browser redo the page layout. */}
                     <span
                       aria-hidden="true"
                       style={{
-                        width: `${(onScreen ? 12 : 8) + near * 14}px`,
+                        scale: `${((onScreen ? 12 : 8) + near * 14) / PLAIN_MAX} 1`,
                         opacity: onScreen ? 1 : 0.35 + near * 0.65,
                       }}
-                      className="block h-0.5 rounded-pill bg-fg transition-[width,opacity] duration-300 ease-out-3"
+                      className="block h-0.5 w-6.5 origin-right rounded-pill bg-fg transition-[scale,opacity] duration-300 ease-out-3"
                     />
                   </button>
                 );
@@ -168,11 +184,11 @@ export function TranscriptMap({
                   <span
                     aria-hidden="true"
                     style={{
-                      width: `${24 + near * 12}px`,
+                      scale: `${(24 + near * 12) / MARKED_MAX} 1`,
                       opacity: onScreen ? 1 : 0.6 + near * 0.4,
                     }}
                     className={cn(
-                      'block h-[3px] rounded-pill transition-[width,opacity,box-shadow] duration-300 ease-out-3 group-focus-visible/tick:w-9!',
+                      'block h-[3px] w-9 origin-right rounded-pill transition-[scale,opacity,box-shadow] duration-300 ease-out-3 group-focus-visible/tick:scale-100!',
                       marker.kind === 'action'
                         ? 'bg-accent group-hover/tick:shadow-[0_0_10px_var(--color-accent)]'
                         : 'bg-success group-hover/tick:shadow-[0_0_10px_var(--color-success)]',

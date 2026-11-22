@@ -68,7 +68,7 @@ export function Carousel({ label, children }: { label: string; children: ReactNo
   };
 
   const arrow =
-    'absolute top-1/2 z-10 grid size-10 -translate-y-1/2 place-items-center rounded-pill border border-white/70 glass-float text-fg shadow-raised transition-opacity duration-200 hover:text-accent';
+    'absolute top-1/2 z-10 grid size-10 -translate-y-1/2 place-items-center rounded-pill border border-glass-edge glass-float text-fg shadow-raised transition-opacity duration-200 hover:text-accent';
 
   return (
     <div className="relative">
@@ -87,7 +87,9 @@ export function Carousel({ label, children }: { label: string; children: ReactNo
           event.stopPropagation();
         }}
         className={cn(
-          'flex scroll-px-4 [scrollbar-width:none] gap-4 overflow-x-auto overscroll-x-contain px-4 pt-1 pb-4 sm:scroll-px-8 sm:px-8 [&::-webkit-scrollbar]:hidden',
+          // relative: absolutely positioned bits inside the cards (like screen-reader-only text)
+          // are then clipped by this row too. Without it they stretched the whole page sideways.
+          'relative flex scroll-px-4 [scrollbar-width:none] gap-4 overflow-x-auto overscroll-x-contain px-4 pt-1 pb-4 sm:scroll-px-8 sm:px-8 [&::-webkit-scrollbar]:hidden',
           dragging ? 'cursor-grabbing select-none' : 'cursor-grab snap-x snap-mandatory',
           !edges.start && !edges.end && 'carousel-fade-both',
           !edges.start && edges.end && 'carousel-fade-start',

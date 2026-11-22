@@ -8,6 +8,9 @@ import {
   projectsResponseSchema,
   searchResponseSchema,
   archiveAllResponseSchema,
+  decisionResponseSchema,
+  type CreateDecisionInput,
+  type Decision,
   type Meeting,
   type MeetingListItem,
   type MeetingDetailsInput,
@@ -300,5 +303,67 @@ export function useDeleteProject() {
       void client.invalidateQueries({ queryKey: projectKeys });
       void invalidateMeetingLists(client);
     },
+  });
+}
+
+// Changes one meeting in the cache straight away, e.g. after adding a decision or an action item.
+export function updateMeetingCache(
+  queryClient: QueryClient,
+  meetingId: string,
+  update: (m: Meeting) => Meeting,
+) {
+  queryClient.setQueryData<Meeting>(meetingKeys.detail(meetingId), (meeting) =>
+    meeting ? update(meeting) : meeting,
+  );
+}
+
+// Decisions belong to a meeting, so their hooks update that meeting.
+export function useCreateDecision(meetingId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: CreateDecisionInput) =>
+      (
+        await request(`/meetings/${meetingId}/decisions`, {
+          method: 'POST',
+          body: input,
+          schema: decisionResponseSchema,
+        })
+      ).decision,
+    onSuccess: (decision) =>
+      updateMeetingCache(queryClient, meetingId, (m) => ({
+        ...m,
+        decisions: [...m.decisions, decision],
+      })),
+  });
+}
+
+export function useUpdateDecision(meetingId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, text }: { id: string; text: string }) =>
+      (
+        await request(`/decisions/${id}`, {
+          method: 'PATCH',
+          body: { text },
+          schema: decisionResponseSchema,
+        })
+      ).decision,
+    onSuccess: (decision: Decision) =>
+      updateMeetingCache(queryClient, meetingId, (m) => ({
+        ...m,
+        decisions: m.decisions.map((d) => (d.id === decision.id ? decision : d)),
+      })),
+  });
+}
+
+export function useDeleteDecision(meetingId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => requestNoContent(`/decisions/${id}`, { method: 'DELETE' }),
+    onSuccess: (_result, id) =>
+      updateMeetingCache(queryClient, meetingId, (m) => ({
+        ...m,
+        decisions: m.decisions.filter((d) => d.id !== id),
+      })),
   });
 }

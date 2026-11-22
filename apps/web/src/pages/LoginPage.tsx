@@ -77,7 +77,7 @@ export function LoginPage() {
         <Link
           viewTransition
           to={next ? `/register?next=${encodeURIComponent(next)}` : '/register'}
-          className="font-semibold text-spark underline-offset-4 hover:underline"
+          className="font-semibold text-spark underline-offset-4 hover:underline light:text-accent"
         >
           Create an account
         </Link>
@@ -89,7 +89,7 @@ export function LoginPage() {
             <Link
               viewTransition
               to="/forgot-password"
-              className="font-semibold text-spark underline-offset-4 hover:underline"
+              className="font-semibold text-spark underline-offset-4 hover:underline light:text-accent"
             >
               Forgot password?
             </Link>

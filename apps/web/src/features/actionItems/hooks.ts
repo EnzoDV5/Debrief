@@ -3,18 +3,15 @@ import {
   UNASSIGNED_OWNER,
   actionItemListResponseSchema,
   actionItemResponseSchema,
-  decisionResponseSchema,
   type ActionItem,
   type ActionItemStatusFilter,
   type CreateActionItemInput,
-  type Decision,
-  type CreateDecisionInput,
   type Meeting,
   type UpdateActionItemInput,
 } from '@debrief/shared';
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { request, requestNoContent } from '@/api/client';
-import { meetingKeys } from '@/features/meetings/hooks';
+import { meetingKeys, updateMeetingCache } from '@/features/meetings/hooks';
 import { todayDate } from '@/lib/format';
 
 export type ActionItemFilters = {
@@ -142,16 +139,6 @@ export function useDeleteActionItem() {
   });
 }
 
-function updateMeeting(
-  queryClient: QueryClient,
-  meetingId: string,
-  update: (m: Meeting) => Meeting,
-) {
-  queryClient.setQueryData<Meeting>(meetingKeys.detail(meetingId), (meeting) =>
-    meeting ? update(meeting) : meeting,
-  );
-}
-
 export function useCreateActionItem(meetingId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -164,61 +151,11 @@ export function useCreateActionItem(meetingId: string) {
         })
       ).actionItem,
     onSuccess: (item) => {
-      updateMeeting(queryClient, meetingId, (m) => ({
+      updateMeetingCache(queryClient, meetingId, (m) => ({
         ...m,
         actionItems: [...m.actionItems, item],
       }));
       void queryClient.invalidateQueries({ queryKey: actionItemKeys.all });
     },
-  });
-}
-
-export function useCreateDecision(meetingId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (input: CreateDecisionInput) =>
-      (
-        await request(`/meetings/${meetingId}/decisions`, {
-          method: 'POST',
-          body: input,
-          schema: decisionResponseSchema,
-        })
-      ).decision,
-    onSuccess: (decision) =>
-      updateMeeting(queryClient, meetingId, (m) => ({
-        ...m,
-        decisions: [...m.decisions, decision],
-      })),
-  });
-}
-
-export function useUpdateDecision(meetingId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ id, text }: { id: string; text: string }) =>
-      (
-        await request(`/decisions/${id}`, {
-          method: 'PATCH',
-          body: { text },
-          schema: decisionResponseSchema,
-        })
-      ).decision,
-    onSuccess: (decision: Decision) =>
-      updateMeeting(queryClient, meetingId, (m) => ({
-        ...m,
-        decisions: m.decisions.map((d) => (d.id === decision.id ? decision : d)),
-      })),
-  });
-}
-
-export function useDeleteDecision(meetingId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => requestNoContent(`/decisions/${id}`, { method: 'DELETE' }),
-    onSuccess: (_result, id) =>
-      updateMeeting(queryClient, meetingId, (m) => ({
-        ...m,
-        decisions: m.decisions.filter((d) => d.id !== id),
-      })),
   });
 }

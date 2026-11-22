@@ -49,6 +49,8 @@ export function GoogleSignInButton({
         className={cn(
           'flex min-h-11 items-center justify-center gap-2.5 rounded-md border border-[#8e918f] bg-[#131314] px-3 text-sm font-semibold whitespace-nowrap text-[#e3e3e3] transition-colors sm:flex-1',
           'hover:border-[#c4c7c5] hover:bg-[#1f1f20]',
+          // Google's own light button on the white sign-in column (light mode).
+          'light:border-[#747775] light:bg-white light:text-[#1f1f1f] light:hover:bg-[#f2f2f2]',
           leaving && 'cursor-wait opacity-80',
           checking && 'invisible',
         )}

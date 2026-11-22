@@ -103,7 +103,7 @@ export function MeetingMenu({ meeting }: { meeting: MeetingListItem }) {
         aria-label={`More options for ${meeting.title}`}
         aria-expanded={menu !== null}
         onClick={toggle}
-        className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-md text-sidebar-muted hover:bg-sidebar-hover hover:text-white"
+        className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-md text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-strong"
       >
         <MoreHorizontal aria-hidden="true" className="size-4" />
       </button>
@@ -113,7 +113,7 @@ export function MeetingMenu({ meeting }: { meeting: MeetingListItem }) {
             ref={panel}
             style={menu.style}
             className={cn(
-              'fixed z-50 w-52 rounded-card border border-white/70 glass-float p-1.5 text-fg shadow-raised motion-safe:animate-search-in',
+              'fixed z-50 w-52 rounded-card border border-glass-edge glass-float p-1.5 text-fg shadow-raised motion-safe:animate-search-in',
               menu.style.bottom !== undefined ? 'origin-bottom-right' : 'origin-top-right',
             )}
             role="group"

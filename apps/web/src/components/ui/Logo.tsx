@@ -1,5 +1,6 @@
 // The Debrief logo mark and wordmark. No background tile: the two top lines are blue on light
-// backgrounds and white on dark ones (`inverse`); the short bottom line and the dot are lime.
+// backgrounds and white on dark ones; `inverse` means it sits on the surround (sidebar, sign-in
+// column) rather than in the frame. The short bottom line and the dot are lime.
 import { cn } from '@/lib/cn';
 
 export function Logo({
@@ -16,7 +17,8 @@ export function Logo({
   className?: string;
 }) {
   const line = animated ? 'motion-safe:logo-line' : undefined;
-  const lineFill = inverse ? '#fff' : 'var(--color-accent)';
+  // Theme tokens: white on navy, blue on white, whichever half of the page the logo sits on.
+  const lineFill = inverse ? 'var(--color-logo-surround)' : 'var(--color-logo-frame)';
   return (
     <span
       className={cn('inline-flex items-center', size === 'xl' ? 'gap-4' : 'gap-2.5', className)}
@@ -61,7 +63,7 @@ export function Logo({
           className={cn(
             'font-bold tracking-tight',
             size === 'xl' ? 'text-5xl' : 'text-lg',
-            inverse ? 'text-white' : 'text-fg',
+            inverse ? 'text-sidebar-strong' : 'text-fg',
           )}
         >
           Debrief

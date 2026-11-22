@@ -29,7 +29,7 @@ export function CalendarCard({ result }: { result: string | null }) {
         >
           <GoogleLogo className="size-5" />
           {status?.connected && (
-            <span className="absolute -right-1.5 -bottom-1.5 grid size-5 place-items-center rounded-pill bg-success text-white ring-2 ring-surface">
+            <span className="absolute -right-1.5 -bottom-1.5 grid size-5 place-items-center rounded-pill bg-success text-success-fg ring-2 ring-surface">
               <CalendarCheck className="size-3" />
             </span>
           )}

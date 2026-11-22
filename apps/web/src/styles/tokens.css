@@ -15,6 +15,13 @@
   --color-sidebar-hover: #272a36;
   --color-sidebar-active: #353a49;
   --color-sidebar-line: #333746;
+  /* The brightest text on the surround (white on navy here; near-black in light mode). */
+  --color-sidebar-strong: #ffffff;
+  /* The thin bright edge on glass cards and pop-ups. */
+  --color-glass-edge: rgb(255 255 255 / 0.7);
+  /* The logo's top lines: on the surround and in the frame. */
+  --color-logo-surround: #ffffff;
+  --color-logo-frame: #2b36f5;
 
   --color-fg: #0c0e16;
   --color-muted: #535968;
@@ -27,6 +34,8 @@
   --color-accent-soft: #e8eafe;
   --color-accent-fg: #ffffff;
   --color-spark: #d4ff3c;
+  /* Text on lime is always dark, in both themes. */
+  --color-spark-fg: #0c0e16;
   --color-violet: #8f7bff;
 
   --color-success: #11713c;
@@ -37,6 +46,9 @@
   --color-danger-soft: #fdeceb;
   --color-danger-hover: #8f1c13;
   --color-danger-light: #f97066;
+  /* Text on a filled red or green (buttons, chips). */
+  --color-danger-fg: #ffffff;
+  --color-success-fg: #ffffff;
 
   --font-sans:
     'Satoshi', 'Satoshi Fallback', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -398,4 +410,54 @@
   --spacing-tabbar: 4rem;
   --container-content: 72rem;
   --container-form: 26rem;
+}
+
+/* Light mode (Account → Appearance). The two halves swap: the surround (sidebar, top bars, the
+   sign-in column) turns white and the frame, cards, inputs and pop-ups take the navy. Every
+   component reads these tokens, so this block is the whole theme. Dark mode is the default
+   above. index.html sets data-theme before the first paint, so there's no flash. */
+:root[data-theme='light'] {
+  --color-sidebar: #ffffff;
+  --color-sidebar-fg: #1c1f2a;
+  --color-sidebar-muted: #535968;
+  --color-sidebar-hover: #eef0f3;
+  --color-sidebar-active: #e2e5eb;
+  --color-sidebar-line: #e1e4ea;
+  --color-sidebar-strong: #0c0e16;
+
+  --color-bg: #171923;
+  --color-surface: #21242f;
+  --color-surface-2: #2a2e3a;
+  --color-fg: #e9ebf2;
+  --color-muted: #a7adbb;
+  --color-line: #333746;
+  --color-line-strong: #6e7483;
+  --color-glass-edge: rgb(255 255 255 / 0.08);
+  --color-logo-surround: #2b36f5;
+  --color-logo-frame: #ffffff;
+
+  /* Brighter than the default blue so links stay readable on navy (4.6:1). */
+  --color-accent: #6b74ff;
+  --color-accent-hover: #4b55f0;
+  --color-accent-soft: color-mix(in srgb, #6b74ff 20%, #171923);
+  --color-success: #5fd394;
+  --color-success-soft: color-mix(in srgb, #5fd394 16%, #171923);
+  --color-success-fg: #0b2a17;
+  --color-warning: #f5b544;
+  --color-warning-soft: color-mix(in srgb, #f5b544 16%, #171923);
+  --color-danger: #f97066;
+  --color-danger-soft: color-mix(in srgb, #f97066 16%, #171923);
+  --color-danger-hover: #fb9a92;
+  --color-danger-fg: #2a0b08;
+  /* "danger-light" is the red used on the surround, which is white here. */
+  --color-danger-light: #b42318;
+
+  /* No white top highlight on navy cards; deeper shadows instead. */
+  --shadow-card:
+    inset 0 1px 0 rgb(255 255 255 / 0.05), 0 1px 2px rgb(0 0 0 / 0.3),
+    0 8px 24px -14px rgb(0 0 0 / 0.6);
+  --shadow-raised:
+    inset 0 1px 0 rgb(255 255 255 / 0.06), 0 18px 40px -14px rgb(0 0 0 / 0.6),
+    0 2px 6px rgb(0 0 0 / 0.3);
+  --glass-sheen: 0.12;
 }

@@ -308,7 +308,9 @@ function ReviewStep({ draft, onBack }: { draft: Draft; onBack: () => void }) {
               <ArrowLeft aria-hidden="true" className="size-4" />
             </button>
             <div className="min-w-0">
-              <h1 className="text-2xl font-bold lg:text-xl lg:text-white">Check your transcript</h1>
+              <h1 className="text-2xl font-bold lg:text-xl lg:text-sidebar-strong">
+                Check your transcript
+              </h1>
               <p className="mt-1 text-sm text-muted lg:text-sidebar-muted">
                 This is how Debrief reads it. Nothing is analysed until you click Save & analyse.
               </p>
@@ -389,7 +391,7 @@ function ReviewStep({ draft, onBack }: { draft: Draft; onBack: () => void }) {
               </Alert>
             )}
           </div>
-          <div className="sticky bottom-3 z-20 order-last mx-4 mt-6 rounded-card border border-white/70 glass-float px-4 py-3 shadow-raised sm:mx-8 xl:static xl:m-0">
+          <div className="sticky bottom-3 z-20 order-last mx-4 mt-6 rounded-card border border-glass-edge glass-float px-4 py-3 shadow-raised sm:mx-8 xl:static xl:m-0">
             <p className="mb-3 hidden items-start gap-1.5 text-sm text-muted sm:flex">
               <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
               Saving keeps the original text. The AI reads it next.
@@ -421,4 +423,4 @@ function ReviewStep({ draft, onBack }: { draft: Draft; onBack: () => void }) {
 
 // Title and date inputs on the dark top bar (wide screens): translucent, light text, dark picker.
 const barInput =
-  'lg:border-sidebar-line lg:bg-sidebar-hover lg:text-white lg:placeholder:text-sidebar-muted lg:hover:border-white/50 lg:focus:border-white lg:aria-invalid:border-danger-light';
+  'lg:border-sidebar-line lg:bg-sidebar-hover lg:text-sidebar-strong lg:placeholder:text-sidebar-muted lg:hover:border-sidebar-strong/50 lg:focus:border-sidebar-strong lg:aria-invalid:border-danger-light';

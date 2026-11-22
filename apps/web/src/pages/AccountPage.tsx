@@ -1,5 +1,6 @@
 // The account page, laid out as a collage of blocks that fit together: profile, Google Calendar,
-// the sidebar's Meetings list (clear it), session (log out) and delete account.
+// the sidebar's Meetings list (clear it), appearance (dark/light), session (log out) and delete
+// account.
 import { isAnalysing } from '@debrief/shared';
 import {
   Archive,
@@ -8,7 +9,9 @@ import {
   ListX,
   LogOut,
   Mail,
+  Moon,
   Pencil,
+  Sun,
   Trash2,
   UserRound,
 } from 'lucide-react';
@@ -25,6 +28,7 @@ import { CalendarCard } from '@/features/integrations/CalendarCard';
 import { useArchiveAllMeetings, useMeetings } from '@/features/meetings/hooks';
 import { cn } from '@/lib/cn';
 import { formatDate, plural } from '@/lib/format';
+import { setTheme, useTheme, type Theme } from '@/lib/theme';
 
 export function AccountPage() {
   const navigate = useNavigate();
@@ -42,6 +46,7 @@ export function AccountPage() {
         </div>
         <MeetingsListBlock />
         <div className="grid gap-4 lg:col-span-3">
+          <AppearanceBlock />
           <SessionBlock />
           <DeleteBlock onDelete={() => setDeleteOpen(true)} />
         </div>
@@ -78,7 +83,7 @@ function ProfileBlock() {
       </h2>
 
       <div className="relative my-auto flex w-full flex-col items-center py-4">
-        <span className="grid size-32 place-items-center rounded-pill bg-sidebar-active text-white shadow-raised ring-8 ring-white/10">
+        <span className="grid size-32 place-items-center rounded-pill bg-sidebar-active text-sidebar-strong shadow-raised ring-8 ring-sidebar-strong/10">
           <UserRound aria-hidden="true" className="size-16" strokeWidth={1.5} />
         </span>
         <EditableName name={user.name} />
@@ -88,18 +93,18 @@ function ProfileBlock() {
         </p>
       </div>
 
-      <dl className="relative grid w-full grid-cols-2 gap-3 border-t border-white/10 pt-5 text-sm">
+      <dl className="relative grid w-full grid-cols-2 gap-3 border-t border-sidebar-strong/10 pt-5 text-sm">
         <div>
           <dt className="text-xs font-semibold tracking-label text-sidebar-muted uppercase">
             Member since
           </dt>
-          <dd className="mt-1 font-semibold text-white">{formatDate(user.createdAt)}</dd>
+          <dd className="mt-1 font-semibold text-sidebar-strong">{formatDate(user.createdAt)}</dd>
         </div>
         <div>
           <dt className="text-xs font-semibold tracking-label text-sidebar-muted uppercase">
             Signs in with
           </dt>
-          <dd className="mt-1 inline-flex items-center gap-1.5 font-semibold text-white">
+          <dd className="mt-1 inline-flex items-center gap-1.5 font-semibold text-sidebar-strong">
             {user.hasPassword ? (
               <>
                 <KeyRound aria-hidden="true" className="size-4" />
@@ -140,7 +145,7 @@ function EditableName({ name }: { name: string }) {
     setDraft(null);
   };
 
-  const text = 'mt-5 w-full text-2xl leading-tight font-bold text-white';
+  const text = 'mt-5 w-full text-2xl leading-tight font-bold text-sidebar-strong';
   if (draft === null) {
     return (
       <button
@@ -149,7 +154,7 @@ function EditableName({ name }: { name: string }) {
         title="Click to change your name"
         className={cn(
           text,
-          'group/name flex items-center justify-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-white/5',
+          'group/name flex items-center justify-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-sidebar-strong/5',
         )}
       >
         <span className="break-words">{name}</span>
@@ -180,7 +185,7 @@ function EditableName({ name }: { name: string }) {
         }}
         className={cn(
           text,
-          'rounded-md bg-white/10 px-2 py-1 text-center ring-2 ring-accent/60 outline-none focus:ring-accent disabled:opacity-70 aria-invalid:ring-danger-light',
+          'rounded-md bg-sidebar-strong/10 px-2 py-1 text-center ring-2 ring-accent/60 outline-none focus:ring-accent disabled:opacity-70 aria-invalid:ring-danger-light',
         )}
       />
       <p
@@ -214,7 +219,7 @@ function MeetingsListBlock() {
       <div className="flex items-start gap-4">
         <span
           aria-hidden="true"
-          className="grid size-10 shrink-0 place-items-center rounded-md bg-spark text-fg"
+          className="grid size-10 shrink-0 place-items-center rounded-md bg-spark text-spark-fg"
         >
           <ListX className="size-5" />
         </span>
@@ -299,6 +304,47 @@ function MeetingsListBlock() {
           </div>
         )}
       </div>
+    </Card>
+  );
+}
+
+// Dark (the default) or light mode, remembered in this browser. Radio buttons styled as a
+// segmented control, like the status buttons in the action item form.
+function AppearanceBlock() {
+  const theme = useTheme();
+  const options: { value: Theme; label: string; icon: typeof Moon }[] = [
+    { value: 'dark', label: 'Dark', icon: Moon },
+    { value: 'light', label: 'Light', icon: Sun },
+  ];
+  return (
+    <Card className="flex flex-col gap-3 p-5">
+      <fieldset>
+        <legend className="font-bold">Appearance</legend>
+        <p className="mt-0.5 text-sm text-muted">Remembered on this device.</p>
+        <div className="relative mt-3 grid grid-cols-2 rounded-pill bg-surface-2 p-1">
+          <span
+            aria-hidden="true"
+            style={{ transform: `translateX(${theme === 'light' ? 100 : 0}%)` }}
+            className="absolute inset-y-1 left-1 w-[calc((100%-0.5rem)/2)] rounded-pill bg-surface shadow-card transition-transform duration-300 ease-out"
+          />
+          {options.map(({ value, label, icon: Icon }) => (
+            <label key={value} className="relative cursor-pointer">
+              <input
+                type="radio"
+                name="theme"
+                value={value}
+                checked={theme === value}
+                onChange={() => setTheme(value)}
+                className="peer sr-only"
+              />
+              <span className="flex min-h-9 items-center justify-center gap-1.5 rounded-pill text-sm font-semibold text-muted transition-colors duration-200 peer-checked:text-fg peer-focus-visible:ring-2 peer-focus-visible:ring-accent/50 hover:text-fg">
+                <Icon aria-hidden="true" className="size-4" />
+                {label}
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
     </Card>
   );
 }

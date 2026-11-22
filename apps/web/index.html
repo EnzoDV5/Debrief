@@ -7,7 +7,17 @@
       name="description"
       content="Turn meeting transcripts into a summary, decisions and action items you can track."
     />
-    <meta name="theme-color" content="#eef0f4" />
+    <meta name="theme-color" content="#171923" />
+    <script>
+      // Apply the saved theme before anything is drawn, so light mode never flashes dark first.
+      // Dark is the default; src/lib/theme.ts reads and writes the same key.
+      try {
+        if (localStorage.getItem('debrief-theme') === 'light') {
+          document.documentElement.dataset.theme = 'light';
+          document.querySelector('meta[name="theme-color"]').content = '#ffffff';
+        }
+      } catch {}
+    </script>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>Debrief</title>
     <!-- Shown until the app's JavaScript loads; React replaces it. Matches FullPageSpinner. -->
@@ -26,6 +36,12 @@
           -apple-system,
           'Segoe UI',
           sans-serif;
+      }
+      [data-theme='light'] .boot {
+        background: #171923;
+      }
+      [data-theme='light'] .boot .boot-line[fill='#2b36f5'] {
+        fill: #ffffff;
       }
       .boot-blob {
         position: absolute;

@@ -11,7 +11,7 @@ import {
   Upload,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
-import { NoteCardHeader, cardChip, noteCardClass } from '@/features/actionItems/ActionItemCard';
+import { NoteCardHeader, cardChip, noteCardClass } from '@/components/ui/NoteCard';
 import { GoogleLogo } from '@/components/ui/GoogleLogo';
 import { Initials } from '@/components/ui/Initials';
 import { cn } from '@/lib/cn';
@@ -567,7 +567,7 @@ function PickSentence({
 
       <span
         className={cn(
-          'absolute bottom-full left-0 z-10 mb-1.5 flex gap-1 rounded-pill border border-white/70 glass-float p-1 whitespace-nowrap shadow-raised transition-[opacity,translate,scale] duration-300 ease-panel',
+          'absolute bottom-full left-0 z-10 mb-1.5 flex gap-1 rounded-pill border border-glass-edge glass-float p-1 whitespace-nowrap shadow-raised transition-[opacity,translate,scale] duration-300 ease-panel',
           toolbar ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-1 scale-95 opacity-0',
         )}
       >

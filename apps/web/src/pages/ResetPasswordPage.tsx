@@ -90,7 +90,10 @@ export function ResetPasswordPage() {
           Send me a new link
         </Button>
         <p className="mt-8 text-center text-sm">
-          <Link to="/login" className="font-semibold text-spark underline-offset-4 hover:underline">
+          <Link
+            to="/login"
+            className="font-semibold text-spark underline-offset-4 hover:underline light:text-accent"
+          >
             Back to log in
           </Link>
         </p>

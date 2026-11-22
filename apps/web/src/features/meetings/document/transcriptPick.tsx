@@ -154,7 +154,7 @@ export function PickToolbar({
       role="toolbar"
       aria-label="Create from the transcript"
       style={{ left: state.x, top: state.y }}
-      className="fixed z-40 flex -translate-x-1/2 -translate-y-[calc(100%+0.5rem)] gap-1 rounded-pill border border-white/70 glass-float p-1 shadow-raised"
+      className="fixed z-40 flex -translate-x-1/2 -translate-y-[calc(100%+0.5rem)] gap-1 rounded-pill border border-glass-edge glass-float p-1 shadow-raised"
     >
       <button
         type="button"

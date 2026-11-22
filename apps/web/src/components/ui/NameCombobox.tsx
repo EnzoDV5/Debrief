@@ -213,7 +213,7 @@ export function NameCombobox({
             aria-label={listLabel}
             style={{ ...popup.style, maxHeight: LIST_MAX_HEIGHT }}
             className={cn(
-              'fixed z-[60] scrollbar-soft overflow-y-auto rounded-card border border-white/70 glass-float p-1.5 text-fg shadow-raised motion-safe:animate-search-in',
+              'fixed z-[60] scrollbar-soft overflow-y-auto rounded-card border border-glass-edge glass-float p-1.5 text-fg shadow-raised motion-safe:animate-search-in',
               popup.style.bottom !== undefined ? 'origin-bottom' : 'origin-top',
             )}
           >

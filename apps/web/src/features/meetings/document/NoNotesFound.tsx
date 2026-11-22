@@ -50,7 +50,7 @@ export function NoNotesFound({ meeting }: { meeting: Meeting }) {
               <X aria-hidden="true" className="size-4" />
             </button>
             <div className="flex items-start gap-3 border-b border-line bg-spark/25 p-5 pr-12">
-              <span className="grid size-10 shrink-0 place-items-center rounded-pill bg-spark text-fg shadow-card">
+              <span className="grid size-10 shrink-0 place-items-center rounded-pill bg-spark text-spark-fg shadow-card">
                 <SearchCheck aria-hidden="true" className="size-5" />
               </span>
               <div>

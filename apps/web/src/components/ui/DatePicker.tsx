@@ -236,8 +236,8 @@ export function DatePicker({
           'aria-invalid:border-danger aria-invalid:focus-visible:outline-danger',
           popup && 'border-accent',
           tone === 'bar' &&
-            'lg:border-sidebar-line lg:bg-sidebar-hover lg:text-white lg:hover:border-white/50 lg:aria-invalid:border-danger-light',
-          tone === 'bar' && popup && 'lg:border-white',
+            'lg:border-sidebar-line lg:bg-sidebar-hover lg:text-sidebar-strong lg:hover:border-sidebar-strong/50 lg:aria-invalid:border-danger-light',
+          tone === 'bar' && popup && 'lg:border-sidebar-strong',
           className,
         )}
       >

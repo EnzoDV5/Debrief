@@ -346,7 +346,7 @@ function SidebarContent({
             aria-expanded={!collapsed}
             aria-controls="workspace-sidebar"
             onClick={onToggleCollapsed}
-            className="grid size-9 place-items-center rounded-md text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-white focus-visible:outline-white"
+            className="grid size-9 place-items-center rounded-md text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-sidebar-strong focus-visible:outline-sidebar-strong"
           >
             {collapsed ? (
               <PanelLeftOpen aria-hidden="true" className="size-5" />
@@ -360,7 +360,7 @@ function SidebarContent({
             type="button"
             aria-label="Close sidebar"
             onClick={onClose}
-            className="grid size-9 place-items-center rounded-md text-sidebar-muted hover:bg-sidebar-hover hover:text-white"
+            className="grid size-9 place-items-center rounded-md text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-strong"
           >
             <X aria-hidden="true" className="size-5" />
           </button>
@@ -373,7 +373,7 @@ function SidebarContent({
           onClick={onNavigate}
           title={collapsed ? 'New meeting' : undefined}
           className={cn(
-            'flex min-h-11 items-center gap-3 rounded-md bg-sidebar-hover text-sm font-semibold whitespace-nowrap text-white transition-colors hover:bg-sidebar-active',
+            'flex min-h-11 items-center gap-3 rounded-md bg-sidebar-hover text-sm font-semibold whitespace-nowrap text-sidebar-strong transition-colors hover:bg-sidebar-active',
             collapsed ? 'justify-center' : 'px-3',
           )}
         >
@@ -430,7 +430,7 @@ function SidebarContent({
               {count > 0 && (
                 <span
                   className={cn(
-                    'ml-auto min-w-6 rounded-pill bg-spark px-1.5 text-center text-xs leading-5 font-bold text-fg tabular-nums',
+                    'ml-auto min-w-6 rounded-pill bg-spark px-1.5 text-center text-xs leading-5 font-bold text-spark-fg tabular-nums',
                     collapsed && 'sr-only',
                   )}
                 >
@@ -477,7 +477,7 @@ function SidebarContent({
                   <button
                     type="button"
                     onClick={() => void refetch()}
-                    className="mt-1 font-semibold text-white underline"
+                    className="mt-1 font-semibold text-sidebar-strong underline"
                   >
                     Try again
                   </button>
@@ -597,7 +597,7 @@ function navClass(isActive: boolean, collapsed: boolean) {
   return cn(
     'flex min-h-10 items-center gap-3 rounded-md text-sm font-medium whitespace-nowrap transition-colors',
     collapsed ? 'justify-center' : 'px-3',
-    isActive ? 'bg-sidebar-active text-white' : 'text-sidebar-fg hover:bg-sidebar-hover',
+    isActive ? 'bg-sidebar-active text-sidebar-strong' : 'text-sidebar-fg hover:bg-sidebar-hover',
   );
 }
 
@@ -627,12 +627,14 @@ function AccountBlock({
       >
         <span
           aria-hidden="true"
-          className="grid size-9 shrink-0 place-items-center rounded-pill bg-sidebar-active text-sidebar-fg ring-1 ring-sidebar-line group-hover:text-white"
+          className="grid size-9 shrink-0 place-items-center rounded-pill bg-sidebar-active text-sidebar-fg ring-1 ring-sidebar-line group-hover:text-sidebar-strong"
         >
           <UserRound className="size-5" />
         </span>
         <span className={cn('min-w-0 flex-1', collapsed && 'sr-only')}>
-          <span className="block truncate text-sm font-semibold text-white">{user.name}</span>
+          <span className="block truncate text-sm font-semibold text-sidebar-strong">
+            {user.name}
+          </span>
           <span className="block truncate text-xs text-sidebar-muted">{user.email}</span>
         </span>
         {!collapsed && (

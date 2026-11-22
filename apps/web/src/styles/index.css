@@ -3,3 +3,7 @@
 @import './tokens.css';
 @import './fonts.css';
 @import './base.css';
+
+/* `light:` classes apply only in light mode, for the few things that can't just use a token
+   (e.g. Google's sign-in button, which comes in a dark and a light version). */
+@custom-variant light (&:where([data-theme='light'], [data-theme='light'] *));
