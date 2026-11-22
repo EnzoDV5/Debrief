@@ -15,6 +15,8 @@ export type ActionItemDraft = {
   sourceLine: number | null;
   sourceQuote: string | null;
   contextSummary: string | null;
+  // Position in the checked decisions list (0 = D1), or null for no link.
+  decisionIndex: number | null;
 };
 
 export function normalise(text: string): string {
@@ -84,6 +86,7 @@ export function checkActionItems(
   output: ActionItemsOutput,
   lines: TranscriptLine[],
   meetingDate: string,
+  decisionCount = 0,
 ): ActionItemDraft[] {
   const transcript = lines.map(lineText).join(' ');
   const seen = new Set<string>();
@@ -126,6 +129,12 @@ export function checkActionItems(
         sourceLine: source.sourceLine,
         sourceQuote: item.source_quote || null,
         contextSummary: source.problem ? null : item.context_summary?.trim() || null,
+        // A decision number that doesn't exist (D7 of 3) is dropped: the task stays, unlinked.
+        // Not flagged for review, since nothing the user sees is wrong.
+        decisionIndex:
+          item.decision != null && item.decision >= 1 && item.decision <= decisionCount
+            ? item.decision - 1
+            : null,
       },
     ];
   });

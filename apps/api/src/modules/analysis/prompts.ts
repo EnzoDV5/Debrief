@@ -3,15 +3,29 @@ import type { TranscriptLine } from '@debrief/shared';
 import { z } from 'zod';
 
 // Saved on every analysis run, so a result can always be traced back to the prompt that made it.
-export const PROMPT_VERSION = '2026-11-22.1';
+export const PROMPT_VERSION = '2026-11-22.2';
+
+// Tags we wrap data in. Any such tag inside the data is defused, so it can't end the block early.
+const defuseTags = (text: string) =>
+  text.replace(/<\/?\s*(?:transcript|decisions)\s*>/gi, (tag) =>
+    tag.replace(/</g, '‹').replace(/>/g, '›'),
+  );
 
 // The transcript goes inside tags and is treated as data, so instructions hidden in it are ignored.
 export function formatTranscript(lines: TranscriptLine[]): string {
   const body = lines
     .map((line) => `[${line.n}] ${line.speaker ? `${line.speaker}: ` : ''}${line.text}`)
-    .join('\n')
-    .replace(/<\/?\s*transcript\s*>/gi, (tag) => tag.replace(/</g, '‹').replace(/>/g, '›'));
-  return `<transcript>\n${body}\n</transcript>`;
+    .join('\n');
+  return `<transcript>\n${defuseTags(body)}\n</transcript>`;
+}
+
+// The decisions just found in this same meeting, numbered D1, D2... so each action item can say
+// which one it carries out. Also data, in its own tags (the decision text came from the AI).
+export function formatDecisions(decisions: { text: string }[]): string {
+  const body = decisions.length
+    ? decisions.map((d, i) => `D${i + 1}: ${d.text}`).join('\n')
+    : '(no decisions)';
+  return `<decisions>\n${defuseTags(body)}\n</decisions>`;
 }
 
 const GROUND_RULES = `You analyse one meeting transcript for a meeting-notes app.
@@ -53,6 +67,9 @@ export const actionItemsOutput = z.object({
         context_summary: z.string().trim().max(240).optional(),
         owner: nullableText(100),
         due_date_text: nullableText(100),
+        // Which decision (1 for D1) the task carries out. Anything unusable just means no link,
+        // rather than rejecting the whole answer over an optional extra.
+        decision: z.number().int().nullable().optional().catch(null),
         ...sourceFields,
       }),
     )
@@ -133,6 +150,7 @@ Write each decision as one short statement. If no decisions were made, return an
               'context_summary',
               'owner',
               'due_date_text',
+              'decision',
               'source_line',
               'source_quote',
             ],
@@ -145,6 +163,10 @@ Write each decision as one short statement. If no decisions were made, return an
               },
               owner: stringOrNull('The named person responsible, exactly as written, or null'),
               due_date_text: stringOrNull('The exact deadline words from the transcript, or null'),
+              decision: {
+                type: ['integer', 'null'],
+                description: 'The number of the decision this task carries out (2 for D2), or null',
+              },
               ...sourceJsonSchema,
             },
           },
@@ -171,6 +193,10 @@ Task: list the action items: tasks someone committed to or was asked to do.
 - due_date_text: the exact words used for the deadline (e.g. "by Friday 27 November",
   "next week"). Use null if no deadline was said, even when the task sounds urgent. Never invent
   or convert a date; the user can add one.
+- decision: the decisions already found in this meeting are listed between <decisions> and
+  </decisions>, numbered D1, D2... If this task is clearly a step that puts one of them into
+  action, give that decision's number (2 for D2). Otherwise use null. Only link when the
+  connection is clear; many tasks belong to no decision.
 If there are no action items, return an empty list. Never pad the list.`,
   },
 } as const;

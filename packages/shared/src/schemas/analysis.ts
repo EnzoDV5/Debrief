@@ -29,6 +29,8 @@ export const actionItemSchema = z.object({
   sourceLine: z.number().int().positive().nullable(),
   sourceQuote: z.string().nullable(),
   contextSummary: z.string().nullable().optional(),
+  // The decision in the same meeting that this task carries out, if any.
+  decisionId: z.uuid().nullable(),
   inCalendar: z.boolean(),
   origin: z.enum(ITEM_ORIGINS),
   position: z.number().int().nonnegative(),
@@ -56,11 +58,18 @@ const dueDateInput = z
 
 const sourceLineInput = z.number().int().positive().nullable().default(null);
 
+// '' from the form's "No decision" option means none.
+const decisionIdInput = z
+  .union([z.literal(''), z.uuid('Pick a decision from this meeting')])
+  .nullable()
+  .transform((value) => value || null);
+
 export const createActionItemSchema = z.object({
   text: itemText,
   owner: ownerInput.default(null),
   dueDate: dueDateInput.default(null),
   status: z.enum(ACTION_ITEM_STATUSES).default('todo'),
+  decisionId: decisionIdInput.default(null),
   sourceLine: sourceLineInput,
   sourceQuote: z.string().trim().min(1).max(1000).nullable().default(null),
 });
@@ -72,6 +81,7 @@ export const updateActionItemSchema = z
     owner: ownerInput,
     dueDate: dueDateInput,
     status: z.enum(ACTION_ITEM_STATUSES),
+    decisionId: decisionIdInput,
   })
   .partial()
   .refine((patch) => Object.keys(patch).length > 0, 'Nothing to update');

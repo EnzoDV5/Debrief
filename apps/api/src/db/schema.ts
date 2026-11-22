@@ -173,6 +173,9 @@ export const actionItems = pgTable(
     sourceLine: integer('source_line'),
     sourceQuote: text('source_quote'),
     contextSummary: text('context_summary'),
+    // The decision this task carries out. Deleting the decision keeps the task, just unlinked.
+    // That it's the same meeting and user is checked in the service before saving.
+    decisionId: uuid('decision_id').references(() => decisions.id, { onDelete: 'set null' }),
     calendarEventId: text('calendar_event_id'),
     origin: itemOriginEnum('origin').notNull(),
     position: integer('position').notNull(),
@@ -182,6 +185,7 @@ export const actionItems = pgTable(
   },
   (t) => [
     index('action_items_meeting_id_idx').on(t.meetingId),
+    index('action_items_decision_id_idx').on(t.decisionId),
     index('action_items_user_id_status_idx').on(t.userId, t.status),
     index('action_items_user_id_due_date_idx').on(t.userId, t.dueDate),
   ],

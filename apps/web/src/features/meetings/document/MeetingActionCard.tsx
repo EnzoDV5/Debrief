@@ -38,6 +38,8 @@ export function MeetingActionCard({
         meetingId={meeting.id}
         item={item}
         ownerSuggestions={ownerSuggestions}
+        transcriptLine={meeting.transcriptLines.find((line) => line.n === item.sourceLine)}
+        decisions={meeting.decisions}
       />
       <DeleteActionItemDialog item={deleting ? item : null} onClose={() => setDeleting(false)} />
     </>

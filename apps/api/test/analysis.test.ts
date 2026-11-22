@@ -93,6 +93,68 @@ describe('analysis worker', () => {
     expect(runs.rows.every((row) => row.status === 'success')).toBe(true);
   });
 
+  it('links a task to the decision it carries out, and shows the AI the numbered decisions', async () => {
+    const id = await meeting();
+    const calls: AiRequest[] = [];
+    const items = JSON.parse(valid.meeting_action_items);
+    items.action_items[0].decision = 1;
+    items.action_items.push({
+      text: 'Check the budget',
+      context_summary: '',
+      owner: null,
+      due_date_text: null,
+      decision: 7, // There is no D7: the task is kept, just not linked.
+      source_line: 2,
+      source_quote: 'Ann will send the files',
+    });
+    const ai: AiClient = {
+      complete: async (input) => {
+        calls.push(input);
+        return input.schemaName === 'meeting_action_items'
+          ? JSON.stringify(items)
+          : valid[input.schemaName as keyof typeof valid];
+      },
+    };
+    await analyzeMeeting(jobs[0]!, { ai, models: ['test-model'], log });
+
+    const res = await request(app).get(`/api/meetings/${id}`).set('Cookie', cookie);
+    const [decision] = res.body.meeting.decisions;
+    expect(res.body.meeting.actionItems).toMatchObject([
+      { text: 'Send the files', decisionId: decision.id },
+      { text: 'Check the budget', decisionId: null, needsReview: false },
+    ]);
+
+    const actionCall = calls.find((call) => call.schemaName === 'meeting_action_items')!;
+    expect(actionCall.user).toContain('<decisions>\nD1: Use blue\n</decisions>');
+    // The other steps only ever get the transcript.
+    for (const call of calls.filter((c) => c !== actionCall)) {
+      expect(call.user).not.toContain('<decisions>');
+    }
+  });
+
+  it('keeps a hand-made task but unlinks it when re-analysis replaces its decision', async () => {
+    const id = await meeting();
+    await analyzeMeeting(jobs[0]!, { ai: fakeAi(valid), models: ['test-model'], log });
+    const first = await request(app).get(`/api/meetings/${id}`).set('Cookie', cookie);
+    const created = await request(app)
+      .post(`/api/meetings/${id}/action-items`)
+      .set('Origin', WEB_ORIGIN)
+      .set('Cookie', cookie)
+      .send({ text: 'Book the printer', decisionId: first.body.meeting.decisions[0].id });
+    expect(created.body.actionItem.decisionId).toBe(first.body.meeting.decisions[0].id);
+
+    await request(app)
+      .post(`/api/meetings/${id}/analyze`)
+      .set('Origin', WEB_ORIGIN)
+      .set('Cookie', cookie);
+    await analyzeMeeting(jobs[1]!, { ai: fakeAi(valid), models: ['test-model'], log });
+
+    const after = await request(app).get(`/api/meetings/${id}`).set('Cookie', cookie);
+    expect(after.body.meeting.actionItems).toContainEqual(
+      expect.objectContaining({ text: 'Book the printer', origin: 'manual', decisionId: null }),
+    );
+  });
+
   it('tries another model after invalid output and never saves an invented owner', async () => {
     const id = await meeting();
     const ai: AiClient = {

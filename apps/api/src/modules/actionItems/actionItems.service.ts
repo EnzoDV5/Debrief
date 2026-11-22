@@ -19,11 +19,25 @@ type ListQuery = z.output<typeof actionItemsQuerySchema>;
 
 const utcToday = () => new Date().toISOString().slice(0, 10);
 
+// Someone else's decision, or one from another meeting, gets the same 404 as one that doesn't
+// exist, so decision ids can't be probed.
+async function assertDecisionInMeeting(
+  userId: string,
+  meetingId: string,
+  decisionId: string | null | undefined,
+) {
+  if (!decisionId) return;
+  if (!(await actionItemsRepository.decisionIsInMeeting(userId, meetingId, decisionId))) {
+    throw notFound('Decision');
+  }
+}
+
 export const actionItemsService = {
   async create(userId: string, meetingId: string, input: CreateInput): Promise<ActionItem> {
     const lines = await actionItemsRepository.findTranscriptLines(userId, meetingId);
     if (!lines) throw notFound('Meeting');
     assertPickedSource(lines, input.sourceLine, input.sourceQuote);
+    await assertDecisionInMeeting(userId, meetingId, input.decisionId);
     const row = await actionItemsRepository.create({
       meetingId,
       userId,
@@ -37,6 +51,9 @@ export const actionItemsService = {
   async update(userId: string, id: string, patch: UpdateInput): Promise<ActionItem> {
     const current = await actionItemsRepository.findForUser(userId, id);
     if (!current) throw notFound('Action item');
+    await assertDecisionInMeeting(userId, current.meetingId, patch.decisionId);
+    // Linking to a decision isn't an edit of what the task says, so it doesn't clear the review
+    // flag or mark the item as edited (the checks below only look at text, owner and date).
     const changes: Parameters<typeof actionItemsRepository.updateForUser>[2] = { ...patch };
 
     if ('text' in patch || 'owner' in patch || 'dueDate' in patch) {

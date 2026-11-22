@@ -169,6 +169,29 @@ export function MeetingDocument({
     return { byLine: map, unlinkedItems: looseItems, unlinkedDecisions: looseDecisions };
   }, [meeting.transcriptLines, meeting.actionItems, meeting.decisions]);
 
+  // Each decision's tasks, in their usual order, for the task list on its card.
+  const tasksByDecision = useMemo(() => {
+    const map = new Map<string, ActionItem[]>();
+    for (const item of meeting.actionItems) {
+      if (!item.decisionId) continue;
+      map.set(item.decisionId, [...(map.get(item.decisionId) ?? []), item]);
+    }
+    return map;
+  }, [meeting.actionItems]);
+
+  // A task clicked in a decision's list: glide its card to the middle and highlight it.
+  const jumpToTask = (item: ActionItem) => {
+    const card = document.getElementById(`action-${item.id}`);
+    if (!card) return;
+    setActiveId(item.id);
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    scrollRowToCenter(
+      card.closest<HTMLElement>('li[id^="L"]') ?? card,
+      notesHeadRef.current,
+      reduce ? 'auto' : 'smooth',
+    );
+  };
+
   const lineNumbers = useMemo(
     () => meeting.transcriptLines.map((line) => line.n),
     [meeting.transcriptLines],
@@ -422,8 +445,11 @@ export function MeetingDocument({
                           flash={highlightId === decision.id ? 'decision' : null}
                         >
                           <DecisionBubble
-                            meetingId={meeting.id}
+                            meeting={meeting}
                             decision={decision}
+                            tasks={tasksByDecision.get(decision.id)}
+                            ownerSuggestions={ownerSuggestions}
+                            onJumpToTask={jumpToTask}
                             active={activeId === decision.id}
                             onActiveChange={(active) => setActiveId(active ? decision.id : null)}
                           />
@@ -467,7 +493,14 @@ export function MeetingDocument({
               </div>
               <div className={cn(notesCell, cardsCell, 'xl:pt-14')}>
                 {unlinkedDecisions.map((decision) => (
-                  <DecisionBubble key={decision.id} meetingId={meeting.id} decision={decision} />
+                  <DecisionBubble
+                    key={decision.id}
+                    meeting={meeting}
+                    decision={decision}
+                    tasks={tasksByDecision.get(decision.id)}
+                    ownerSuggestions={ownerSuggestions}
+                    onJumpToTask={jumpToTask}
+                  />
                 ))}
                 {unlinkedItems.map((item) => (
                   <MeetingActionCard
@@ -516,6 +549,10 @@ export function MeetingDocument({
           ownerSuggestions={ownerSuggestions}
           initialText={shownCreating.pick.text}
           source={{ line: shownCreating.pick.line, quote: shownCreating.pick.quote }}
+          transcriptLine={meeting.transcriptLines.find(
+            (line) => line.n === shownCreating.pick.line,
+          )}
+          decisions={meeting.decisions}
         />
       )}
       {shownCreating?.kind === 'decision' && (

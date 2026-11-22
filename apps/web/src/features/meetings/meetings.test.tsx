@@ -96,6 +96,7 @@ describe('workspace history', () => {
       sourceLine: null,
       sourceQuote: null,
       contextSummary: null,
+      decisionId: null,
       inCalendar: false,
       origin: 'manual',
       position: 0,
@@ -723,6 +724,7 @@ describe('meeting detail', () => {
           sourceLine: 2,
           sourceQuote: 'I will set up Resend',
           contextSummary: null,
+          decisionId: null,
           inCalendar: false,
           origin: 'ai',
           position: 0,
@@ -829,6 +831,7 @@ describe('meeting detail', () => {
           sourceLine: 2,
           sourceQuote: 'send the files',
           contextSummary: null,
+          decisionId: null,
           inCalendar: false,
           origin: 'ai',
           position: 0,
@@ -881,6 +884,7 @@ describe('meeting detail', () => {
           sourceLine: 2,
           sourceQuote: 'send the files',
           contextSummary: 'Ben wants the ready draft circulated to the team.',
+          decisionId: null,
           inCalendar: false,
           origin: 'ai',
           position: 0,
@@ -962,6 +966,7 @@ describe('meeting detail', () => {
           reviewReason: null,
           sourceLine: 2,
           sourceQuote: "I'm finishing the pricing page now",
+          decisionId: null,
           inCalendar: false,
           origin: 'ai',
           position: 0,
@@ -1095,6 +1100,47 @@ describe('meeting detail', () => {
     expect(screen.queryByRole('combobox', { name: 'Who said line 2?' })).not.toBeInTheDocument();
   });
 
+  it('sets a speaker by clicking one of the people already in the meeting', async () => {
+    const withText = {
+      ...meeting,
+      transcriptLines: [
+        { n: 1, speaker: 'Ann', text: 'Hello all.' },
+        { n: 2, text: 'I will send the deck on Friday.' },
+      ],
+    };
+    let sent: unknown;
+    mockApi({
+      ...me,
+      [`GET ${detailUrl}`]: { status: 200, body: { meeting: withText } },
+      [`PATCH ${detailUrl}/lines/2`]: (body) => {
+        sent = body;
+        const fixed = { ...withText.transcriptLines[1], speaker: 'Ann', speakerEdited: true };
+        return {
+          status: 200,
+          body: { meeting: { ...withText, transcriptLines: [withText.transcriptLines[0], fixed] } },
+        };
+      },
+    });
+    const user = userEvent.setup();
+    renderApp(`/meetings/${meeting.id}`);
+
+    const line = (await screen.findByText('I will send the deck on Friday.')).closest(
+      '[data-line-text]',
+    );
+    (line as HTMLElement).focus();
+    await user.keyboard('{Enter}');
+    const toolbar = screen.getByRole('toolbar', { name: 'Create from the transcript' });
+    await user.click(within(toolbar).getByRole('button', { name: 'Who said this?' }));
+
+    await user.click(screen.getByRole('button', { name: 'Show people in this meeting' }));
+    const people = screen.getByRole('listbox', { name: 'People in this meeting' });
+    await user.click(within(people).getByRole('option', { name: 'Ann' }));
+    expect(screen.getByRole('combobox', { name: 'Who said line 2?' })).toHaveValue('Ann');
+    await user.click(screen.getByRole('button', { name: 'Save speaker' }));
+
+    await waitFor(() => expect(sent).toEqual({ speaker: 'Ann' }));
+  });
+
   it('makes an action item from a line with the keyboard (Enter on the line)', async () => {
     const withText = {
       ...meeting,
@@ -1125,6 +1171,7 @@ describe('meeting detail', () => {
               sourceLine: 2,
               sourceQuote: 'I will send the deck to Lerato.',
               contextSummary: null,
+              decisionId: null,
               inCalendar: false,
               origin: 'manual',
               position: 0,
@@ -1147,8 +1194,8 @@ describe('meeting detail', () => {
     await user.keyboard('{Enter}');
 
     const dialog = screen.getByRole('dialog', { name: 'Add an action item' });
-    expect(dialog).toHaveTextContent('From line 2 of the transcript');
-    const task = within(dialog).getByRole('textbox', { name: 'Task' });
+    expect(within(dialog).getByRole('figure', { name: /Ben.*Line 2/ })).toBeInTheDocument();
+    const task = within(dialog).getByRole('textbox', { name: 'What needs to be done' });
     expect(task).toHaveValue('I will send the deck to Lerato.');
     await user.clear(task);
     await user.type(task, 'Send the deck to Lerato');

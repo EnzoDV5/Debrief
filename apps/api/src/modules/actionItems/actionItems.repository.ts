@@ -2,7 +2,7 @@
 import { UNASSIGNED_OWNER, type ActionItemStatus, type TranscriptLine } from '@debrief/shared';
 import { and, asc, desc, eq, inArray, isNotNull, isNull, lt, ne, sql, type SQL } from 'drizzle-orm';
 import { db } from '../../db/client';
-import { actionItems, meetings, type ActionItemRow } from '../../db/schema';
+import { actionItems, decisions, meetings, type ActionItemRow } from '../../db/schema';
 
 export type ActionItemFilters = {
   statuses: ActionItemStatus[] | null;
@@ -18,6 +18,22 @@ export const actionItemsRepository = {
       .where(and(eq(meetings.id, meetingId), eq(meetings.userId, userId)))
       .limit(1);
     return row?.lines ?? null;
+  },
+
+  // A task may only point at a decision from the same meeting, owned by the same user.
+  async decisionIsInMeeting(userId: string, meetingId: string, decisionId: string) {
+    const [row] = await db
+      .select({ id: decisions.id })
+      .from(decisions)
+      .where(
+        and(
+          eq(decisions.id, decisionId),
+          eq(decisions.meetingId, meetingId),
+          eq(decisions.userId, userId),
+        ),
+      )
+      .limit(1);
+    return Boolean(row);
   },
 
   async nextPosition(userId: string, meetingId: string): Promise<number> {

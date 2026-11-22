@@ -21,6 +21,30 @@ export function formatCalendarDate(ymd: string): string {
   return calendarDateFormat.format(new Date(`${ymd}T00:00:00Z`));
 }
 
+const shortCalendarDateFormat = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric',
+  month: 'short',
+  timeZone: 'UTC',
+});
+
+// "25 Nov": for tight spaces like a decision's task list.
+export function formatShortCalendarDate(ymd: string): string {
+  return shortCalendarDateFormat.format(new Date(`${ymd}T00:00:00Z`));
+}
+
+const longCalendarDateFormat = new Intl.DateTimeFormat('en-GB', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+
+// "Wednesday, 25 November 2026": spelled out, so it can't be misread like 2026/11/25 can.
+export function formatLongCalendarDate(ymd: string): string {
+  return longCalendarDateFormat.format(new Date(`${ymd}T00:00:00Z`));
+}
+
 export function todayDate(): string {
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, '0');

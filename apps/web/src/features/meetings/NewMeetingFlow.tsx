@@ -9,7 +9,7 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, ClipboardPaste, FileText, Info, Sparkles, Upload } from 'lucide-react';
 import { useId, useState, type DragEvent, type ReactNode } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { ApiError } from '@/api/client';
 import { PageBar } from '@/components/layout/PageBar';
@@ -17,6 +17,7 @@ import { useShellPanelInset } from '@/components/layout/shellFrame';
 import { Alert } from '@/components/ui/Alert';
 import { AnimatedHeight } from '@/components/ui/AnimatedHeight';
 import { Button } from '@/components/ui/Button';
+import { DatePicker, meetingDateShortcuts } from '@/components/ui/DatePicker';
 import { Field } from '@/components/ui/Field';
 import { Input, Textarea } from '@/components/ui/Input';
 import { cn } from '@/lib/cn';
@@ -264,6 +265,7 @@ function ReviewStep({ draft, onBack }: { draft: Draft; onBack: () => void }) {
 
   const {
     register,
+    control,
     handleSubmit,
     setError,
     formState: { errors, isSubmitting },
@@ -324,13 +326,21 @@ function ReviewStep({ draft, onBack }: { draft: Draft; onBack: () => void }) {
               hint={detectedDate ? 'Found in the transcript' : 'Today, by default'}
               error={errors.meetingDate?.message}
             >
-              {(control) => (
-                <Input
-                  {...control}
-                  {...register('meetingDate')}
-                  type="date"
-                  form={formId}
-                  className={barInput}
+              {(fieldProps) => (
+                <Controller
+                  name="meetingDate"
+                  control={control}
+                  render={({ field }) => (
+                    <DatePicker
+                      {...fieldProps}
+                      buttonRef={field.ref}
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      shortcuts={meetingDateShortcuts()}
+                      tone="bar"
+                    />
+                  )}
                 />
               )}
             </Field>
@@ -411,4 +421,4 @@ function ReviewStep({ draft, onBack }: { draft: Draft; onBack: () => void }) {
 
 // Title and date inputs on the dark top bar (wide screens): translucent, light text, dark picker.
 const barInput =
-  'lg:border-sidebar-line lg:bg-sidebar-hover lg:text-white lg:[color-scheme:dark] lg:placeholder:text-sidebar-muted lg:hover:border-white/50 lg:focus:border-white lg:aria-invalid:border-danger-light';
+  'lg:border-sidebar-line lg:bg-sidebar-hover lg:text-white lg:placeholder:text-sidebar-muted lg:hover:border-white/50 lg:focus:border-white lg:aria-invalid:border-danger-light';

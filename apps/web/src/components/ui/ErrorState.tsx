@@ -17,6 +17,7 @@ export function ErrorState({
   retrying = false,
   showHome = false,
   headingLevel = 2,
+  variant = 'card',
   className,
 }: {
   title?: string;
@@ -26,6 +27,8 @@ export function ErrorState({
   retrying?: boolean;
   showHome?: boolean;
   headingLevel?: 1 | 2;
+  // 'plain': no card behind it, for errors that sit straight on the page frame.
+  variant?: 'card' | 'plain';
   className?: string;
 }) {
   const Heading = headingLevel === 1 ? 'h1' : 'h2';
@@ -33,7 +36,8 @@ export function ErrorState({
     <div
       role="alert"
       className={cn(
-        'mx-auto w-full max-w-md rounded-panel border border-white/70 glass-float px-6 py-10 text-center shadow-raised motion-safe:animate-loader-in sm:px-10',
+        'mx-auto w-full max-w-md px-6 py-10 text-center motion-safe:animate-loader-in sm:px-10',
+        variant === 'card' && 'rounded-panel border border-white/70 glass-float shadow-raised',
         className,
       )}
     >
@@ -69,7 +73,12 @@ export function ErrorState({
           <summary className="cursor-pointer list-none text-center text-sm font-semibold text-muted hover:text-fg [&::-webkit-details-marker]:hidden">
             Technical details
           </summary>
-          <p className="mt-3 rounded-md bg-surface-2 px-3 py-2 font-mono text-sm break-words text-muted">
+          <p
+            className={cn(
+              'mt-3 font-mono text-sm break-words text-muted',
+              variant === 'card' ? 'rounded-md bg-surface-2 px-3 py-2' : 'text-center',
+            )}
+          >
             {details}
           </p>
         </details>

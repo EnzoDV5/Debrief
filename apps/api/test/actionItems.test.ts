@@ -373,6 +373,89 @@ describe('decisions and summary', () => {
   });
 });
 
+describe('linking tasks to decisions', () => {
+  async function decisionIn(meetingId: string, cookie: string, text = 'Use blue') {
+    const res = await send('post', `/api/meetings/${meetingId}/decisions`, cookie, { text });
+    return res.body.decision.id as string;
+  }
+
+  it('links, re-links and unlinks a task, without counting it as an edit', async () => {
+    const { meetingId, ids } = await meetingWithItems(alice, 'Plan', [
+      { text: 'Send files', review: 'Owner “X” isn’t mentioned' },
+    ]);
+    const blue = await decisionIn(meetingId, alice);
+    const created = await send('post', `/api/meetings/${meetingId}/action-items`, alice, {
+      text: 'Order paint',
+      decisionId: blue,
+    });
+    expect(created.status).toBe(201);
+    expect(created.body.actionItem.decisionId).toBe(blue);
+
+    const url = `/api/action-items/${ids[0]}`;
+    const linked = await send('patch', url, alice, { decisionId: blue });
+    // Linking doesn't review or edit the task: what it says hasn't changed.
+    expect(linked.body.actionItem).toMatchObject({
+      decisionId: blue,
+      needsReview: true,
+      editedAt: null,
+    });
+    const unlinked = await send('patch', url, alice, { decisionId: '' });
+    expect(unlinked.body.actionItem.decisionId).toBeNull();
+
+    const meeting = await get(`/api/meetings/${meetingId}`, alice);
+    expect(meeting.body.meeting.actionItems).toMatchObject([
+      { text: 'Send files', decisionId: null },
+      { text: 'Order paint', decisionId: blue },
+    ]);
+  });
+
+  it('keeps the task when its decision is deleted, just unlinked', async () => {
+    const { meetingId } = await meetingWithItems(alice);
+    const blue = await decisionIn(meetingId, alice);
+    await send('post', `/api/meetings/${meetingId}/action-items`, alice, {
+      text: 'Order paint',
+      decisionId: blue,
+    });
+    await send('delete', `/api/decisions/${blue}`, alice);
+
+    const meeting = await get(`/api/meetings/${meetingId}`, alice);
+    expect(meeting.body.meeting.actionItems).toMatchObject([
+      { text: 'Order paint', decisionId: null },
+    ]);
+  });
+
+  it('only links to a decision from the same meeting and user (404 otherwise)', async () => {
+    const { meetingId, ids } = await meetingWithItems(alice, 'Plan', [{ text: 'Send files' }]);
+    const { meetingId: otherMeeting } = await meetingWithItems(alice, 'Other');
+    const otherMeetingsDecision = await decisionIn(otherMeeting, alice);
+    const { meetingId: bobsMeeting } = await meetingWithItems(bob, 'Bob plan');
+    const bobsDecision = await decisionIn(bobsMeeting, bob);
+    const missing = '00000000-0000-4000-8000-000000000000';
+
+    for (const decisionId of [otherMeetingsDecision, bobsDecision, missing]) {
+      const create = await send('post', `/api/meetings/${meetingId}/action-items`, alice, {
+        text: 'X',
+        decisionId,
+      });
+      const patch = await send('patch', `/api/action-items/${ids[0]}`, alice, { decisionId });
+      for (const res of [create, patch]) {
+        expect(res.status).toBe(404);
+        expect(res.body.error.code).toBe('NOT_FOUND');
+      }
+    }
+    // Same answer for someone else's decision as for one that doesn't exist: ids can't be probed.
+    const theirs = await send('patch', `/api/action-items/${ids[0]}`, alice, {
+      decisionId: bobsDecision,
+    });
+    const none = await send('patch', `/api/action-items/${ids[0]}`, alice, { decisionId: missing });
+    expect(theirs.body).toEqual(none.body);
+
+    const bad = await send('patch', `/api/action-items/${ids[0]}`, alice, { decisionId: 'nope' });
+    expect(bad.status).toBe(400);
+    expect(bad.body.error.fields).toEqual({ decisionId: 'Pick a decision from this meeting' });
+  });
+});
+
 describe('isolation: Bob can never touch Alice’s items or decisions', () => {
   it('returns 404 for every write, and changes nothing', async () => {
     const { meetingId, ids } = await meetingWithItems(alice, 'Plan', [{ text: 'Alice task' }]);

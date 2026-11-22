@@ -62,21 +62,28 @@ export const analysisRepository = {
           ),
         );
 
+      // New ids by position, so each action item's decisionIndex becomes a real decision id.
+      const decisionIds: string[] = [];
       if (results.decisions.length > 0) {
-        await tx.insert(decisions).values(
-          results.decisions.map((d, position) => ({
-            ...owned,
-            ...d,
-            position,
-            origin: 'ai' as const,
-          })),
-        );
+        const inserted = await tx
+          .insert(decisions)
+          .values(
+            results.decisions.map((d, position) => ({
+              ...owned,
+              ...d,
+              position,
+              origin: 'ai' as const,
+            })),
+          )
+          .returning({ id: decisions.id, position: decisions.position });
+        for (const row of inserted) decisionIds[row.position] = row.id;
       }
       if (results.actionItems.length > 0) {
         await tx.insert(actionItems).values(
-          results.actionItems.map((item, position) => ({
+          results.actionItems.map(({ decisionIndex, ...item }, position) => ({
             ...owned,
             ...item,
+            decisionId: decisionIndex === null ? null : (decisionIds[decisionIndex] ?? null),
             position,
             origin: 'ai' as const,
           })),

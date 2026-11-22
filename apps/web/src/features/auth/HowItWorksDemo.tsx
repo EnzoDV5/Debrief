@@ -11,13 +11,9 @@ import {
   Upload,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
-import {
-  Initials,
-  NoteCardHeader,
-  cardChip,
-  noteCardClass,
-} from '@/features/actionItems/ActionItemCard';
+import { NoteCardHeader, cardChip, noteCardClass } from '@/features/actionItems/ActionItemCard';
 import { GoogleLogo } from '@/components/ui/GoogleLogo';
+import { Initials } from '@/components/ui/Initials';
 import { cn } from '@/lib/cn';
 
 type Mark = 'decision' | 'action' | 'date';

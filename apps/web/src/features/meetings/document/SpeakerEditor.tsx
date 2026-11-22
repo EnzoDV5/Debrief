@@ -1,9 +1,11 @@
 // Say who spoke one transcript line, for transcripts where the name is missing or wrong.
-// Suggests the names already in the meeting. Enter saves, Escape cancels.
+// Pick one of the people already in the meeting from the dropdown, or type a new name.
+// Enter saves, Escape cancels.
 import type { TranscriptLine } from '@debrief/shared';
 import { useId, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { ApiError } from '@/api/client';
 import { Button } from '@/components/ui/Button';
+import { NameCombobox } from '@/components/ui/NameCombobox';
 import { useUpdateTranscriptLine } from '../hooks';
 
 export function SpeakerEditor({
@@ -43,25 +45,20 @@ export function SpeakerEditor({
         Who said line {line.n}?
       </label>
       <div className="mt-1 flex flex-wrap items-center gap-2">
-        <input
+        <NameCombobox
           id={`${listId}-input`}
-          list={listId}
           autoFocus
-          autoComplete="off"
           placeholder="Name"
           value={name}
+          onChange={setName}
+          names={suggestions}
+          listLabel="People in this meeting"
           maxLength={100}
-          aria-invalid={error ? true : undefined}
+          aria-invalid={Boolean(error)}
           aria-describedby={error ? errorId : undefined}
-          onChange={(event) => setName(event.target.value)}
           onKeyDown={onKeyDown}
-          className="min-h-9 w-56 max-w-full rounded-md border border-line-strong bg-surface px-3 text-base text-fg shadow-card outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 aria-invalid:border-danger"
+          className="w-64 max-w-full"
         />
-        <datalist id={listId}>
-          {suggestions.map((suggestion) => (
-            <option key={suggestion} value={suggestion} />
-          ))}
-        </datalist>
         <Button type="submit" size="sm" loading={update.isPending}>
           Save speaker
         </Button>

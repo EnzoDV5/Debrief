@@ -30,6 +30,7 @@ const item = {
   reviewReason: null,
   sourceLine: null,
   sourceQuote: null,
+  decisionId: null,
   inCalendar: false,
   origin: 'manual',
   position: 0,

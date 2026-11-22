@@ -14,6 +14,8 @@ type FieldProps = {
   hint?: ReactNode;
   error?: string;
   reserveMessage?: boolean;
+  // Adds "(optional)" after the label, so the user knows they can leave it empty.
+  optional?: boolean;
   // 'bar': the field sits in the dark top bar on wide screens, so its text is light there.
   tone?: 'default' | 'bar';
   children: (control: FieldControlProps) => ReactNode;
@@ -24,6 +26,7 @@ export function Field({
   hint,
   error,
   reserveMessage = false,
+  optional = false,
   tone = 'default',
   children,
 }: FieldProps) {
@@ -53,10 +56,13 @@ export function Field({
   return (
     <div className="space-y-1.5">
       <label
+        // An id too, for controls that build their name from it (DatePicker: label + date).
+        id={`${id}-label`}
         htmlFor={id}
         className={cn('block text-sm font-semibold text-fg', bar && 'lg:text-white')}
       >
         {label}
+        {optional && <span className="font-normal text-muted"> (optional)</span>}
       </label>
       {children({ id, 'aria-invalid': Boolean(error), 'aria-describedby': describedBy })}
       {reserveMessage ? <div className="min-h-5.25">{message}</div> : message}

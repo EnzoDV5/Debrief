@@ -13,6 +13,7 @@ import {
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { Badge } from '@/components/ui/Badge';
+import { Initials } from '@/components/ui/Initials';
 import { AddToCalendar } from '@/features/integrations/AddToCalendar';
 import { cn } from '@/lib/cn';
 import { formatCalendarDate, todayDate } from '@/lib/format';
@@ -91,19 +92,6 @@ export function NoteCardHeader({
   );
 }
 
-export function Initials({ name }: { name: string }) {
-  const parts = name.trim().split(/\s+/);
-  const letters = (parts[0]?.[0] ?? '') + (parts.length > 1 ? (parts.at(-1)?.[0] ?? '') : '');
-  return (
-    <span
-      aria-hidden="true"
-      className="grid size-5 place-items-center rounded-pill bg-accent text-[0.625rem] font-bold text-accent-fg"
-    >
-      {letters.toUpperCase()}
-    </span>
-  );
-}
-
 export const cardChip =
   'inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-[0.8125rem] font-medium';
 // An empty slot: dashed outline, fills in on hover.
@@ -135,7 +123,7 @@ export function ActionItemCard({
   const done = item.status === 'done';
   const overdue = isOverdue(item);
 
-  // A missing owner or date is a button that opens the edit dialog, so filling the gap the AI
+  // A missing assignee or date is a button that opens the edit dialog, so filling the gap the AI
   // couldn't (it never guesses) is one click away.
   const dueChip = item.dueDate ? (
     <span className={cn(cardChip, overdue ? 'bg-danger-soft text-danger' : 'bg-surface-2')}>
@@ -158,6 +146,8 @@ export function ActionItemCard({
 
   return (
     <article
+      // Lets a decision's task list jump to this card.
+      id={`action-${item.id}`}
       data-active={active || undefined}
       onMouseEnter={() => onActiveChange?.(true)}
       onMouseLeave={() => onActiveChange?.(false)}
@@ -233,17 +223,18 @@ export function ActionItemCard({
             {item.owner ? (
               <span className={cn(cardChip, 'bg-surface-2 pl-1 text-fg')}>
                 <Initials name={item.owner} />
+                <span className="sr-only">Assigned to </span>
                 {item.owner}
               </span>
             ) : (
               <button
                 type="button"
                 onClick={onEdit}
-                aria-label={`Add an owner to “${item.text}”`}
+                aria-label={`Assign someone to “${item.text}”`}
                 className={cn(cardChip, addChip)}
               >
                 <UserRoundPlus aria-hidden="true" className="size-3.5" />
-                Add owner
+                Assign someone
               </button>
             )}
             {!fixed && dueChip}

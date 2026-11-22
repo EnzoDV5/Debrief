@@ -42,6 +42,7 @@ export function toActionItem(row: ActionItemRow): ActionItem {
     sourceLine: row.sourceLine,
     sourceQuote: row.sourceQuote,
     contextSummary: row.contextSummary,
+    decisionId: row.decisionId,
     inCalendar: row.calendarEventId !== null,
     origin: row.origin,
     position: row.position,

@@ -3,6 +3,8 @@ import type { ActionItem } from '@debrief/shared';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
+import { addDays } from '@/components/ui/DatePicker';
+import { todayDate } from '@/lib/format';
 import { mockApi, renderApp, testUser } from '@/test/renderApp';
 
 const me = { 'GET /api/auth/me': { status: 200, body: { user: testUser } } };
@@ -21,6 +23,7 @@ function item(overrides: Partial<ActionItem> = {}): ActionItem {
     reviewReason: null,
     sourceLine: 2,
     sourceQuote: 'Ann will send the files',
+    decisionId: null,
     inCalendar: false,
     origin: 'ai',
     position: 0,
@@ -136,7 +139,7 @@ describe('action items on the meeting page', () => {
     expect(
       within(dialog).getByText('Saving your changes marks this item as reviewed.'),
     ).toBeInTheDocument();
-    await user.type(within(dialog).getByLabelText('Owner'), 'Ann');
+    await user.type(within(dialog).getByLabelText(/^Assigned to/), 'Ann');
     await user.click(within(dialog).getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => expect(screen.queryByText(/Owner “Zed”/)).not.toBeInTheDocument());
@@ -160,14 +163,70 @@ describe('action items on the meeting page', () => {
     expect(
       await screen.findByRole('button', { name: 'Add a due date to “Send the files”' }),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Add an owner to “Send the files”' }));
+    await user.click(screen.getByRole('button', { name: 'Assign someone to “Send the files”' }));
     const dialog = screen.getByRole('dialog', { name: 'Edit action item' });
-    await user.type(within(dialog).getByLabelText('Owner'), 'Ann');
-    await user.type(within(dialog).getByLabelText('Due date'), '2026-12-04');
+    await user.type(within(dialog).getByLabelText(/^Assigned to/), 'Ann');
+    // The due date comes from our calendar: "Tomorrow" is one of its shortcuts.
+    await user.click(within(dialog).getByRole('button', { name: /^Due date/ }));
+    await user.click(screen.getByRole('button', { name: 'Tomorrow' }));
     await user.click(within(dialog).getByRole('button', { name: 'Save changes' }));
 
-    await waitFor(() => expect(sent).toMatchObject({ owner: 'Ann', dueDate: '2026-12-04' }));
-    expect(screen.queryByRole('button', { name: /Add an owner to/ })).not.toBeInTheDocument();
+    const tomorrow = addDays(todayDate(), 1);
+    await waitFor(() => expect(sent).toMatchObject({ owner: 'Ann', dueDate: tomorrow }));
+    expect(screen.queryByRole('button', { name: /Assign someone to/ })).not.toBeInTheDocument();
+  });
+
+  it('shows the source words, picks someone from the meeting and sets the status', async () => {
+    let sent: unknown;
+    mockApi({
+      ...me,
+      [`GET ${meetingUrl}`]: { status: 200, body: { meeting: meetingWith([item()]) } },
+      [`PATCH ${itemUrl()}`]: (body) => {
+        sent = body;
+        return { status: 200, body: { actionItem: item({ owner: 'Ben', status: 'in_progress' }) } };
+      },
+    });
+    const user = userEvent.setup();
+    renderApp(`/meetings/${MEETING_ID}`);
+
+    await user.click(await screen.findByRole('button', { name: 'Edit “Send the files”' }));
+    const dialog = screen.getByRole('dialog', { name: 'Edit action item' });
+    // The whole transcript line, with who said it.
+    expect(within(dialog).getByRole('figure', { name: /Ann.*Line 2/ })).toHaveTextContent(
+      '“Ann will send the files by Friday 27 November.”',
+    );
+    // The date is spelled out next to the words said in the meeting.
+    expect(within(dialog).getByLabelText(/^Due date/)).toHaveAccessibleDescription(
+      'Friday, 27 November 2026 · said in the meeting as “by Friday 27 November”',
+    );
+
+    // Everyone in the meeting is in the dropdown; the current assignee is marked.
+    const assignee = within(dialog).getByRole('combobox', { name: /^Assigned to/ });
+    await user.click(within(dialog).getByRole('button', { name: 'Show people in this meeting' }));
+    const people = screen.getByRole('listbox', { name: 'People in this meeting' });
+    expect(within(people).getByRole('option', { name: 'Ann' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await user.click(within(people).getByRole('option', { name: 'Ben' }));
+    expect(assignee).toHaveValue('Ben');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+
+    // Typing narrows the list; Enter on a highlighted name picks it.
+    await user.clear(assignee);
+    await user.type(assignee, 'an');
+    expect(screen.getAllByRole('option')).toHaveLength(1);
+    expect(screen.getByRole('option', { name: 'Ann' })).toBeInTheDocument();
+    await user.keyboard('{ArrowDown}{Enter}');
+    expect(assignee).toHaveValue('Ann');
+    await user.click(within(dialog).getByRole('button', { name: 'Show people in this meeting' }));
+    await user.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'Ben' }));
+
+    expect(within(dialog).getByRole('radio', { name: 'To do' })).toBeChecked();
+    await user.click(within(dialog).getByRole('radio', { name: 'In progress' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => expect(sent).toMatchObject({ owner: 'Ben', status: 'in_progress' }));
   });
 
   it('adds an action item by clicking a sentence in the transcript', async () => {
@@ -203,8 +262,8 @@ describe('action items on the meeting page', () => {
     await user.click(within(toolbar).getByRole('button', { name: 'Action item' }));
 
     const dialog = screen.getByRole('dialog', { name: 'Add an action item' });
-    expect(dialog).toHaveTextContent('From line 2 of the transcript');
-    const task = within(dialog).getByLabelText('Task');
+    expect(within(dialog).getByRole('figure', { name: /Line 2/ })).toBeInTheDocument();
+    const task = within(dialog).getByLabelText('What needs to be done');
     expect(task).toHaveValue(said);
     await user.clear(task);
     await user.click(within(dialog).getByRole('button', { name: 'Add item' }));
@@ -221,9 +280,102 @@ describe('action items on the meeting page', () => {
       owner: null,
       dueDate: null,
       status: 'todo',
+      decisionId: null,
       sourceLine: 2,
       sourceQuote: said,
     });
+  });
+
+  it('lists a decision’s tasks on its card, ticks them off there and adds new ones', async () => {
+    const DECISION_ID = '22222222-2222-4222-8222-222222222222';
+    const linked = item({ decisionId: DECISION_ID });
+    const sent: Record<string, unknown> = {};
+    mockApi({
+      ...me,
+      [`GET ${meetingUrl}`]: { status: 200, body: { meeting: meetingWith([linked]) } },
+      [`PATCH ${itemUrl()}`]: (body) => {
+        sent.patch = body;
+        return { status: 200, body: { actionItem: { ...linked, status: 'done' } } };
+      },
+      [`POST ${meetingUrl}/action-items`]: (body) => {
+        sent.create = body;
+        return {
+          status: 201,
+          body: {
+            actionItem: item({
+              id: '55555555-5555-4555-8555-555555555555',
+              text: 'Order blue paint',
+              decisionId: DECISION_ID,
+              origin: 'manual',
+            }),
+          },
+        };
+      },
+    });
+    const user = userEvent.setup();
+    renderApp(`/meetings/${MEETING_ID}`);
+
+    const tasks = await screen.findByRole('region', { name: 'Tasks for “Use blue”' });
+    expect(tasks).toHaveTextContent('0/1 done');
+    expect(within(tasks).getByRole('button', { name: /Send the files/ })).toBeInTheDocument();
+
+    await user.click(
+      within(tasks).getByRole('checkbox', { name: 'Mark “Send the files” as done' }),
+    );
+    expect(sent.patch).toEqual({ status: 'done' });
+    await waitFor(() => expect(tasks).toHaveTextContent('1/1 done'));
+
+    await user.click(within(tasks).getByRole('button', { name: 'Add a task for “Use blue”' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add an action item' });
+    expect(dialog).toHaveTextContent('Add a task that puts this decision into action.');
+    expect(within(dialog).getByRole('button', { name: 'For decision, Use blue' })).toBeVisible();
+    await user.type(within(dialog).getByLabelText('What needs to be done'), 'Order blue paint');
+    await user.click(within(dialog).getByRole('button', { name: 'Add item' }));
+
+    await waitFor(() =>
+      expect(sent.create).toEqual({
+        text: 'Order blue paint',
+        owner: null,
+        dueDate: null,
+        status: 'todo',
+        decisionId: DECISION_ID,
+        // It sits beside the decision's line in the transcript.
+        sourceLine: 1,
+        sourceQuote: null,
+      }),
+    );
+    expect(await within(tasks).findByRole('button', { name: /Order blue paint/ })).toBeVisible();
+  });
+
+  it('says when nobody is acting on a decision, and links a task from its edit form', async () => {
+    let sent: unknown;
+    mockApi({
+      ...me,
+      [`GET ${meetingUrl}`]: { status: 200, body: { meeting: meetingWith([item()]) } },
+      [`PATCH ${itemUrl()}`]: (body) => {
+        sent = body;
+        return {
+          status: 200,
+          body: { actionItem: item({ decisionId: '22222222-2222-4222-8222-222222222222' }) },
+        };
+      },
+    });
+    const user = userEvent.setup();
+    renderApp(`/meetings/${MEETING_ID}`);
+
+    const tasks = await screen.findByRole('region', { name: 'Tasks for “Use blue”' });
+    expect(tasks).toHaveTextContent('No tasks yet');
+
+    await user.click(screen.getByRole('button', { name: 'Edit “Send the files”' }));
+    const dialog = screen.getByRole('dialog', { name: 'Edit action item' });
+    await user.click(within(dialog).getByRole('button', { name: 'For decision, No decision' }));
+    await user.click(screen.getByRole('option', { name: 'Use blue' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() =>
+      expect(sent).toMatchObject({ decisionId: '22222222-2222-4222-8222-222222222222' }),
+    );
+    expect(await within(tasks).findByRole('button', { name: /Send the files/ })).toBeVisible();
   });
 
   it('edits the summary and adds a decision', async () => {
@@ -356,7 +508,7 @@ describe('Actions page', () => {
     expect(urls[0]).toMatch(/status=open/);
 
     await user.click(screen.getByRole('button', { name: 'Done' }));
-    await user.click(screen.getByRole('button', { name: /^Owner/ }));
+    await user.click(screen.getByRole('button', { name: /^Assigned to/ }));
     await user.click(screen.getByRole('option', { name: 'Ben' }));
     await user.click(screen.getByRole('button', { name: 'Overdue only' }));
 

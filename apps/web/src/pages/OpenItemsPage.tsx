@@ -25,7 +25,8 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState, LOAD_ERROR_MESSAGE } from '@/components/ui/ErrorState';
 import { Select, type SelectOption } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { ActionItemCard, Initials, isOverdue } from '@/features/actionItems/ActionItemCard';
+import { ActionItemCard, isOverdue } from '@/features/actionItems/ActionItemCard';
+import { Initials } from '@/components/ui/Initials';
 import { ActionItemDialog } from '@/features/actionItems/ActionItemDialog';
 import { DeleteActionItemDialog } from '@/features/actionItems/DeleteActionItemDialog';
 import { useActionItems, type ActionItemFilters } from '@/features/actionItems/hooks';
@@ -228,6 +229,7 @@ export function OpenItemsPage() {
           meetingId={shownEditing.meetingId}
           item={shownEditing}
           ownerSuggestions={data?.owners ?? []}
+          suggestionsLabel="People from your meetings"
         />
       )}
       <DeleteActionItemDialog item={deleting} onClose={() => setDeleting(null)} />
@@ -275,7 +277,7 @@ function Filters({
 }) {
   const ownerOptions: SelectOption<string>[] = [
     { value: '', label: 'Everyone', icon: <Users /> },
-    { value: UNASSIGNED_OWNER, label: 'No owner', icon: <UserX /> },
+    { value: UNASSIGNED_OWNER, label: 'Unassigned', icon: <UserX /> },
     ...owners.map((owner) => ({ value: owner, label: owner, icon: <Initials name={owner} /> })),
   ];
 
@@ -306,7 +308,7 @@ function Filters({
 
       <div className="flex flex-wrap items-center gap-2">
         <Select
-          label="Owner"
+          label="Assigned to"
           showLabel
           tone="bar"
           value={filters.owner ?? ''}

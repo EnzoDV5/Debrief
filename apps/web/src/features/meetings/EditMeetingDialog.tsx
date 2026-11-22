@@ -1,9 +1,10 @@
 // Edit a meeting's title and date.
 import { meetingDetailsSchema, type Meeting } from '@debrief/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
+import { DatePicker, meetingDateShortcuts } from '@/components/ui/DatePicker';
 import { Dialog } from '@/components/ui/Dialog';
 import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
@@ -22,6 +23,7 @@ export function EditMeetingDialog({
   const update = useUpdateMeeting(meeting.id);
   const {
     register,
+    control,
     handleSubmit,
     setError,
     reset,
@@ -53,7 +55,22 @@ export function EditMeetingDialog({
           {(control) => <Input {...control} {...register('title')} />}
         </Field>
         <Field label="Meeting date" error={errors.meetingDate?.message}>
-          {(control) => <Input {...control} {...register('meetingDate')} type="date" />}
+          {(fieldProps) => (
+            <Controller
+              name="meetingDate"
+              control={control}
+              render={({ field }) => (
+                <DatePicker
+                  {...fieldProps}
+                  buttonRef={field.ref}
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  shortcuts={meetingDateShortcuts()}
+                />
+              )}
+            />
+          )}
         </Field>
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button variant="secondary" onClick={close} disabled={isSubmitting}>

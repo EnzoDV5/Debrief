@@ -27,13 +27,18 @@ export function MeetingDetailPage() {
 
   if (error) {
     if (error instanceof ApiError && error.status === 404) return <MeetingNotFound />;
+    // Offline or a server hiccup: the same error as the full-screen one, without a card, in the
+    // middle of the frame (its height minus the frame's margins and the page's padding).
     return (
-      <ErrorState
-        title="Couldn't load this meeting"
-        message={LOAD_ERROR_MESSAGE}
-        details={error.message}
-        onRetry={() => void refetch()}
-      />
+      <div className="grid min-h-[60dvh] place-items-center lg:min-h-[calc(100dvh-7.5rem)]">
+        <ErrorState
+          variant="plain"
+          title="Couldn't load this meeting"
+          message={LOAD_ERROR_MESSAGE}
+          details={error.message}
+          onRetry={() => void refetch()}
+        />
+      </div>
     );
   }
 

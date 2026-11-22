@@ -5,6 +5,7 @@ import { analysisRepository } from './analysis.repository';
 import { AiError, FATAL, type AiClient, type AiErrorKind } from './openRouterClient';
 import { checkActionItems, checkDecisions } from './postChecks';
 import {
+  formatDecisions,
   formatTranscript,
   parseModelJson,
   PROMPT_VERSION,
@@ -127,12 +128,23 @@ export async function analyzeMeeting(job: AnalysisJob, deps: AnalysisDeps): Prom
   try {
     const summary = await runStep('summary', steps.summary, ctx);
     const decisions = await runStep('decisions', steps.decisions, ctx);
-    const items = await runStep('action_items', steps.action_items, ctx);
+    const checkedDecisions = checkDecisions(decisions, meeting.transcriptLines);
+    // The action-items call also sees this meeting's checked decisions (numbered), so it can say
+    // which decision each task carries out. Still only this one meeting's data.
+    const items = await runStep('action_items', steps.action_items, {
+      ...ctx,
+      transcript: `${ctx.transcript}\n\n${formatDecisions(checkedDecisions)}`,
+    });
 
-    const checkedItems = checkActionItems(items, meeting.transcriptLines, meeting.meetingDate);
+    const checkedItems = checkActionItems(
+      items,
+      meeting.transcriptLines,
+      meeting.meetingDate,
+      checkedDecisions.length,
+    );
     await analysisRepository.saveResults(job.userId, job.meetingId, {
       summary: summary.summary,
-      decisions: checkDecisions(decisions, meeting.transcriptLines),
+      decisions: checkedDecisions,
       actionItems: checkedItems,
     });
     deps.log.info(
