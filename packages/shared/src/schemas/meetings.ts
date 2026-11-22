@@ -7,6 +7,8 @@ export const transcriptLineSchema = z.object({
   speaker: z.string().optional(),
   text: z.string(),
   edited: z.boolean().optional(),
+  // True when the user said who spoke this line (not from the original transcript).
+  speakerEdited: z.boolean().optional(),
 });
 export type TranscriptLine = z.infer<typeof transcriptLineSchema>;
 
@@ -28,6 +30,16 @@ export function utf8ByteLength(text: string): number {
 
 export const ANALYSIS_STATUSES = ['pending', 'processing', 'done', 'failed'] as const;
 export type AnalysisStatus = (typeof ANALYSIS_STATUSES)[number];
+
+// Queued or running. While true, the meeting can't be archived (web and api both check this).
+export const ANALYSING_STATUSES = ['pending', 'processing'] as const satisfies AnalysisStatus[];
+export const isAnalysing = (status: AnalysisStatus) =>
+  (ANALYSING_STATUSES as readonly AnalysisStatus[]).includes(status);
+export const ARCHIVE_WHILE_ANALYSING_MESSAGE =
+  'You can archive this meeting once the analysis finishes';
+// Renaming edits the title and the meeting date, and the date is what "next Friday" is resolved against.
+export const RENAME_WHILE_ANALYSING_MESSAGE =
+  'You can rename this meeting once the analysis finishes';
 
 const titleSchema = z
   .string()
@@ -85,9 +97,23 @@ export type ReorderMeetingsInput = z.infer<typeof reorderMeetingsSchema>;
 
 // Fixing a line the transcription got wrong. The original upload is never changed.
 export const lineNumberSchema = z.coerce.number().int().positive();
-export const updateTranscriptLineSchema = z.object({
-  text: z.string().trim().min(1, 'A line can’t be empty').max(2000, 'Use 2000 characters or fewer'),
-});
+// Fix a line's words, say who spoke it, or both. An empty speaker removes it.
+export const updateTranscriptLineSchema = z
+  .object({
+    text: z
+      .string()
+      .trim()
+      .min(1, 'A line can’t be empty')
+      .max(2000, 'Use 2000 characters or fewer'),
+    speaker: z
+      .string()
+      .trim()
+      .max(100, 'Use 100 characters or fewer')
+      .nullable()
+      .transform((value) => value || null),
+  })
+  .partial()
+  .refine((patch) => Object.keys(patch).length > 0, 'Nothing to update');
 export type UpdateTranscriptLineInput = z.infer<typeof updateTranscriptLineSchema>;
 
 export const meetingListItemSchema = z.object({

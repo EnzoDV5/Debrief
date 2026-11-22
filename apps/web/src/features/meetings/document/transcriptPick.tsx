@@ -1,5 +1,5 @@
 // Click or select text in the transcript to turn it into an action item or decision.
-import { Gavel, ListChecks, Pencil } from 'lucide-react';
+import { Gavel, ListChecks, Pencil, UserRound } from 'lucide-react';
 import { useEffect, useRef, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -123,11 +123,15 @@ export function PickToolbar({
   state,
   onChoose,
   onEdit,
+  onSpeaker,
+  hasSpeaker = false,
   onClose,
 }: {
   state: PickToolbarState;
   onChoose: (kind: PickKind) => void;
   onEdit?: () => void;
+  onSpeaker?: () => void;
+  hasSpeaker?: boolean;
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -170,19 +174,28 @@ export function PickToolbar({
         <Gavel aria-hidden="true" className="size-4 text-success" />
         Decision
       </button>
+      {(onEdit || onSpeaker) && <span aria-hidden="true" className="my-1.5 w-px bg-line" />}
+      {onSpeaker && (
+        <button
+          type="button"
+          className={button}
+          onPointerDown={(event) => event.preventDefault()}
+          onClick={onSpeaker}
+        >
+          <UserRound aria-hidden="true" className="size-4 text-muted" />
+          {hasSpeaker ? 'Change speaker' : 'Who said this?'}
+        </button>
+      )}
       {onEdit && (
-        <>
-          <span aria-hidden="true" className="my-1.5 w-px bg-line" />
-          <button
-            type="button"
-            className={button}
-            onPointerDown={(event) => event.preventDefault()}
-            onClick={onEdit}
-          >
-            <Pencil aria-hidden="true" className="size-4 text-muted" />
-            Edit line
-          </button>
-        </>
+        <button
+          type="button"
+          className={button}
+          onPointerDown={(event) => event.preventDefault()}
+          onClick={onEdit}
+        >
+          <Pencil aria-hidden="true" className="size-4 text-muted" />
+          Edit line
+        </button>
       )}
     </div>,
     document.body,

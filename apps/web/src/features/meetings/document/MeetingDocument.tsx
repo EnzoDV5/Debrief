@@ -1,6 +1,6 @@
 // The meeting page: transcript on the left, notes lined up next to the lines they came from.
 import type { ActionItem, Decision, Meeting, TranscriptLine } from '@debrief/shared';
-import { Pencil, Plus, TextSelect } from 'lucide-react';
+import { Pencil, Plus, TextSelect, UserRound } from 'lucide-react';
 import {
   useCallback,
   useEffect,
@@ -25,6 +25,7 @@ import { findPhrase, segment, type Mark } from './highlight';
 import { MeetingActionCard } from './MeetingActionCard';
 import { NewDecisionDialog } from './NewDecisionDialog';
 import { NoNotesFound } from './NoNotesFound';
+import { SpeakerEditor } from './SpeakerEditor';
 import { TranscriptLineEditor } from './TranscriptLineEditor';
 import { TranscriptMap, type MapMarker } from './TranscriptMap';
 import {
@@ -124,7 +125,10 @@ export function MeetingDocument({
   }, []);
   const [toolbar, setToolbar] = useState<PickToolbarState | null>(null);
   const [creating, setCreating] = useState<{ kind: PickKind; pick: TranscriptPick } | null>(null);
-  const [editingLine, setEditingLine] = useState<number | null>(null);
+  // One line at a time can be open for fixing its words or for saying who spoke it.
+  const [editingLine, setEditingLine] = useState<{ n: number; part: 'text' | 'speaker' } | null>(
+    null,
+  );
   // Keeps the dialog on screen while it animates out after closing.
   const shownCreating = useLingering(creating);
   // Shortly after the page opens, any card that appears is "new" and gets the grow-in entrance.
@@ -342,8 +346,17 @@ export function MeetingDocument({
                         {line.n}
                       </a>
                       <div className="min-w-0">
-                        {newSpeaker && <p className="mb-1 text-base font-bold">{line.speaker}</p>}
-                        {editingLine === line.n ? (
+                        {editingLine?.n === line.n && editingLine.part === 'speaker' ? (
+                          <SpeakerEditor
+                            meetingId={meeting.id}
+                            line={line}
+                            suggestions={ownerSuggestions}
+                            onDone={() => setEditingLine(null)}
+                          />
+                        ) : (
+                          newSpeaker && <p className="mb-1 text-base font-bold">{line.speaker}</p>
+                        )}
+                        {editingLine?.n === line.n && editingLine.part === 'text' ? (
                           <TranscriptLineEditor
                             meetingId={meeting.id}
                             line={line}
@@ -376,10 +389,22 @@ export function MeetingDocument({
                                 onPick={setToolbar}
                               />
                             </p>
-                            {line.edited && (
-                              <p className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-muted">
-                                <Pencil aria-hidden="true" className="size-3" />
-                                Edited
+                            {(line.edited || line.speakerEdited) && (
+                              <p className="mt-1 flex flex-wrap gap-x-3 text-xs font-semibold text-muted">
+                                {line.edited && (
+                                  <span className="inline-flex items-center gap-1">
+                                    <Pencil aria-hidden="true" className="size-3" />
+                                    Edited
+                                  </span>
+                                )}
+                                {line.speakerEdited && (
+                                  <span className="inline-flex items-center gap-1">
+                                    <UserRound aria-hidden="true" className="size-3" />
+                                    {line.speaker
+                                      ? `Speaker set by you: ${line.speaker}`
+                                      : 'Speaker removed by you'}
+                                  </span>
+                                )}
                               </p>
                             )}
                           </>
@@ -468,10 +493,18 @@ export function MeetingDocument({
           state={toolbar}
           onChoose={choose}
           onEdit={() => {
-            setEditingLine(toolbar.pick.line);
+            setEditingLine({ n: toolbar.pick.line, part: 'text' });
             setToolbar(null);
             window.getSelection()?.removeAllRanges();
           }}
+          onSpeaker={() => {
+            setEditingLine({ n: toolbar.pick.line, part: 'speaker' });
+            setToolbar(null);
+            window.getSelection()?.removeAllRanges();
+          }}
+          hasSpeaker={Boolean(
+            meeting.transcriptLines.find((line) => line.n === toolbar.pick.line)?.speaker,
+          )}
           onClose={closeToolbar}
         />
       )}

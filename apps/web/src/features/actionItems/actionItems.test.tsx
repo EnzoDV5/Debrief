@@ -143,6 +143,33 @@ describe('action items on the meeting page', () => {
     expect(sent).toMatchObject({ text: 'Send the files', owner: 'Ann', dueDate: '2026-11-27' });
   });
 
+  it('offers to add a missing owner and due date by hand', async () => {
+    const gaps = item({ owner: null, dueDate: null, dueDateText: null });
+    let sent: unknown;
+    mockApi({
+      ...me,
+      [`GET ${meetingUrl}`]: { status: 200, body: { meeting: meetingWith([gaps]) } },
+      [`PATCH ${itemUrl()}`]: (body) => {
+        sent = body;
+        return { status: 200, body: { actionItem: item({ owner: 'Ann', dueDate: '2026-12-04' }) } };
+      },
+    });
+    const user = userEvent.setup();
+    renderApp(`/meetings/${MEETING_ID}`);
+
+    expect(
+      await screen.findByRole('button', { name: 'Add a due date to “Send the files”' }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Add an owner to “Send the files”' }));
+    const dialog = screen.getByRole('dialog', { name: 'Edit action item' });
+    await user.type(within(dialog).getByLabelText('Owner'), 'Ann');
+    await user.type(within(dialog).getByLabelText('Due date'), '2026-12-04');
+    await user.click(within(dialog).getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => expect(sent).toMatchObject({ owner: 'Ann', dueDate: '2026-12-04' }));
+    expect(screen.queryByRole('button', { name: /Add an owner to/ })).not.toBeInTheDocument();
+  });
+
   it('adds an action item by clicking a sentence in the transcript', async () => {
     const said = 'Ann will send the files by Friday 27 November.';
     let sent: unknown;

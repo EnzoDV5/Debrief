@@ -1,6 +1,6 @@
 // All the database work for meetings. Filtering by userId is what keeps users out of each other's data.
-import type { TranscriptLine } from '@debrief/shared';
-import { and, asc, desc, eq, ilike, isNotNull, isNull, or, sql } from 'drizzle-orm';
+import { ANALYSING_STATUSES, type TranscriptLine } from '@debrief/shared';
+import { and, asc, desc, eq, ilike, isNotNull, isNull, notInArray, or, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { actionItems, decisions, meetings, projects, type MeetingRow } from '../../db/schema';
 
@@ -150,12 +150,18 @@ export const meetingsRepository = {
   },
 
   // Clears the sidebar's Meetings list: archives every unpinned, unarchived meeting of this user.
+  // Meetings still being analysed are skipped (they stay in the list until they finish).
   async archiveAllForUser(userId: string): Promise<number> {
     const archived = await db
       .update(meetings)
       .set({ archivedAt: new Date() })
       .where(
-        and(eq(meetings.userId, userId), isNull(meetings.archivedAt), isNull(meetings.pinnedAt)),
+        and(
+          eq(meetings.userId, userId),
+          isNull(meetings.archivedAt),
+          isNull(meetings.pinnedAt),
+          notInArray(meetings.analysisStatus, [...ANALYSING_STATUSES]),
+        ),
       )
       .returning({ id: meetings.id });
     return archived.length;

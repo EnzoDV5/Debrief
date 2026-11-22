@@ -2,12 +2,13 @@
 import type { ActionItem, ActionItemStatus } from '@debrief/shared';
 import {
   CalendarDays,
+  CalendarPlus,
   Check,
   ListChecks,
   Pencil,
   Trash2,
   TriangleAlert,
-  UserRound,
+  UserRoundPlus,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
@@ -105,6 +106,9 @@ export function Initials({ name }: { name: string }) {
 
 export const cardChip =
   'inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-[0.8125rem] font-medium';
+// An empty slot: dashed outline, fills in on hover.
+const addChip =
+  'cursor-pointer border border-dashed border-line-strong text-muted transition-colors hover:border-accent hover:bg-accent-soft hover:text-accent';
 
 export function ActionItemCard({
   item,
@@ -131,19 +135,25 @@ export function ActionItemCard({
   const done = item.status === 'done';
   const overdue = isOverdue(item);
 
-  const dueChip = (
-    <span
-      className={cn(
-        cardChip,
-        overdue ? 'bg-danger-soft text-danger' : 'bg-surface-2',
-        !item.dueDate && 'text-muted',
-      )}
-    >
+  // A missing owner or date is a button that opens the edit dialog, so filling the gap the AI
+  // couldn't (it never guesses) is one click away.
+  const dueChip = item.dueDate ? (
+    <span className={cn(cardChip, overdue ? 'bg-danger-soft text-danger' : 'bg-surface-2')}>
       <CalendarDays aria-hidden="true" className="size-3.5" />
       {/* In the carousel the chip replaces the separate Overdue badge, so it says so itself. */}
       {fixed && overdue && 'Overdue · '}
-      {item.dueDate ? formatCalendarDate(item.dueDate) : 'No due date'}
+      {formatCalendarDate(item.dueDate)}
     </span>
+  ) : (
+    <button
+      type="button"
+      onClick={onEdit}
+      aria-label={`Add a due date to “${item.text}”`}
+      className={cn(cardChip, addChip)}
+    >
+      <CalendarPlus aria-hidden="true" className="size-3.5" />
+      Add due date
+    </button>
   );
 
   return (
@@ -220,16 +230,22 @@ export function ActionItemCard({
           )}
 
           <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-            <span
-              className={cn(cardChip, 'bg-surface-2 pl-1', item.owner ? 'text-fg' : 'text-muted')}
-            >
-              {item.owner ? (
+            {item.owner ? (
+              <span className={cn(cardChip, 'bg-surface-2 pl-1 text-fg')}>
                 <Initials name={item.owner} />
-              ) : (
-                <UserRound aria-hidden="true" className="ml-1 size-3.5" />
-              )}
-              {item.owner ?? 'No owner'}
-            </span>
+                {item.owner}
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={onEdit}
+                aria-label={`Add an owner to “${item.text}”`}
+                className={cn(cardChip, addChip)}
+              >
+                <UserRoundPlus aria-hidden="true" className="size-3.5" />
+                Add owner
+              </button>
+            )}
             {!fixed && dueChip}
           </div>
           {item.dueDateText && (

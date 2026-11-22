@@ -101,11 +101,12 @@ export function usePrefetchMeeting() {
 export function useUpdateTranscriptLine(meetingId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ n, text }: { n: number; text: string }) =>
+    // Send the words, the speaker (null removes it), or both.
+    mutationFn: async ({ n, ...patch }: { n: number; text?: string; speaker?: string | null }) =>
       (
         await request(`/meetings/${meetingId}/lines/${n}`, {
           method: 'PATCH',
-          body: { text },
+          body: patch,
           schema: meetingResponseSchema,
         })
       ).meeting,

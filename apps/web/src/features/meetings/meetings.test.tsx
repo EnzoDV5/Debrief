@@ -1,5 +1,9 @@
 // Meetings in the UI: new meeting, list, detail and analysis states.
-import type { Meeting } from '@debrief/shared';
+import {
+  ARCHIVE_WHILE_ANALYSING_MESSAGE,
+  RENAME_WHILE_ANALYSING_MESSAGE,
+  type Meeting,
+} from '@debrief/shared';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
@@ -558,12 +562,19 @@ describe('search and archive in the sidebar', () => {
       title: 'Board prep',
       pinnedAt: '2026-11-24T09:00:00.000Z',
     };
+    const done = { ...listItem, analysisStatus: 'done' as const };
+    const running = {
+      ...listItem,
+      id: 'a1f2c3d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d',
+      title: 'Still running',
+      analysisStatus: 'processing' as const,
+    };
     let archived = false;
     mockApi({
       ...me,
       'GET /api/meetings': () => ({
         status: 200,
-        body: { meetings: archived ? [pinned] : [pinned, listItem] },
+        body: { meetings: archived ? [pinned, running] : [pinned, done, running] },
       }),
       'POST /api/meetings/archive-all': () => {
         archived = true;
@@ -574,9 +585,10 @@ describe('search and archive in the sidebar', () => {
     renderApp('/account');
 
     await user.click(await screen.findByRole('button', { name: 'Clear list' }));
-    expect(screen.getByText(/Move 1 meeting to Archived?/)).toHaveTextContent(
-      '1 pinned meeting will stay.',
-    );
+    // The meeting still being analysed isn't counted: the server skips it too.
+    const question = screen.getByText(/Move 1 meeting to Archived?/);
+    expect(question).toHaveTextContent('1 pinned meeting will stay.');
+    expect(question).toHaveTextContent('1 meeting still being analysed will stay.');
     expect(archived).toBe(false);
 
     await user.click(screen.getByRole('button', { name: 'Yes, archive 1 meeting' }));
@@ -1042,6 +1054,47 @@ describe('meeting detail', () => {
     expect(screen.queryByRole('textbox', { name: 'Edit line 2' })).not.toBeInTheDocument();
   });
 
+  it('lets you say who spoke a line that has no speaker', async () => {
+    const withText = {
+      ...meeting,
+      transcriptLines: [
+        { n: 1, speaker: 'Ann', text: 'Hello all.' },
+        { n: 2, text: 'I will send the deck on Friday.' },
+      ],
+    };
+    let sent: unknown;
+    mockApi({
+      ...me,
+      [`GET ${detailUrl}`]: { status: 200, body: { meeting: withText } },
+      [`PATCH ${detailUrl}/lines/2`]: (body) => {
+        sent = body;
+        const fixed = { ...withText.transcriptLines[1], speaker: 'Ben', speakerEdited: true };
+        return {
+          status: 200,
+          body: { meeting: { ...withText, transcriptLines: [withText.transcriptLines[0], fixed] } },
+        };
+      },
+    });
+    const user = userEvent.setup();
+    renderApp(`/meetings/${meeting.id}`);
+
+    const line = (await screen.findByText('I will send the deck on Friday.')).closest(
+      '[data-line-text]',
+    );
+    (line as HTMLElement).focus();
+    await user.keyboard('{Enter}');
+    const toolbar = screen.getByRole('toolbar', { name: 'Create from the transcript' });
+    await user.click(within(toolbar).getByRole('button', { name: 'Who said this?' }));
+
+    const name = screen.getByRole('combobox', { name: 'Who said line 2?' });
+    await user.type(name, 'Ben{Enter}');
+
+    await waitFor(() => expect(sent).toEqual({ speaker: 'Ben' }));
+    expect(await screen.findByText('Speaker set by you: Ben')).toBeInTheDocument();
+    expect(screen.getByText('Ben', { selector: 'p' })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Who said line 2?' })).not.toBeInTheDocument();
+  });
+
   it('makes an action item from a line with the keyboard (Enter on the line)', async () => {
     const withText = {
       ...meeting,
@@ -1112,7 +1165,7 @@ describe('meeting detail', () => {
 
   it('adds to a project, archives and offers delete from the meeting bar', async () => {
     const projectId = '5d1c6b8e-2f3a-4c5d-8e9f-0a1b2c3d4e5f';
-    let current: Meeting = { ...meeting };
+    let current: Meeting = { ...meeting, analysisStatus: 'done' };
     const patches: unknown[] = [];
     mockApi({
       ...me,
@@ -1156,6 +1209,37 @@ describe('meeting detail', () => {
 
     await user.click(screen.getByRole('button', { name: 'Delete meeting' }));
     expect(screen.getByRole('dialog')).toHaveTextContent(meeting.title);
+  });
+
+  it('blocks archiving and renaming while the analysis runs', async () => {
+    const running = { ...meeting, analysisStatus: 'processing' as const };
+    const patches: unknown[] = [];
+    mockApi({
+      ...me,
+      'GET /api/meetings': { status: 200, body: { meetings: [{ ...listItem, ...running }] } },
+      [`GET ${detailUrl}`]: { status: 200, body: { meeting: running } },
+      [`PATCH ${detailUrl}`]: (body) => {
+        patches.push(body);
+        return { status: 200, body: { meeting: running } };
+      },
+    });
+    const user = userEvent.setup();
+    renderApp(`/meetings/${meeting.id}`);
+
+    const barButton = await screen.findByRole('button', { name: 'Archive' });
+    expect(barButton).toBeDisabled();
+    expect(barButton).toHaveAttribute('title', ARCHIVE_WHILE_ANALYSING_MESSAGE);
+
+    const sidebar = await screen.findByRole('complementary');
+    await user.click(
+      await within(sidebar).findByRole('button', { name: `More options for ${meeting.title}` }),
+    );
+    const menu = screen.getByRole('group', { name: `Options for ${meeting.title}` });
+    expect(within(menu).getByRole('button', { name: 'Archive' })).toBeDisabled();
+    const rename = within(menu).getByRole('button', { name: 'Rename' });
+    expect(rename).toBeDisabled();
+    expect(rename).toHaveAttribute('title', RENAME_WHILE_ANALYSING_MESSAGE);
+    expect(patches).toEqual([]);
   });
 
   it('confirms a re-analysis and keeps existing results visible while it runs', async () => {
@@ -1254,13 +1338,17 @@ describe('meeting detail', () => {
   });
 
   it('renames a meeting', async () => {
+    const done = { ...meeting, analysisStatus: 'done' as const };
     mockApi({
       ...me,
-      'GET /api/meetings': { status: 200, body: { meetings: [listItem] } },
-      [`GET ${detailUrl}`]: { status: 200, body: { meeting } },
+      'GET /api/meetings': {
+        status: 200,
+        body: { meetings: [{ ...listItem, analysisStatus: 'done' }] },
+      },
+      [`GET ${detailUrl}`]: { status: 200, body: { meeting: done } },
       [`PATCH ${detailUrl}`]: (body) => ({
         status: 200,
-        body: { meeting: { ...meeting, ...(body as object) } },
+        body: { meeting: { ...done, ...(body as object) } },
       }),
     });
     const user = userEvent.setup();

@@ -3,7 +3,7 @@ import type { TranscriptLine } from '@debrief/shared';
 import { z } from 'zod';
 
 // Saved on every analysis run, so a result can always be traced back to the prompt that made it.
-export const PROMPT_VERSION = '2026-11-20.1';
+export const PROMPT_VERSION = '2026-11-22.1';
 
 // The transcript goes inside tags and is treated as data, so instructions hidden in it are ignored.
 export function formatTranscript(lines: TranscriptLine[]): string {
@@ -159,10 +159,18 @@ Task: list the action items: tasks someone committed to or was asked to do.
   task. Include useful context beyond the task title when the source line provides it. Paraphrase;
   never paste the transcript or repeat the task title. Use only the cited line and its immediate
   conversational context. Keep it under 30 words.
-- owner: the person's name exactly as it appears in the transcript. Use null when nobody is
-  named ("someone", "we", "the team") or you're not sure. Never guess an owner.
+- owner: the person's name exactly as it appears in the transcript (a speaker label counts).
+  Work it out from who is speaking and who is spoken to:
+  - The speaker commits themselves ("I'll send the deck", "Leave it with me"): the owner is that
+    line's speaker label, e.g. "Ben: I'll send it" gives "Ben".
+  - Someone is asked by name ("Sara, can you check the numbers?"): the owner is "Sara".
+  - A name said earlier is clearly referred to ("Ben, about the deck..." then "I'll do it" from
+    Ben): use that name.
+  Use null when the line has no speaker label and nobody is named, when it's a group ("someone",
+  "we", "the team"), or when you're not sure. Never guess an owner; the user can add one.
 - due_date_text: the exact words used for the deadline (e.g. "by Friday 27 November",
-  "next week"). Use null if no deadline was said. Never invent or convert a date.
+  "next week"). Use null if no deadline was said, even when the task sounds urgent. Never invent
+  or convert a date; the user can add one.
 If there are no action items, return an empty list. Never pad the list.`,
   },
 } as const;

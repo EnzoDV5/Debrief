@@ -1,5 +1,5 @@
 // The buttons in the meeting bar: move to a project, archive and delete.
-import type { Meeting } from '@debrief/shared';
+import { ARCHIVE_WHILE_ANALYSING_MESSAGE, isAnalysing, type Meeting } from '@debrief/shared';
 import { Archive, ArchiveRestore, Check, ChevronDown, Folder, Trash2 } from 'lucide-react';
 import { useRef, useState, type ComponentProps } from 'react';
 import { Link, useNavigate } from 'react-router';
@@ -15,7 +15,9 @@ type Tone = 'default' | 'highlight' | 'danger';
 const tones: Record<Tone, string> = {
   default:
     'border-line-strong bg-[linear-gradient(to_top,var(--color-fg)_50%,var(--color-surface)_50%)] text-fg shadow-card hover:border-fg hover:text-white hover:shadow-none ' +
-    'lg:border-sidebar-line lg:bg-[linear-gradient(to_top,#fff_50%,var(--color-sidebar-hover)_50%)] lg:text-sidebar-fg lg:shadow-none lg:hover:border-white lg:hover:text-fg',
+    'lg:border-sidebar-line lg:bg-[linear-gradient(to_top,#fff_50%,var(--color-sidebar-hover)_50%)] lg:text-sidebar-fg lg:shadow-none lg:hover:border-white lg:hover:text-fg ' +
+    // A disabled button keeps its resting colours on hover (the wipe doesn't run, so the text would vanish).
+    'disabled:hover:border-line-strong disabled:hover:text-fg lg:disabled:hover:border-sidebar-line lg:disabled:hover:text-sidebar-fg',
   highlight:
     'border-spark bg-[linear-gradient(to_top,#fff_50%,var(--color-spark)_50%)] text-fg shadow-card hover:border-white hover:shadow-none lg:shadow-none',
   danger:
@@ -156,11 +158,13 @@ function ProjectOption({
 export function ArchiveButton({ meeting }: { meeting: Meeting }) {
   const update = useUpdateMeeting(meeting.id);
   const archived = meeting.archivedAt !== null;
+  // Archiving mid-analysis would hide the meeting while the result is still coming in.
+  const blocked = !archived && isAnalysing(meeting.analysisStatus);
   return (
     <BarButton
-      disabled={update.isPending}
+      disabled={update.isPending || blocked}
       onClick={() => update.mutate({ archived: !archived })}
-      title={update.error?.message}
+      title={blocked ? ARCHIVE_WHILE_ANALYSING_MESSAGE : update.error?.message}
     >
       {archived ? (
         <ArchiveRestore aria-hidden="true" className="size-4" />

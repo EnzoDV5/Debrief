@@ -56,6 +56,33 @@ describe('action item post-checks', () => {
     expect(draft.reviewReason).toContain("Owner “Bongani” isn't mentioned in the transcript");
   });
 
+  it('accepts a speaker the user added by hand as the owner', () => {
+    const withAddedSpeaker: TranscriptLine[] = [
+      { n: 1, text: "I'll book the venue." },
+      { n: 2, speaker: 'Lerato', text: "I'll book the venue.", speakerEdited: true },
+    ];
+    const output = actionItemsOutput.parse({
+      action_items: [
+        {
+          text: 'Book the venue',
+          owner: 'Lerato',
+          due_date_text: null,
+          source_line: 2,
+          source_quote: 'book the venue',
+        },
+      ],
+    });
+    expect(checkActionItems(output, withAddedSpeaker, MEETING)[0]).toMatchObject({
+      owner: 'Lerato',
+      needsReview: false,
+    });
+    // Without the added name, the same answer is an invented owner.
+    expect(checkActionItems(output, [withAddedSpeaker[0]!], MEETING)[0]).toMatchObject({
+      owner: null,
+      needsReview: true,
+    });
+  });
+
   it('matches owners as whole names, ignoring case', () => {
     expect(check({ owner: 'pieter VAN wyk' }).owner).toBe('pieter VAN wyk');
     expect(check({ owner: 'Pie' }).owner).toBeNull();

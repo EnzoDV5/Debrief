@@ -1,6 +1,11 @@
 // The little menu next to a meeting in the sidebar. It floats above the page (so it never stretches
 // the sidebar list) and opens upwards when there isn't room below.
-import type { MeetingListItem } from '@debrief/shared';
+import {
+  ARCHIVE_WHILE_ANALYSING_MESSAGE,
+  isAnalysing,
+  RENAME_WHILE_ANALYSING_MESSAGE,
+  type MeetingListItem,
+} from '@debrief/shared';
 import {
   Archive,
   ArchiveRestore,
@@ -82,6 +87,10 @@ export function MeetingMenu({ meeting }: { meeting: MeetingListItem }) {
       window.removeEventListener('resize', close);
     };
   }, [menu]);
+  // Wait for the analysis: archiving would hide the meeting while the result is still coming in,
+  // and renaming can change the date that relative deadlines are worked out from.
+  const analysing = isAnalysing(meeting.analysisStatus);
+  const archiveBlocked = !meeting.archivedAt && analysing;
   const change = (patch: { pinned?: boolean; archived?: boolean; projectId?: string | null }) => {
     update.mutate(patch, { onSuccess: close });
   };
@@ -121,6 +130,8 @@ export function MeetingMenu({ meeting }: { meeting: MeetingListItem }) {
                 close();
                 setDialog('edit');
               }}
+              disabled={analysing}
+              title={analysing ? RENAME_WHILE_ANALYSING_MESSAGE : undefined}
             >
               Rename
             </MenuAction>
@@ -150,6 +161,8 @@ export function MeetingMenu({ meeting }: { meeting: MeetingListItem }) {
             <MenuAction
               icon={meeting.archivedAt ? <ArchiveRestore /> : <Archive />}
               onClick={() => change({ archived: !meeting.archivedAt })}
+              disabled={archiveBlocked}
+              title={archiveBlocked ? ARCHIVE_WHILE_ANALYSING_MESSAGE : undefined}
             >
               {meeting.archivedAt ? 'Restore' : 'Archive'}
             </MenuAction>
@@ -190,19 +203,29 @@ function MenuAction({
   children,
   onClick,
   danger = false,
+  disabled = false,
+  title,
 }: {
   icon?: React.ReactElement;
   children: React.ReactNode;
   onClick: () => void;
   danger?: boolean;
+  disabled?: boolean;
+  title?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
+      title={title}
       className={cn(
         'flex min-h-10 w-full items-center gap-2.5 rounded-md px-3 text-left text-sm transition-colors',
-        danger ? 'text-danger hover:bg-danger-soft' : 'hover:bg-accent-soft hover:text-accent',
+        disabled
+          ? 'cursor-not-allowed opacity-45'
+          : danger
+            ? 'text-danger hover:bg-danger-soft'
+            : 'hover:bg-accent-soft hover:text-accent',
       )}
     >
       {icon && (

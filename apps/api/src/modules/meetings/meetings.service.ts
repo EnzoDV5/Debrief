@@ -1,10 +1,15 @@
 // Rules for meetings: save the transcript first, then queue the analysis.
 import {
+  ARCHIVE_WHILE_ANALYSING_MESSAGE,
+  isAnalysing,
   parseTranscript,
+  RENAME_WHILE_ANALYSING_MESSAGE,
   type Meeting,
   type MeetingListItem,
   type SourceType,
+  type TranscriptLine,
   type UpdateMeetingInput,
+  type UpdateTranscriptLineInput,
 } from '@debrief/shared';
 import type { MeetingRow } from '../../db/schema';
 import { AppError, notFound } from '../../lib/errors';
@@ -98,6 +103,21 @@ export const meetingsService = {
       !(await meetingsRepository.projectBelongsToUser(userId, patch.projectId))
     )
       throw notFound('Project');
+    // Some changes wait until the analysis finishes. Archiving hides the meeting from the list
+    // the app is watching (the result looks lost); renaming can change the meeting date that
+    // relative deadlines are worked out from. Pinning, projects and restoring are always fine.
+    const archiving = patch.archived === true;
+    const renaming = patch.title !== undefined || patch.meetingDate !== undefined;
+    if (archiving || renaming) {
+      const current = await meetingsRepository.findForUser(userId, meetingId);
+      if (!current) throw notFound('Meeting');
+      if (isAnalysing(current.analysisStatus))
+        throw new AppError(
+          409,
+          'ANALYSIS_RUNNING',
+          renaming ? RENAME_WHILE_ANALYSING_MESSAGE : ARCHIVE_WHILE_ANALYSING_MESSAGE,
+        );
+    }
     const { pinned, archived, ...fields } = patch;
     const row = await meetingsRepository.updateForUser(userId, meetingId, {
       ...fields,
@@ -111,14 +131,30 @@ export const meetingsService = {
     return withResults(userId, row);
   },
 
-  // The fixed line is marked as edited so the page can say it isn't word for word any more.
-  async updateLine(userId: string, meetingId: string, n: number, text: string): Promise<Meeting> {
+  // Fixes a line's words and/or who said it. Each change is flagged on the line, so the page can
+  // say it isn't word for word from the upload any more (the original transcript is kept).
+  async updateLine(
+    userId: string,
+    meetingId: string,
+    n: number,
+    patch: UpdateTranscriptLineInput,
+  ): Promise<Meeting> {
     const row = await meetingsRepository.findForUser(userId, meetingId);
     if (!row) throw notFound('Meeting');
     if (!row.transcriptLines.some((line) => line.n === n)) throw notFound('Line');
-    const lines = row.transcriptLines.map((line) =>
-      line.n === n ? { ...line, text, edited: true } : line,
-    );
+    const lines = row.transcriptLines.map((line): TranscriptLine => {
+      if (line.n !== n) return line;
+      let next: TranscriptLine = { ...line };
+      if (patch.text !== undefined) next = { ...next, text: patch.text, edited: true };
+      if (patch.speaker !== undefined) {
+        // A removed speaker drops the key, matching how the parser stores lines with no speaker.
+        const { speaker: _old, ...rest } = next;
+        next = patch.speaker
+          ? { ...rest, speaker: patch.speaker, speakerEdited: true }
+          : { ...rest, speakerEdited: true };
+      }
+      return next;
+    });
     const updated = await meetingsRepository.updateLinesForUser(userId, meetingId, lines);
     if (!updated) throw notFound('Meeting');
     return withResults(userId, updated);

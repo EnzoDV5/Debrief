@@ -1,5 +1,6 @@
 // The account page, laid out as a collage of blocks that fit together: profile, Google Calendar,
 // the sidebar's Meetings list (clear it), session (log out) and delete account.
+import { isAnalysing } from '@debrief/shared';
 import {
   Archive,
   CircleCheck,
@@ -199,8 +200,14 @@ function MeetingsListBlock() {
   const { data: meetings = [] } = useMeetings();
   const archiveAll = useArchiveAllMeetings();
   const [confirming, setConfirming] = useState(false);
-  const inList = meetings.filter((meeting) => !meeting.pinnedAt).length;
-  const pinned = meetings.length - inList;
+  // Same rule as the server: pinned meetings and ones still being analysed stay in the list.
+  const inList = meetings.filter(
+    (meeting) => !meeting.pinnedAt && !isAnalysing(meeting.analysisStatus),
+  ).length;
+  const pinned = meetings.filter((meeting) => meeting.pinnedAt).length;
+  const analysing = meetings.filter(
+    (meeting) => !meeting.pinnedAt && isAnalysing(meeting.analysisStatus),
+  ).length;
 
   return (
     <Card className="flex flex-col p-6 lg:col-span-5">
@@ -236,6 +243,12 @@ function MeetingsListBlock() {
                   {plural(pinned, 'pinned meeting')} will stay.
                 </span>
               )}
+              {analysing > 0 && (
+                <span className="font-normal text-muted">
+                  {' '}
+                  {plural(analysing, 'meeting')} still being analysed will stay.
+                </span>
+              )}
             </p>
             {archiveAll.error && (
               <p role="alert" className="mt-2 text-sm text-danger">
@@ -268,7 +281,9 @@ function MeetingsListBlock() {
             <p className="text-sm text-muted">
               {inList > 0
                 ? `${plural(inList, 'meeting')} in your list`
-                : 'Your Meetings list is already empty.'}
+                : analysing > 0
+                  ? 'Wait for the analysis to finish before clearing the list.'
+                  : 'Your Meetings list is already empty.'}
             </p>
             <Button
               variant="secondary"

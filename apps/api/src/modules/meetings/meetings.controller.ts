@@ -85,8 +85,8 @@ export function createMeetingsController(queue: AnalysisQueue) {
       const id = meetingId(req);
       const line = lineNumberSchema.safeParse(req.params.n);
       if (!line.success) throw notFound('Line');
-      const { text } = updateTranscriptLineSchema.parse(req.body);
-      const meeting = await meetingsService.updateLine(getAuthUser(req).id, id, line.data, text);
+      const patch = updateTranscriptLineSchema.parse(req.body);
+      const meeting = await meetingsService.updateLine(getAuthUser(req).id, id, line.data, patch);
       res.json({ meeting } satisfies { meeting: Meeting });
     },
 

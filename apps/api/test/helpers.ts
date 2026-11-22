@@ -9,6 +9,11 @@ export const WEB_ORIGIN = 'http://localhost:5173';
 
 export const testAppDeps: AppDeps = { analysisQueue: { enqueue: async () => {} } };
 
+// Tests use a no-op queue, so new meetings stay "pending". This fakes a finished analysis.
+export async function markAnalysed(meetingId: string) {
+  await pool.query("UPDATE meetings SET analysis_status = 'done' WHERE id = $1", [meetingId]);
+}
+
 export async function resetDatabase() {
   await pool.query(
     'TRUNCATE TABLE calendar_connections, analysis_runs, action_items, decisions, meetings, projects, password_resets, sessions, users RESTART IDENTITY CASCADE',

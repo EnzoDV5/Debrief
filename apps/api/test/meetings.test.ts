@@ -4,7 +4,14 @@ import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app';
 import { pool } from '../src/db/client';
-import { closeDatabase, resetDatabase, signUp, testAppDeps, WEB_ORIGIN } from './helpers';
+import {
+  closeDatabase,
+  markAnalysed,
+  resetDatabase,
+  signUp,
+  testAppDeps,
+  WEB_ORIGIN,
+} from './helpers';
 
 const fixture = (name: string) =>
   readFileSync(new URL(`./fixtures/transcripts/${name}`, import.meta.url));
@@ -183,6 +190,14 @@ describe('reading, updating and deleting meetings', () => {
         .set('Cookie', alice)
         .send(body);
 
+    // New meetings are still waiting for analysis, so renaming waits too.
+    for (const body of [{ title: 'Renamed' }, { meetingDate: '2026-12-01' }]) {
+      const blocked = await patch(body);
+      expect(blocked.status).toBe(409);
+      expect(blocked.body.error.code).toBe('ANALYSIS_RUNNING');
+    }
+
+    await markAnalysed(meeting.id);
     const ok = await patch({ title: 'Renamed', meetingDate: '2026-12-01' });
     expect(ok.status).toBe(200);
     expect(ok.body.meeting).toMatchObject({ title: 'Renamed', meetingDate: '2026-12-01' });
@@ -281,6 +296,38 @@ describe('PATCH /api/meetings/:id/lines/:n (fix a transcript line)', () => {
 
     expect(res.status).toBe(400);
     expect(res.body.error.fields).toHaveProperty('text');
+  });
+
+  it('sets, changes and removes who said a line without touching its words', async () => {
+    const meeting = await createMeeting(alice, 'Hello everyone\nBen: Hi there');
+    const line = async (n: number, body: object) =>
+      (
+        (await editLine(alice, meeting.id, n, body)).body.meeting.transcriptLines as {
+          n: number;
+        }[]
+      ).find((l) => l.n === n);
+
+    expect(await line(1, { speaker: '  Ann  ' })).toEqual({
+      n: 1,
+      speaker: 'Ann',
+      text: 'Hello everyone',
+      speakerEdited: true,
+    });
+    expect(await line(2, { speaker: 'Benjamin' })).toMatchObject({ speaker: 'Benjamin' });
+    expect(await line(2, { speaker: '' })).toEqual({
+      n: 2,
+      text: 'Hi there',
+      speakerEdited: true,
+    });
+    expect(await line(1, { speaker: null })).not.toHaveProperty('speaker');
+  });
+
+  it('rejects an empty patch and an over-long speaker', async () => {
+    const meeting = await createMeeting(alice);
+    expect((await editLine(alice, meeting.id, 1, {})).status).toBe(400);
+    const long = await editLine(alice, meeting.id, 1, { speaker: 'x'.repeat(101) });
+    expect(long.status).toBe(400);
+    expect(long.body.error.fields).toHaveProperty('speaker');
   });
 
   it('returns 404 for a line that does not exist or is not a number', async () => {
