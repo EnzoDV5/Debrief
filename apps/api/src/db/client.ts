@@ -17,7 +17,13 @@ export function sslFor(connectionString: string): PoolConfig['ssl'] {
 }
 
 export function createPool(connectionString: string) {
-  return new Pool({ connectionString, ssl: sslFor(connectionString), max: 10 });
+  return new Pool({
+    connectionString,
+    ssl: sslFor(connectionString),
+    max: 10,
+    // Without this an unreachable database hangs startup forever with nothing in the logs.
+    connectionTimeoutMillis: 15_000,
+  });
 }
 
 export const pool = createPool(env.DATABASE_URL);

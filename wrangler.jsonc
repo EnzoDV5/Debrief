@@ -15,7 +15,7 @@
   },
   "vars": {
     // The Render api's public origin (no trailing slash). Check it matches your Render service URL.
-    "API_ORIGIN": "https://debrief-api.onrender.com",
+    "API_ORIGIN": "https://debrief-api-s14s.onrender.com",
   },
   "observability": { "enabled": true },
 }
