@@ -13,14 +13,10 @@ services:
         value: production
       - key: TRUST_PROXY
         value: '2'
+      # The site the browser uses (the Cloudflare Worker URL, e.g. https://debrief.<you>.workers.dev).
+      # APP_URL and both Google redirect URIs are derived from it, so don't set them separately.
       - key: WEB_ORIGIN
-        value: https://debriefweb.netlify.app
-      - key: APP_URL
-        value: https://debriefweb.netlify.app
-      - key: GOOGLE_REDIRECT_URI
-        value: https://debriefweb.netlify.app/api/integrations/google/callback
-      - key: GOOGLE_AUTH_REDIRECT_URI
-        value: https://debriefweb.netlify.app/api/auth/google/callback
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: OPENROUTER_API_KEY

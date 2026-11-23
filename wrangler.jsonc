@@ -1,0 +1,21 @@
+// Cloudflare Workers (free plan) hosting for the web app. Build with `npm run build:cloudflare`,
+// deploy with `npm run deploy:cloudflare` (or connect the repo in the Cloudflare dashboard).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "debrief",
+  "main": "cloudflare/worker.js",
+  "compatibility_date": "2025-09-01",
+  "assets": {
+    "directory": "apps/web/dist",
+    "binding": "ASSETS",
+    // Unknown paths get index.html so React Router can handle them.
+    "not_found_handling": "single-page-application",
+    // Only /api/* runs the Worker; everything else is served straight from the static assets.
+    "run_worker_first": ["/api/*"],
+  },
+  "vars": {
+    // The Render api's public origin (no trailing slash). Check it matches your Render service URL.
+    "API_ORIGIN": "https://debrief-api.onrender.com",
+  },
+  "observability": { "enabled": true },
+}

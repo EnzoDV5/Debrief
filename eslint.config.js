@@ -26,6 +26,11 @@ export default defineConfig([
   },
 
   {
+    files: ['cloudflare/**/*.js'],
+    languageOptions: { globals: globals.serviceworker },
+  },
+
+  {
     files: ['apps/web/**/*.{ts,tsx}'],
     languageOptions: { globals: globals.browser },
     extends: [reactHooks.configs.flat.recommended],

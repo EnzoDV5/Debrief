@@ -32,6 +32,31 @@ describe('parseEnv', () => {
     expect(env.AI_MODEL_PRIMARY).toBe('particle-ai/particle-1:free');
   });
 
+  it('derives the Google redirect URIs and APP_URL from WEB_ORIGIN', () => {
+    const env = parseEnv({ ...required, WEB_ORIGIN: 'https://debrief.example.dev/' });
+    expect(env.WEB_ORIGIN).toBe('https://debrief.example.dev');
+    expect(env.APP_URL).toBe('https://debrief.example.dev');
+    expect(env.GOOGLE_REDIRECT_URI).toBe(
+      'https://debrief.example.dev/api/integrations/google/callback',
+    );
+    expect(env.GOOGLE_AUTH_REDIRECT_URI).toBe(
+      'https://debrief.example.dev/api/auth/google/callback',
+    );
+  });
+
+  it('keeps explicit Google redirect URIs over the derived ones', () => {
+    const env = parseEnv({
+      ...required,
+      WEB_ORIGIN: 'https://debrief.example.dev',
+      GOOGLE_REDIRECT_URI: 'https://api.example.dev/cal',
+      GOOGLE_AUTH_REDIRECT_URI: '',
+    });
+    expect(env.GOOGLE_REDIRECT_URI).toBe('https://api.example.dev/cal');
+    expect(env.GOOGLE_AUTH_REDIRECT_URI).toBe(
+      'https://debrief.example.dev/api/auth/google/callback',
+    );
+  });
+
   it('coerces numbers from strings', () => {
     const env = parseEnv({ ...required, PORT: '8080', TRUST_PROXY: '1' });
     expect(env.PORT).toBe(8080);

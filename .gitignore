@@ -4,6 +4,7 @@ dist/
 build/
 coverage/
 *.tsbuildinfo
+.wrangler/
 
 # Secrets: only .env.example (placeholders) is committed
 .env
