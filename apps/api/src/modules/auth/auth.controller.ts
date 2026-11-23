@@ -49,6 +49,26 @@ export const authController = {
     res.json({ user } satisfies AuthResponse);
   },
 
+  async uploadAvatar(req: Request, res: Response) {
+    const user = await authService.uploadAvatar(getAuthUser(req).id, req.file?.buffer);
+    res.json({ user } satisfies AuthResponse);
+  },
+
+  async avatar(req: Request, res: Response) {
+    const { contentType, data } = await authService.getUploadedAvatar(getAuthUser(req).id);
+    // The URL is versioned (?v=), so the browser may keep it; private keeps shared caches out.
+    res.set({
+      'Content-Type': contentType,
+      'Cache-Control': 'private, max-age=31536000, immutable',
+    });
+    res.send(data);
+  },
+
+  async removeAvatar(req: Request, res: Response) {
+    const user = await authService.removeAvatar(getAuthUser(req).id);
+    res.json({ user } satisfies AuthResponse);
+  },
+
   async deleteAccount(req: Request, res: Response) {
     const input = deleteAccountSchema.parse(req.body);
     await authService.deleteAccount(getAuthUser(req).id, input);

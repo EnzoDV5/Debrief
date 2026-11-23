@@ -12,6 +12,8 @@ export type GoogleIdentity = {
   email: string;
   emailVerified: boolean;
   name: string | null;
+  // The Google profile photo URL, if the account has one.
+  picture: string | null;
   nonce: string | null;
 };
 
@@ -36,8 +38,19 @@ const idTokenClaims = z.object({
   email: z.string().min(1),
   email_verified: z.boolean().optional(),
   name: z.string().optional(),
+  picture: z.string().optional(),
   nonce: z.string().optional(),
 });
+
+// Only keep a picture that is a plain https URL, since the browser will load it.
+function safePictureUrl(value: string | undefined): string | null {
+  if (!value || value.length > 2048) return null;
+  try {
+    return new URL(value).protocol === 'https:' ? value : null;
+  } catch {
+    return null;
+  }
+}
 
 export function readIdToken(idToken: string, clientId: string, now = Date.now()): GoogleIdentity {
   const payload = idToken.split('.')[1];
@@ -61,6 +74,7 @@ export function readIdToken(idToken: string, clientId: string, now = Date.now())
     email: claims.email.trim().toLowerCase(),
     emailVerified: claims.email_verified === true,
     name: claims.name?.trim() || null,
+    picture: safePictureUrl(claims.picture),
     nonce: claims.nonce ?? null,
   };
 }

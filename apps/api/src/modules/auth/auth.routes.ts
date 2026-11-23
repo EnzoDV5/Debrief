@@ -3,6 +3,7 @@ import type { AuthProviders } from '@debrief/shared';
 import { Router } from 'express';
 import { createAuthRateLimiter } from '../../middleware/rateLimit';
 import { requireAuth } from '../../middleware/requireAuth';
+import { avatarUpload } from '../../middleware/upload';
 import { authController } from './auth.controller';
 import type { GoogleAuthController } from './googleAuth.controller';
 import type { PasswordResetController } from './passwordReset.controller';
@@ -50,6 +51,9 @@ export function createAuthRouter({
 
   router.get('/me', requireAuth, authController.me);
   router.patch('/me', requireAuth, authController.updateProfile);
+  router.get('/me/avatar', requireAuth, authController.avatar);
+  router.put('/me/avatar', requireAuth, avatarUpload, authController.uploadAvatar);
+  router.delete('/me/avatar', requireAuth, authController.removeAvatar);
   router.delete(
     '/account',
     requireAuth,

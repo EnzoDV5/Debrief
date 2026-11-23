@@ -366,6 +366,57 @@ describe('delete account', () => {
   });
 });
 
+describe('profile photo', () => {
+  it('shows the photo and offers to upload one', async () => {
+    mockApi({
+      'GET /api/auth/me': {
+        status: 200,
+        body: { user: { ...testUser, avatarUrl: 'https://lh3.googleusercontent.com/a/alice' } },
+      },
+    });
+    renderApp('/account');
+
+    expect(
+      await screen.findByRole('button', { name: 'Upload a profile photo' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Remove photo' })).toBeNull();
+    const photos = document.querySelectorAll(
+      'img[src="https://lh3.googleusercontent.com/a/alice"]',
+    );
+    expect(photos.length).toBeGreaterThan(0);
+    expect(photos[0]).toHaveAttribute('referrerpolicy', 'no-referrer');
+  });
+
+  it('removes an uploaded photo and falls back to the Google one', async () => {
+    const uploaded = {
+      ...testUser,
+      avatarUrl: '/api/auth/me/avatar?v=1',
+      hasUploadedAvatar: true,
+    };
+    const google = 'https://lh3.googleusercontent.com/a/alice';
+    let removed = false;
+    mockApi({
+      'GET /api/auth/me': { status: 200, body: { user: uploaded } },
+      'DELETE /api/auth/me/avatar': () => {
+        removed = true;
+        return {
+          status: 200,
+          body: { user: { ...uploaded, avatarUrl: google, hasUploadedAvatar: false } },
+        };
+      },
+    });
+    const user = userEvent.setup();
+    renderApp('/account');
+
+    await user.click(await screen.findByRole('button', { name: 'Remove photo' }));
+
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Remove photo' })).toBeNull());
+    expect(removed).toBe(true);
+    expect(document.querySelector(`img[src="${google}"]`)).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Upload a profile photo' })).toBeInTheDocument();
+  });
+});
+
 describe('forgot password', () => {
   const resetOn = { status: 200, body: { google: false, passwordReset: true } };
 

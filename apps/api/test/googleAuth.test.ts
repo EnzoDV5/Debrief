@@ -28,6 +28,7 @@ function fakeGoogle(identity: Partial<GoogleIdentity> = {}): GoogleSignInClient 
       email: 'thandi@example.com',
       emailVerified: true,
       name: 'Thandi Nkosi',
+      picture: 'https://lh3.googleusercontent.com/a/thandi-1',
       nonce: lastNonce,
       ...identity,
     }),
@@ -127,6 +128,7 @@ describe('finishing a Google sign-in', () => {
       email: 'thandi@example.com',
       name: 'Thandi Nkosi',
       hasPassword: false,
+      avatarUrl: 'https://lh3.googleusercontent.com/a/thandi-1',
     });
     expect(setCookies(res).some((c) => /^debrief_google_signin=;/.test(c))).toBe(true);
   });
@@ -143,6 +145,20 @@ describe('finishing a Google sign-in', () => {
     expect(second.headers.location).toBe(`${WEB_ORIGIN}/meetings?signed_in=back`);
   });
 
+  it('keeps the profile photo in step with Google on each sign-in', async () => {
+    await signInWithGoogle();
+
+    buildApp(fakeGoogle({ picture: 'https://lh3.googleusercontent.com/a/thandi-2' }));
+    const changed = await signInWithGoogle();
+    expect((await me(sessionCookiePair(changed))).body.user.avatarUrl).toBe(
+      'https://lh3.googleusercontent.com/a/thandi-2',
+    );
+
+    buildApp(fakeGoogle({ picture: null }));
+    const removed = await signInWithGoogle();
+    expect((await me(sessionCookiePair(removed))).body.user.avatarUrl).toBeNull();
+  });
+
   it('links Google to an existing password account with the same verified email', async () => {
     const passwordCookie = await signUp(app, 'Alice');
     const passwordUser = (await me(passwordCookie)).body.user;
@@ -153,6 +169,8 @@ describe('finishing a Google sign-in', () => {
 
     expect(googleUser.id).toBe(passwordUser.id);
     expect(googleUser.hasPassword).toBe(true);
+    expect(passwordUser.avatarUrl).toBeNull();
+    expect(googleUser.avatarUrl).toBe('https://lh3.googleusercontent.com/a/thandi-1');
     const login = await request(app)
       .post('/api/auth/login')
       .set('Origin', WEB_ORIGIN)

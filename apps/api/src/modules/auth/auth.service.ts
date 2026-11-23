@@ -10,6 +10,7 @@ import argon2 from 'argon2';
 import type { UserRow } from '../../db/schema';
 import { generateSessionToken, hashSessionToken } from '../../lib/crypto';
 import { AppError, unauthenticated } from '../../lib/errors';
+import { detectImageType } from '../../lib/imageType';
 import { authRepository } from './auth.repository';
 import { SESSION_TTL_MS } from './sessionCookie';
 
@@ -21,6 +22,10 @@ const dummyHash = hashPassword('timing-equaliser-not-a-real-password');
 const invalidCredentials = () =>
   new AppError(401, 'INVALID_CREDENTIALS', 'Invalid email or password');
 
+// Where the browser loads an uploaded photo from. The ?v= changes with every upload, so the photo
+// can be cached for a long time and a new one still shows straight away.
+export const UPLOADED_AVATAR_PATH = '/api/auth/me/avatar';
+
 export function toPublicUser(user: UserRow): PublicUser {
   return {
     id: user.id,
@@ -28,8 +33,17 @@ export function toPublicUser(user: UserRow): PublicUser {
     name: user.name,
     createdAt: user.createdAt.toISOString(),
     hasPassword: user.passwordHash !== null,
+    avatarUrl: user.avatarUpdatedAt
+      ? `${UPLOADED_AVATAR_PATH}?v=${user.avatarUpdatedAt.getTime()}`
+      : user.googleAvatarUrl,
+    hasUploadedAvatar: user.avatarUpdatedAt !== null,
   };
 }
+
+const notAnImage = () => {
+  const message = 'That file isn’t a JPEG, PNG or WebP photo';
+  return new AppError(400, 'INVALID_IMAGE', message, { file: message });
+};
 
 export async function startSession(userId: string): Promise<string> {
   const token = generateSessionToken();
@@ -78,6 +92,26 @@ export const authService = {
 
   async updateProfile(userId: string, input: UpdateProfileInput): Promise<PublicUser> {
     const user = await authRepository.updateName(userId, input.name);
+    if (!user) throw unauthenticated();
+    return toPublicUser(user);
+  },
+
+  async uploadAvatar(userId: string, file: Buffer | undefined): Promise<PublicUser> {
+    const contentType = file ? detectImageType(file) : null;
+    if (!file || !contentType) throw notAnImage();
+    const user = await authRepository.saveUploadedAvatar(userId, contentType, file);
+    if (!user) throw unauthenticated();
+    return toPublicUser(user);
+  },
+
+  async getUploadedAvatar(userId: string) {
+    const avatar = await authRepository.findUploadedAvatar(userId);
+    if (!avatar) throw new AppError(404, 'NOT_FOUND', 'No uploaded photo');
+    return avatar;
+  },
+
+  async removeAvatar(userId: string): Promise<PublicUser> {
+    const user = await authRepository.removeUploadedAvatar(userId);
     if (!user) throw unauthenticated();
     return toPublicUser(user);
   },

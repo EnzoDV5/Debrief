@@ -378,6 +378,14 @@
     0 8px 24px -14px rgb(12 14 22 / 0.14);
 }
 
+/* The whole-page layers never cross-fade: page changes swap instantly, and the dark/light switch
+   animates the new layer itself (a circle growing from the toggle, see lib/theme.ts). Normal
+   blending stops the overlap of the two looks from glowing brighter mid-reveal. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  mix-blend-mode: normal;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   ::view-transition-old(root),
   ::view-transition-new(root) {

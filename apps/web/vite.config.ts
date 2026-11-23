@@ -31,6 +31,9 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // Fail instead of quietly moving to 5174: the api only accepts requests (and Google only
+    // redirects back) to http://localhost:5173, so any other port breaks sign-in and every save.
+    strictPort: true,
     proxy: {
       '/api': 'http://localhost:3000',
     },

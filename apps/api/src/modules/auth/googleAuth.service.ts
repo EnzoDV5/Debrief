@@ -19,18 +19,28 @@ function fallbackName(email: string) {
   return email.split('@')[0] || 'Debrief user';
 }
 
+// Google photo URLs change when people update their picture, so keep ours in step on each sign-in.
+async function withCurrentPicture(user: UserRow, identity: GoogleIdentity): Promise<UserRow> {
+  if (user.googleAvatarUrl === identity.picture) return user;
+  return (await authRepository.updateGoogleAvatarUrl(user.id, identity.picture)) ?? user;
+}
+
 export function createGoogleAuthService(google: GoogleSignInClient) {
   async function findOrCreateUser(
     identity: GoogleIdentity,
   ): Promise<{ user: UserRow; created: boolean }> {
     const linked = await authRepository.findActiveUserByGoogleSub(identity.sub);
-    if (linked) return { user: linked, created: false };
+    if (linked) return { user: await withCurrentPicture(linked, identity), created: false };
 
     if (!identity.emailVerified) throw new GoogleSignInRefused('unverified');
 
     const sameEmail = await authRepository.findActiveUserByEmail(identity.email);
     if (sameEmail) {
-      const updated = await authRepository.linkGoogleAccount(sameEmail.id, identity.sub);
+      const updated = await authRepository.linkGoogleAccount(
+        sameEmail.id,
+        identity.sub,
+        identity.picture,
+      );
       if (updated) return { user: updated, created: false };
     }
 
@@ -39,6 +49,7 @@ export function createGoogleAuthService(google: GoogleSignInClient) {
       name: identity.name ?? fallbackName(identity.email),
       passwordHash: null,
       googleSub: identity.sub,
+      googleAvatarUrl: identity.picture,
     });
     if (created) return { user: created, created: true };
 

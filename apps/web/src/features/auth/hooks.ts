@@ -91,6 +91,30 @@ export function useUpdateProfile() {
   });
 }
 
+// Uploads your own profile photo (already shrunk by the browser); it replaces the Google one.
+export function useUploadAvatar() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (photo: Blob) => {
+      const body = new FormData();
+      body.append('file', photo, 'avatar');
+      return (await request('/auth/me/avatar', { method: 'PUT', body, schema: authResponseSchema }))
+        .user;
+    },
+    onSuccess: (user) => queryClient.setQueryData(meQueryKey, user),
+  });
+}
+
+// Removes your uploaded photo; your Google photo (if any) shows again.
+export function useRemoveAvatar() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () =>
+      (await request('/auth/me/avatar', { method: 'DELETE', schema: authResponseSchema })).user,
+    onSuccess: (user) => queryClient.setQueryData(meQueryKey, user),
+  });
+}
+
 export function useDeleteAccount() {
   const signedOut = useSignedOut();
   return useMutation({

@@ -5,6 +5,7 @@ import {
   calendarConnections,
   passwordResets,
   sessions,
+  userAvatars,
   users,
   type UserRow,
 } from '../../db/schema';
@@ -51,6 +52,7 @@ export const authRepository = {
     name: string;
     passwordHash: string | null;
     googleSub?: string;
+    googleAvatarUrl?: string | null;
   }): Promise<UserRow | null> {
     try {
       const [user] = await db.insert(users).values(data).returning();
@@ -70,13 +72,74 @@ export const authRepository = {
     return user ?? null;
   },
 
-  async linkGoogleAccount(userId: string, googleSub: string): Promise<UserRow | null> {
+  async linkGoogleAccount(
+    userId: string,
+    googleSub: string,
+    googleAvatarUrl: string | null,
+  ): Promise<UserRow | null> {
     const [user] = await db
       .update(users)
-      .set({ googleSub })
+      .set({ googleSub, googleAvatarUrl })
       .where(and(eq(users.id, userId), isNull(users.deletedAt)))
       .returning();
     return user ?? null;
+  },
+
+  async updateGoogleAvatarUrl(
+    userId: string,
+    googleAvatarUrl: string | null,
+  ): Promise<UserRow | null> {
+    const [user] = await db
+      .update(users)
+      .set({ googleAvatarUrl })
+      .where(and(eq(users.id, userId), isNull(users.deletedAt)))
+      .returning();
+    return user ?? null;
+  },
+
+  async saveUploadedAvatar(
+    userId: string,
+    contentType: string,
+    data: Buffer,
+  ): Promise<UserRow | null> {
+    return db.transaction(async (tx) => {
+      const [user] = await tx
+        .update(users)
+        .set({ avatarUpdatedAt: new Date() })
+        .where(and(eq(users.id, userId), isNull(users.deletedAt)))
+        .returning();
+      if (!user) return null;
+      await tx
+        .insert(userAvatars)
+        .values({ userId, contentType, data })
+        .onConflictDoUpdate({
+          target: userAvatars.userId,
+          set: { contentType, data, createdAt: new Date() },
+        });
+      return user;
+    });
+  },
+
+  async findUploadedAvatar(userId: string): Promise<{ contentType: string; data: Buffer } | null> {
+    const [avatar] = await db
+      .select({ contentType: userAvatars.contentType, data: userAvatars.data })
+      .from(userAvatars)
+      .innerJoin(users, eq(users.id, userAvatars.userId))
+      .where(and(eq(userAvatars.userId, userId), isNull(users.deletedAt)))
+      .limit(1);
+    return avatar ?? null;
+  },
+
+  async removeUploadedAvatar(userId: string): Promise<UserRow | null> {
+    return db.transaction(async (tx) => {
+      await tx.delete(userAvatars).where(eq(userAvatars.userId, userId));
+      const [user] = await tx
+        .update(users)
+        .set({ avatarUpdatedAt: null })
+        .where(and(eq(users.id, userId), isNull(users.deletedAt)))
+        .returning();
+      return user ?? null;
+    });
   },
 
   async createSession(data: { id: string; userId: string; expiresAt: Date }): Promise<void> {
@@ -141,11 +204,12 @@ export const authRepository = {
     await db.transaction(async (tx) => {
       await tx
         .update(users)
-        .set({ deletedAt: new Date() })
+        .set({ deletedAt: new Date(), googleAvatarUrl: null, avatarUpdatedAt: null })
         .where(and(eq(users.id, userId), isNull(users.deletedAt)));
       await tx.delete(sessions).where(eq(sessions.userId, userId));
       await tx.delete(passwordResets).where(eq(passwordResets.userId, userId));
       await tx.delete(calendarConnections).where(eq(calendarConnections.userId, userId));
+      await tx.delete(userAvatars).where(eq(userAvatars.userId, userId));
     });
   },
 };

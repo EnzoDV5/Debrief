@@ -33,6 +33,7 @@ function fakeGoogle(): GoogleSignInClient {
       email: 'thandi@example.com',
       emailVerified: true,
       name: 'Thandi Nkosi',
+      picture: null,
       nonce,
     }),
   };

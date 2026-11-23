@@ -13,7 +13,6 @@ import {
   Pencil,
   Sun,
   Trash2,
-  UserRound,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -23,6 +22,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { GoogleLogo } from '@/components/ui/GoogleLogo';
 import { DeleteAccountDialog } from '@/features/auth/DeleteAccountDialog';
+import { ProfilePhoto } from '@/features/auth/ProfilePhoto';
 import { useCurrentUser, useLogout, useUpdateProfile } from '@/features/auth/hooks';
 import { CalendarCard } from '@/features/integrations/CalendarCard';
 import { useArchiveAllMeetings, useMeetings } from '@/features/meetings/hooks';
@@ -83,9 +83,7 @@ function ProfileBlock() {
       </h2>
 
       <div className="relative my-auto flex w-full flex-col items-center py-4">
-        <span className="grid size-32 place-items-center rounded-pill bg-sidebar-active text-sidebar-strong shadow-raised ring-8 ring-sidebar-strong/10">
-          <UserRound aria-hidden="true" className="size-16" strokeWidth={1.5} />
-        </span>
+        <ProfilePhoto />
         <EditableName name={user.name} />
         <p className="mt-1 flex max-w-full items-center justify-center gap-1.5 text-sm break-all text-sidebar-muted">
           <Mail aria-hidden="true" className="size-4 shrink-0" />
@@ -325,7 +323,7 @@ function AppearanceBlock() {
           <span
             aria-hidden="true"
             style={{ transform: `translateX(${theme === 'light' ? 100 : 0}%)` }}
-            className="absolute inset-y-1 left-1 w-[calc((100%-0.5rem)/2)] rounded-pill bg-surface shadow-card transition-transform duration-300 ease-out"
+            className="absolute inset-y-1 left-1 w-[calc((100%-0.5rem)/2)] rounded-pill bg-surface shadow-card transition-transform duration-500 ease-panel"
           />
           {options.map(({ value, label, icon: Icon }) => (
             <label key={value} className="relative cursor-pointer">
@@ -334,7 +332,14 @@ function AppearanceBlock() {
                 name="theme"
                 value={value}
                 checked={theme === value}
-                onChange={() => setTheme(value)}
+                onChange={(event) => {
+                  // The new look spreads out from the option you picked.
+                  const box = event.currentTarget.parentElement?.getBoundingClientRect();
+                  setTheme(
+                    value,
+                    box && { x: box.left + box.width / 2, y: box.top + box.height / 2 },
+                  );
+                }}
                 className="peer sr-only"
               />
               <span className="flex min-h-9 items-center justify-center gap-1.5 rounded-pill text-sm font-semibold text-muted transition-colors duration-200 peer-checked:text-fg peer-focus-visible:ring-2 peer-focus-visible:ring-accent/50 hover:text-fg">

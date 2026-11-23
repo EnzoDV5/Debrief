@@ -66,6 +66,8 @@ export const testUser = {
   name: 'Alice Mokoena',
   createdAt: '2026-11-19T10:00:00.000Z',
   hasPassword: true,
+  avatarUrl: null,
+  hasUploadedAvatar: false,
 };
 
 export const unauthenticated = {

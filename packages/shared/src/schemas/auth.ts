@@ -59,8 +59,18 @@ export const publicUserSchema = z.object({
   name: z.string(),
   createdAt: z.iso.datetime(),
   hasPassword: z.boolean(),
+  // The photo to show: an uploaded one if there is one, else the Google photo, else null.
+  avatarUrl: z.string().nullable(),
+  // True when the user uploaded their own photo (so it can be removed again).
+  hasUploadedAvatar: z.boolean(),
 });
 export type PublicUser = z.infer<typeof publicUserSchema>;
+
+// Uploaded profile photos. The browser shrinks them to AVATAR_SIZE px square before sending,
+// so real uploads are far below the cap; the cap only stops abuse.
+export const AVATAR_SIZE = 256;
+export const MAX_AVATAR_BYTES = 512 * 1024;
+export const AVATAR_CONTENT_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 
 export const authResponseSchema = z.object({ user: publicUserSchema });
 export type AuthResponse = z.infer<typeof authResponseSchema>;

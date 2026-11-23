@@ -9,6 +9,7 @@ import {
 import { sql } from 'drizzle-orm';
 import {
   boolean,
+  customType,
   date,
   index,
   integer,
@@ -33,6 +34,11 @@ export const users = pgTable(
     passwordHash: text('password_hash'),
     googleSub: text('google_sub'),
     name: text('name').notNull(),
+    // Profile photo URL from Google, refreshed on each Google sign-in; null for password-only accounts.
+    googleAvatarUrl: text('google_avatar_url'),
+    // When the user last uploaded their own photo (stored in user_avatars). Set means it wins over
+    // the Google photo; it also versions the photo's URL so browsers can cache it safely.
+    avatarUpdatedAt: timestamp('avatar_updated_at', { withTimezone: true }),
     ...timestamps,
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },
@@ -45,6 +51,19 @@ export const users = pgTable(
       .where(sql`${t.deletedAt} is null and ${t.googleSub} is not null`),
   ],
 ).enableRLS();
+
+// Drizzle has no built-in bytea column; node-postgres hands bytea back as a Buffer.
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => 'bytea' });
+
+// A user's uploaded profile photo, kept apart from `users` so loading a user stays light.
+export const userAvatars = pgTable('user_avatars', {
+  userId: uuid('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  contentType: text('content_type').notNull(),
+  data: bytea('data').notNull(),
+  ...timestamps,
+}).enableRLS();
 
 export const sessions = pgTable(
   'sessions',

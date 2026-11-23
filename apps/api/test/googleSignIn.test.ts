@@ -22,6 +22,7 @@ const validClaims = {
   email: 'Thandi@Example.com',
   email_verified: true,
   name: 'Thandi Nkosi',
+  picture: 'https://lh3.googleusercontent.com/a/photo-1',
   nonce: 'nonce-1',
 };
 
@@ -32,8 +33,17 @@ describe('readIdToken', () => {
       email: 'thandi@example.com',
       emailVerified: true,
       name: 'Thandi Nkosi',
+      picture: 'https://lh3.googleusercontent.com/a/photo-1',
       nonce: 'nonce-1',
     });
+  });
+
+  it('drops a picture that is missing or not an https URL', () => {
+    const { picture: _, ...noPicture } = validClaims;
+    expect(readIdToken(idToken(noPicture), CLIENT_ID, NOW).picture).toBeNull();
+    for (const picture of ['http://example.com/p.png', 'javascript:alert(1)', 'not a url']) {
+      expect(readIdToken(idToken({ ...validClaims, picture }), CLIENT_ID, NOW).picture).toBeNull();
+    }
   });
 
   it('treats a missing email_verified as not verified', () => {

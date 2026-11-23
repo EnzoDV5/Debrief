@@ -11,7 +11,6 @@ import {
   Pin,
   Plus,
   Search,
-  UserRound,
   X,
 } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react';
@@ -20,6 +19,7 @@ import { AnimatedHeight } from '@/components/ui/AnimatedHeight';
 import { Button } from '@/components/ui/Button';
 import { Collapsible } from '@/components/ui/Collapsible';
 import { Logo } from '@/components/ui/Logo';
+import { UserAvatar } from '@/components/ui/UserAvatar';
 import { useActionItems } from '@/features/actionItems/hooks';
 import { useCurrentUser } from '@/features/auth/hooks';
 import { useMeetings } from '@/features/meetings/hooks';
@@ -625,12 +625,11 @@ function AccountBlock({
           )
         }
       >
-        <span
-          aria-hidden="true"
-          className="grid size-9 shrink-0 place-items-center rounded-pill bg-sidebar-active text-sidebar-fg ring-1 ring-sidebar-line group-hover:text-sidebar-strong"
-        >
-          <UserRound className="size-5" />
-        </span>
+        <UserAvatar
+          src={user.avatarUrl}
+          className="size-9 bg-sidebar-active text-sidebar-fg ring-1 ring-sidebar-line group-hover:text-sidebar-strong"
+          iconClassName="size-5"
+        />
         <span className={cn('min-w-0 flex-1', collapsed && 'sr-only')}>
           <span className="block truncate text-sm font-semibold text-sidebar-strong">
             {user.name}
