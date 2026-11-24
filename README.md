@@ -136,7 +136,7 @@ How to try each part of the brief in the app, without reading the code.
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Source linking**           | Every decision and action item stores its transcript line and the exact words it quotes. Click a card and the line lights up; the quote is checked on save.                                                        | It's the most direct way to make AI output trustworthy: you can check every card in one click.                                             |
 | **Integration**              | Google Calendar: connect once, then add or update an action item as an event on its due date.                                                                                                                      | Due dates are the part of an action item people forget. OAuth with PKCE, a narrow `calendar.events` scope, and an encrypted refresh token. |
-| **Automated tests**          | 452 tests: 311 API tests against a real Postgres with the AI mocked, and 141 web tests with Testing Library.                                                                                                       | The brief's important rules (isolation, auth, AI validation) should be proven, not just claimed.                                           |
+| **Automated tests**          | 457 tests: 313 API tests against a real Postgres with the AI mocked, and 144 web tests with Testing Library.                                                                                                       | The brief's important rules (isolation, auth, AI validation) should be proven, not just claimed.                                           |
 | **Infrastructure**           | `npm run docker:up` starts Postgres, the API and the website with one command. CI builds both images on every push.                                                                                                | Easy for anyone to run, and the same container runs in production.                                                                         |
 | **Accessibility and mobile** | Labelled inputs, keyboard use everywhere, visible focus, a skip link, reduced motion respected, light and dark themes, and a layout that works on a phone.                                                         | People read meeting notes on their phone, and the app should work for everyone.                                                            |
 | **My own ideas**             | **Ask this meeting** (answers with line references), global search, projects, Google sign-in, forgot password, decisions linked to the tasks that carry them out, speaker and line editing, and `npm run ai:eval`. | Each one makes the notes more useful after the meeting, or makes the AI easier to trust and test.                                          |
@@ -328,7 +328,7 @@ a clear message if one is wrong. Only `.env.example` is committed.
 
 ```bash
 npm run db:up    # local Postgres (creates the debrief_test database)
-npm test         # 311 API tests + 141 web tests
+npm test         # 313 API tests + 144 web tests
 ```
 
 - **API:** Vitest and Supertest against a real local Postgres, with the AI mocked. Covers isolation,

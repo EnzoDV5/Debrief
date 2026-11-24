@@ -162,7 +162,9 @@ export function AppShell() {
           ref={mainRef}
           tabIndex={-1}
           className={cn(
-            'min-w-0 outline-none lg:my-5 lg:mr-5 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col',
+            // Below lg the page scrolls under the sticky top bar: `isolate` keeps every layer
+            // inside the page (its own bar, sticky panels) below that bar, whatever its z-index.
+            'min-w-0 outline-none max-lg:isolate lg:my-5 lg:mr-5 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col',
             entering && 'lg:animate-panel-expand',
           )}
           style={

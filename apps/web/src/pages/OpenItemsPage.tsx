@@ -10,13 +10,17 @@ import {
 import {
   AlarmClock,
   ArrowUpRight,
+  Circle,
+  CircleCheck,
+  CircleDashed,
+  CircleDot,
   ListChecks,
   SearchX,
   TextQuote,
   Users,
   UserX,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate, useNavigation, useSearchParams } from 'react-router';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/Button';
@@ -42,6 +46,17 @@ const STATUS_FILTER_LABELS: Record<ActionItemStatusFilter, string> = {
   in_progress: 'In progress',
   done: 'Done',
   all: 'All',
+};
+
+// What the phone Status dropdown can show: a status, or "overdue" (open and past its date).
+type PhoneStatus = ActionItemStatusFilter | 'overdue';
+
+const STATUS_ICONS: Record<ActionItemStatusFilter, ReactNode> = {
+  open: <CircleDashed />,
+  todo: <Circle />,
+  in_progress: <CircleDot />,
+  done: <CircleCheck />,
+  all: <ListChecks />,
 };
 
 const NO_ITEMS: ActionItemWithMeeting[] = [];
@@ -285,12 +300,37 @@ function Filters({
     ...owners.map((owner) => ({ value: owner, label: owner, icon: <Initials name={owner} /> })),
   ];
 
+  // Phones have one Status dropdown, with "Overdue" (open items past their date) as one of its
+  // choices instead of a separate toggle. Picking any other status turns overdue off.
+  const statusOptions: SelectOption<PhoneStatus>[] = ACTION_ITEM_STATUS_FILTERS.flatMap(
+    (status): SelectOption<PhoneStatus>[] => {
+      const option = {
+        value: status,
+        label: STATUS_FILTER_LABELS[status],
+        icon: STATUS_ICONS[status],
+      };
+      return status === 'open'
+        ? [option, { value: 'overdue', label: 'Overdue', icon: <AlarmClock /> }]
+        : [option];
+    },
+  );
+  const phoneStatus: PhoneStatus = filters.overdue ? 'overdue' : filters.status;
+  const choosePhoneStatus = (choice: PhoneStatus) =>
+    onChange(
+      choice === 'overdue' ? { status: 'open', overdue: true } : { status: choice, overdue: false },
+    );
+  // On phones the two dropdowns share the row 50/50 and drop their visible labels, so they stay
+  // side by side even on a 320px screen.
+  const phoneHalf = 'w-full min-w-0 sm:w-auto';
+
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      {/* Wider screens: every status as a pill. Phones get the Status dropdown below instead,
+          so the row doesn't wrap and push the cards down. */}
       <div
         role="group"
         aria-label="Status"
-        className="inline-flex w-fit flex-wrap gap-1 rounded-pill bg-surface p-1 shadow-card ring-1 ring-line lg:bg-sidebar-hover lg:shadow-none lg:ring-sidebar-line"
+        className="hidden w-fit flex-wrap gap-1 rounded-pill bg-surface p-1 shadow-card ring-1 ring-line sm:inline-flex lg:bg-sidebar-hover lg:shadow-none lg:ring-sidebar-line"
       >
         {ACTION_ITEM_STATUS_FILTERS.map((status) => (
           <button
@@ -310,11 +350,21 @@ function Filters({
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+        <Select
+          label="Status"
+          tone="bar"
+          className={cn(phoneHalf, 'sm:hidden')}
+          value={phoneStatus}
+          options={statusOptions}
+          onChange={choosePhoneStatus}
+        />
         <Select
           label="Assigned to"
           showLabel
+          labelClassName="max-sm:hidden"
           tone="bar"
+          className={phoneHalf}
           value={filters.owner ?? ''}
           options={ownerOptions}
           onChange={(owner) => onChange({ owner: owner || undefined })}
@@ -324,7 +374,7 @@ function Filters({
           aria-pressed={filters.overdue}
           onClick={() => onChange({ overdue: !filters.overdue })}
           className={cn(
-            'inline-flex min-h-10 items-center gap-2 rounded-pill border px-4 text-sm font-semibold transition-[background-color,border-color,color] duration-200',
+            'hidden min-h-10 items-center gap-2 rounded-pill border px-4 text-sm font-semibold transition-[background-color,border-color,color] duration-200 sm:inline-flex',
             filters.overdue
               ? 'border-danger bg-danger text-danger-fg shadow-card'
               : 'border-line-strong/50 bg-surface text-fg shadow-card hover:border-danger/50 hover:text-danger lg:border-sidebar-line lg:bg-sidebar-hover lg:text-sidebar-fg lg:shadow-none lg:hover:text-danger-light',

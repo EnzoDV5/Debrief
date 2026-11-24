@@ -22,6 +22,7 @@ export function Select<T extends string>({
   options,
   label,
   showLabel = false,
+  labelClassName,
   tone = 'light',
   id,
   className,
@@ -34,6 +35,9 @@ export function Select<T extends string>({
   label: string;
   // Show the label inside the button ("Owner  Everyone") instead of only to screen readers.
   showLabel?: boolean;
+  // Extra classes for that shown label, e.g. 'max-sm:hidden' to drop it on narrow screens (the
+  // button's accessible name always includes the label).
+  labelClassName?: string;
   // 'bar' suits the dark top bar on wide screens.
   tone?: 'light' | 'bar';
   id?: string;
@@ -171,7 +175,11 @@ export function Select<T extends string>({
         <span className="flex min-w-0 items-center gap-2">
           {showLabel && (
             <span
-              className={cn('font-medium text-muted', tone === 'bar' && 'lg:text-sidebar-muted')}
+              className={cn(
+                'font-medium text-muted',
+                tone === 'bar' && 'lg:text-sidebar-muted',
+                labelClassName,
+              )}
             >
               {label}
             </span>

@@ -1,4 +1,5 @@
 // Creates one-time reset links, emails them, and sets the new password.
+import argon2 from 'argon2';
 import { generateSessionToken, hashSessionToken } from '../../lib/crypto';
 import { AppError } from '../../lib/errors';
 import { logger } from '../../lib/logger';
@@ -7,6 +8,14 @@ import { hashPassword } from './auth.service';
 import type { EmailClient } from './emailClient';
 
 export const RESET_LINK_MINUTES = 30;
+export const SAME_PASSWORD_MESSAGE = "That's your current password. Choose a different one.";
+
+const linkInvalid = () =>
+  new AppError(
+    400,
+    'RESET_LINK_INVALID',
+    'This reset link has expired or has already been used. Ask for a new one.',
+  );
 
 export function createPasswordResetService({
   email,
@@ -46,15 +55,22 @@ export function createPasswordResetService({
     },
 
     async reset(token: string, newPassword: string) {
-      const passwordHash = await hashPassword(newPassword);
-      const user = await authRepository.usePasswordReset(hashSessionToken(token), passwordHash);
-      if (!user) {
-        throw new AppError(
-          400,
-          'RESET_LINK_INVALID',
-          'This reset link has expired or has already been used. Ask for a new one.',
-        );
+      const tokenHash = hashSessionToken(token);
+      const current = await authRepository.findPasswordForReset(tokenHash);
+      if (!current.found) throw linkInvalid();
+      // Only the hash is stored, so argon2 checks whether the new password matches it. The link
+      // isn't used up, so the user can pick a different password straight away.
+      if (current.passwordHash && (await argon2.verify(current.passwordHash, newPassword))) {
+        throw new AppError(400, 'VALIDATION_ERROR', SAME_PASSWORD_MESSAGE, {
+          password: SAME_PASSWORD_MESSAGE,
+        });
       }
+
+      const user = await authRepository.usePasswordReset(
+        tokenHash,
+        await hashPassword(newPassword),
+      );
+      if (!user) throw linkInvalid();
     },
   };
 }

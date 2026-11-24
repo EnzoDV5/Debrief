@@ -589,6 +589,30 @@ describe('reset password (the emailed link)', () => {
     );
   });
 
+  it('says so under the field when the new password is the current one, and stays put', async () => {
+    const message = "That's your current password. Choose a different one.";
+    mockApi({
+      'GET /api/auth/me': unauthenticated,
+      'POST /api/auth/reset-password': {
+        status: 400,
+        body: { error: { code: 'VALIDATION_ERROR', message, fields: { password: message } } },
+      },
+    });
+    const user = userEvent.setup();
+    const { router } = renderApp('/reset-password#token=abc123');
+
+    const field = await screen.findByLabelText('New password');
+    await user.type(field, 'correct-horse-battery-42');
+    await user.type(screen.getByLabelText('Confirm new password'), 'correct-horse-battery-42');
+    await user.click(screen.getByRole('button', { name: 'Save new password' }));
+
+    expect(await screen.findByText(message)).toBeInTheDocument();
+    expect(field).toHaveAttribute('aria-invalid', 'true');
+    // The link still works, so there's no "send me a new link" detour.
+    expect(screen.queryByRole('link', { name: 'Send me a new link' })).not.toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/reset-password');
+  });
+
   it('says so when the link has no token', async () => {
     mockApi({ 'GET /api/auth/me': unauthenticated });
     renderApp('/reset-password');

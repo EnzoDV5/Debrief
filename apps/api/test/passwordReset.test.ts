@@ -141,6 +141,32 @@ describe('using the link', () => {
     expect((await login(NEW_PASSWORD)).status).toBe(200);
   });
 
+  it('refuses the current password, and keeps the link usable for a different one', async () => {
+    const session = await signUp(app, 'Alice');
+    const token = await tokenFromEmail();
+
+    const same = await reset(token, PASSWORD);
+    expect(same.status).toBe(400);
+    expect(same.body.error.fields).toEqual({
+      password: "That's your current password. Choose a different one.",
+    });
+    // Nothing changed: still logged in, the password still works, and the link wasn't used up.
+    expect((await request(app).get('/api/auth/me').set('Cookie', session)).status).toBe(200);
+    expect((await login(PASSWORD)).status).toBe(200);
+
+    expect((await reset(token)).status).toBe(204);
+    expect((await login(NEW_PASSWORD)).status).toBe(200);
+  });
+
+  it('says the link has expired, not "current password", when the link is dead', async () => {
+    await signUp(app, 'Alice');
+    const token = await tokenFromEmail();
+    await pool.query(`UPDATE password_resets SET expires_at = now() - interval '1 second'`);
+
+    // A dead link must not reveal whether a guessed password is right.
+    expect((await reset(token, PASSWORD)).body.error.code).toBe('RESET_LINK_INVALID');
+  });
+
   it('stops working after 30 minutes', async () => {
     await signUp(app, 'Alice');
     const token = await tokenFromEmail();

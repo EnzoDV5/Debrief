@@ -173,6 +173,28 @@ export const authRepository = {
     });
   },
 
+  // The current password behind a reset link that can still be used, without using it up.
+  // `found: false` means the link is expired, used or unknown; `passwordHash` is null for an
+  // account that has only ever signed in with Google.
+  async findPasswordForReset(
+    tokenHash: string,
+  ): Promise<{ found: false } | { found: true; passwordHash: string | null }> {
+    const [row] = await db
+      .select({ passwordHash: users.passwordHash })
+      .from(passwordResets)
+      .innerJoin(users, eq(passwordResets.userId, users.id))
+      .where(
+        and(
+          eq(passwordResets.id, tokenHash),
+          isNull(passwordResets.usedAt),
+          gt(passwordResets.expiresAt, new Date()),
+          isNull(users.deletedAt),
+        ),
+      )
+      .limit(1);
+    return row ? { found: true, passwordHash: row.passwordHash } : { found: false };
+  },
+
   async usePasswordReset(tokenHash: string, passwordHash: string): Promise<UserRow | null> {
     return db.transaction(async (tx) => {
       const [claimed] = await tx

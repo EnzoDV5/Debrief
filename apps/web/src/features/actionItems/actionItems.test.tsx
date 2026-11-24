@@ -532,6 +532,66 @@ describe('Actions page', () => {
     expect(router.state.location.search).toBe('?status=done&owner=Ben&overdue=true');
   });
 
+  it('offers the same status filter as a dropdown (shown on phones)', async () => {
+    const urls: string[] = [];
+    mockApi({
+      ...me,
+      'GET /api/action-items': (_body, url) => {
+        urls.push(url);
+        return { status: 200, body: { actionItems: [listed()], owners: [] } };
+      },
+    });
+    const user = userEvent.setup();
+    const { router } = renderApp('/items');
+    await screen.findByText('Send the files');
+
+    const dropdown = screen.getByRole('button', { name: /^Status/ });
+    expect(dropdown).toHaveTextContent('Open');
+    await user.click(dropdown);
+    await user.click(screen.getByRole('option', { name: 'In progress' }));
+
+    await waitFor(() => expect(urls.at(-1)).toMatch(/status=in_progress/));
+    expect(router.state.location.search).toBe('?status=in_progress');
+    expect(screen.getByRole('button', { name: /^Status/ })).toHaveTextContent('In progress');
+    // The pills on wider screens follow the same filter.
+    expect(screen.getByRole('button', { name: 'In progress' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
+  it('has Overdue as a choice in the phone Status dropdown, which another status turns off', async () => {
+    const urls: string[] = [];
+    mockApi({
+      ...me,
+      'GET /api/action-items': (_body, url) => {
+        urls.push(url);
+        return { status: 200, body: { actionItems: [listed()], owners: [] } };
+      },
+    });
+    const user = userEvent.setup();
+    const { router } = renderApp('/items');
+    await screen.findByText('Send the files');
+
+    await user.click(screen.getByRole('button', { name: /^Status/ }));
+    await user.click(screen.getByRole('option', { name: 'Overdue' }));
+
+    await waitFor(() => expect(urls.at(-1)).toMatch(/status=open.*overdue=true/));
+    expect(router.state.location.search).toBe('?overdue=true');
+    expect(screen.getByRole('button', { name: 'Status, Overdue' })).toBeInTheDocument();
+    // The wider-screen toggle shows the same filter.
+    expect(screen.getByRole('button', { name: 'Overdue only' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    await user.click(screen.getByRole('button', { name: /^Status/ }));
+    await user.click(screen.getByRole('option', { name: 'Done' }));
+
+    await waitFor(() => expect(router.state.location.search).toBe('?status=done'));
+    expect(urls.at(-1)).not.toMatch(/overdue/);
+  });
+
   it('explains an empty filtered list and offers to clear the filters', async () => {
     mockApi({
       ...me,
