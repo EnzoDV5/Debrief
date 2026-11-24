@@ -91,3 +91,9 @@ The full step-by-step log from the build (about 115 lines) is in the git history
   that is a one-column CSS grid, and the grid's column stretched to the full width of a task line
   that never wraps. Claude wrote the one-class fix (`grid-cols-[minmax(0,1fr)]`) after I approved
   the plan. Tests can't measure layout, so I check it by hand with a re-analysis.
+- **24 Nov: live site "offline" while local and Docker work.** I asked why the Cloudflare site
+  looked offline right after a Wrangler deploy. Claude checked the live addresses: the website itself
+  loaded (200), but every `/api/*` call failed with `429` and `Cf-Mitigated: challenge`, both through
+  the Worker and when calling the Render address directly. So the deploy was fine; Render's own edge
+  was showing a bot check that a server-to-server `fetch` can't pass, and the request never reached
+  Express. No code was changed.
