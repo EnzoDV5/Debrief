@@ -21,6 +21,8 @@
     "db:generate": "npm run db:generate -w @debrief/api",
     "db:migrate": "npm run db:migrate -w @debrief/api",
     "db:migrate:supabase": "npm run db:migrate:supabase -w @debrief/api",
+    "db:seed": "npm run db:seed -w @debrief/api",
+    "db:seed:supabase": "npm run db:seed:supabase -w @debrief/api",
     "ai:eval": "npm run ai:eval -w @debrief/api --",
     "docker:up": "docker compose up --build -d",
     "docker:down": "docker compose down",
