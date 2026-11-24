@@ -1,6 +1,12 @@
 // The card for one decision, with the tasks that put it into action: tick them off, jump to
 // their cards, or add one. A decision nobody is acting on says so.
-import type { ActionItem, Decision, Meeting } from '@debrief/shared';
+import {
+  EDIT_WHILE_ANALYSING_MESSAGE,
+  isAnalysing,
+  type ActionItem,
+  type Decision,
+  type Meeting,
+} from '@debrief/shared';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Alert } from '@/components/ui/Alert';
@@ -42,6 +48,8 @@ export function DecisionBubble({
   // Keeps the dialog mounted while it animates out.
   const shownAdding = useLingering(adding || null);
   const doneCount = tasks.filter((task) => task.status === 'done').length;
+  // New tasks wait until the AI has finished reading the transcript (the server checks too).
+  const analysing = isAnalysing(meeting.analysisStatus);
 
   return (
     <article
@@ -120,8 +128,10 @@ export function DecisionBubble({
           <button
             type="button"
             onClick={() => setAdding(true)}
+            disabled={analysing}
+            title={analysing ? EDIT_WHILE_ANALYSING_MESSAGE : undefined}
             aria-label={`Add a task for “${decision.text}”`}
-            className="-mr-1.5 inline-flex min-h-8 items-center gap-1 rounded-pill px-2.5 text-sm font-semibold text-success transition-colors hover:bg-success-soft"
+            className="-mr-1.5 inline-flex min-h-8 items-center gap-1 rounded-pill px-2.5 text-sm font-semibold text-success transition-colors hover:bg-success-soft disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
           >
             <Plus aria-hidden="true" className="size-4" />
             Add task

@@ -3,7 +3,7 @@ import type { createDecisionSchema, Decision, DecisionInput } from '@debrief/sha
 import type { z } from 'zod';
 import { notFound } from '../../lib/errors';
 import { actionItemsRepository } from '../actionItems/actionItems.repository';
-import { assertPickedSource } from '../actionItems/pickedSource';
+import { assertNotAnalysing, assertPickedSource } from '../actionItems/pickedSource';
 import { toDecision } from '../meetings/meetings.mappers';
 import { decisionsRepository } from './decisions.repository';
 
@@ -13,9 +13,10 @@ export const decisionsService = {
     meetingId: string,
     input: z.output<typeof createDecisionSchema>,
   ): Promise<Decision> {
-    const lines = await actionItemsRepository.findTranscriptLines(userId, meetingId);
-    if (!lines) throw notFound('Meeting');
-    assertPickedSource(lines, input.sourceLine);
+    const meeting = await actionItemsRepository.findForNewNote(userId, meetingId);
+    if (!meeting) throw notFound('Meeting');
+    assertNotAnalysing(meeting.analysisStatus);
+    assertPickedSource(meeting.lines, input.sourceLine);
     const row = await decisionsRepository.create({
       meetingId,
       userId,

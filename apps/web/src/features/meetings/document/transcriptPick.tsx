@@ -1,7 +1,8 @@
 // Click or select text in the transcript to turn it into an action item or decision.
-import { Gavel, ListChecks, Pencil, UserRound } from 'lucide-react';
-import { useEffect, useRef, type RefObject } from 'react';
+import { Gavel, Hourglass, ListChecks, Pencil, UserRound } from 'lucide-react';
+import { useEffect, useId, useRef, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
+import { cn } from '@/lib/cn';
 
 export type TranscriptPick = {
   text: string;
@@ -125,6 +126,7 @@ export function PickToolbar({
   onEdit,
   onSpeaker,
   hasSpeaker = false,
+  lockedReason,
   onClose,
 }: {
   state: PickToolbarState;
@@ -132,13 +134,21 @@ export function PickToolbar({
   onEdit?: () => void;
   onSpeaker?: () => void;
   hasSpeaker?: boolean;
+  // Set while the AI is analysing: the buttons stay visible but can't be used, and this says why.
+  lockedReason?: string;
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const noteId = useId();
+  const locked = Boolean(lockedReason);
 
   useEffect(() => {
     if (state.source !== 'click') return;
-    if (state.focus) ref.current?.querySelector('button')?.focus();
+    if (state.focus) {
+      // Disabled buttons can't take focus, so a locked toolbar focuses itself (Escape closes it).
+      const first = ref.current?.querySelector<HTMLButtonElement>('button:not(:disabled)');
+      (first ?? ref.current)?.focus();
+    }
     const onPointerDown = (event: PointerEvent) => {
       if (!ref.current?.contains(event.target as Node)) onClose();
     };
@@ -147,55 +157,72 @@ export function PickToolbar({
   }, [state, onClose]);
 
   const button =
-    'inline-flex min-h-9 items-center gap-1.5 rounded-pill px-3 text-sm font-semibold text-fg transition-colors hover:bg-surface-2';
+    'inline-flex min-h-9 items-center gap-1.5 rounded-pill px-3 text-sm font-semibold text-fg transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent';
   return createPortal(
     <div
       ref={ref}
       role="toolbar"
       aria-label="Create from the transcript"
+      aria-describedby={locked ? noteId : undefined}
+      tabIndex={-1}
       style={{ left: state.x, top: state.y }}
-      className="fixed z-40 flex -translate-x-1/2 -translate-y-[calc(100%+0.5rem)] gap-1 rounded-pill border border-glass-edge glass-float p-1 shadow-raised"
-    >
-      <button
-        type="button"
-        className={button}
-        onPointerDown={(event) => event.preventDefault()}
-        onClick={() => onChoose('action')}
-      >
-        <ListChecks aria-hidden="true" className="size-4 text-accent" />
-        Action item
-      </button>
-      <button
-        type="button"
-        className={button}
-        onPointerDown={(event) => event.preventDefault()}
-        onClick={() => onChoose('decision')}
-      >
-        <Gavel aria-hidden="true" className="size-4 text-success" />
-        Decision
-      </button>
-      {(onEdit || onSpeaker) && <span aria-hidden="true" className="my-1.5 w-px bg-line" />}
-      {onSpeaker && (
-        <button
-          type="button"
-          className={button}
-          onPointerDown={(event) => event.preventDefault()}
-          onClick={onSpeaker}
-        >
-          <UserRound aria-hidden="true" className="size-4 text-muted" />
-          {hasSpeaker ? 'Change speaker' : 'Who said this?'}
-        </button>
+      className={cn(
+        'fixed z-40 flex -translate-x-1/2 -translate-y-[calc(100%+0.5rem)] flex-col items-center border border-glass-edge glass-float p-1 shadow-raised outline-none',
+        locked ? 'rounded-2xl' : 'rounded-pill',
       )}
-      {onEdit && (
+    >
+      <div className="flex gap-1">
         <button
           type="button"
           className={button}
+          disabled={locked}
           onPointerDown={(event) => event.preventDefault()}
-          onClick={onEdit}
+          onClick={() => onChoose('action')}
         >
-          <Pencil aria-hidden="true" className="size-4 text-muted" />
-          Edit line
+          <ListChecks aria-hidden="true" className="size-4 text-accent" />
+          Action item
         </button>
+        <button
+          type="button"
+          className={button}
+          disabled={locked}
+          onPointerDown={(event) => event.preventDefault()}
+          onClick={() => onChoose('decision')}
+        >
+          <Gavel aria-hidden="true" className="size-4 text-success" />
+          Decision
+        </button>
+        {(onEdit || onSpeaker) && <span aria-hidden="true" className="my-1.5 w-px bg-line" />}
+        {onSpeaker && (
+          <button
+            type="button"
+            className={button}
+            disabled={locked}
+            onPointerDown={(event) => event.preventDefault()}
+            onClick={onSpeaker}
+          >
+            <UserRound aria-hidden="true" className="size-4 text-muted" />
+            {hasSpeaker ? 'Change speaker' : 'Who said this?'}
+          </button>
+        )}
+        {onEdit && (
+          <button
+            type="button"
+            className={button}
+            disabled={locked}
+            onPointerDown={(event) => event.preventDefault()}
+            onClick={onEdit}
+          >
+            <Pencil aria-hidden="true" className="size-4 text-muted" />
+            Edit line
+          </button>
+        )}
+      </div>
+      {locked && (
+        <p id={noteId} className="flex items-center gap-1.5 px-3 pt-1 pb-1.5 text-xs text-muted">
+          <Hourglass aria-hidden="true" className="size-3.5" />
+          {lockedReason}
+        </p>
       )}
     </div>,
     document.body,

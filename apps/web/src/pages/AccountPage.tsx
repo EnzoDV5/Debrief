@@ -356,7 +356,6 @@ function AppearanceBlock() {
 
 function SessionBlock() {
   const logout = useLogout();
-  const navigate = useNavigate();
   return (
     <Card className="flex flex-col justify-between gap-3 p-5">
       <div>
@@ -369,7 +368,7 @@ function SessionBlock() {
         className="self-start"
         loading={logout.isPending}
         icon={<LogOut aria-hidden="true" className="size-4" />}
-        onClick={() => logout.mutate(undefined, { onSettled: () => navigate('/login') })}
+        onClick={() => logout.mutate()}
       >
         Log out
       </Button>

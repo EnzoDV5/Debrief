@@ -62,6 +62,39 @@ describe('login', () => {
     expect(router.state.location.pathname).toBe('/account');
   });
 
+  it('after logging out, logging back in starts on the New meeting page', async () => {
+    let loggedIn = true;
+    mockApi({
+      'GET /api/auth/me': () =>
+        loggedIn ? { status: 200, body: { user: testUser } } : unauthenticated,
+      'POST /api/auth/logout': () => {
+        loggedIn = false;
+        return { status: 204 };
+      },
+      'POST /api/auth/login': () => {
+        loggedIn = true;
+        return { status: 200, body: { user: testUser } };
+      },
+    });
+    const user = userEvent.setup();
+    const { router } = renderApp('/account');
+
+    await user.click(await screen.findByRole('button', { name: 'Log out' }));
+    expect(await screen.findByRole('heading', { name: 'Log in to Debrief' })).toBeInTheDocument();
+    // Logging out on purpose must not leave "?next=/account" behind.
+    expect(router.state.location.pathname).toBe('/login');
+    expect(router.state.location.search).toBe('');
+
+    await user.type(screen.getByLabelText('Email'), 'alice@debrief.test');
+    await user.type(screen.getByLabelText('Password'), 'correct-horse-battery-42');
+    await user.click(screen.getByRole('button', { name: 'Log in' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'What would you like to debrief?' }),
+    ).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/meetings');
+  });
+
   it('shows the generic error, keeps the email and clears the password', async () => {
     mockApi({
       'GET /api/auth/me': unauthenticated,

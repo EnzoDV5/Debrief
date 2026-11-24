@@ -1,5 +1,11 @@
 // The meeting page: transcript on the left, notes lined up next to the lines they came from.
-import type { ActionItem, Decision, Meeting, TranscriptLine } from '@debrief/shared';
+import {
+  EDIT_WHILE_ANALYSING_MESSAGE,
+  type ActionItem,
+  type Decision,
+  type Meeting,
+  type TranscriptLine,
+} from '@debrief/shared';
 import { Pencil, Plus, TextSelect, UserRound } from 'lucide-react';
 import {
   useCallback,
@@ -141,7 +147,7 @@ export function MeetingDocument({
   useTranscriptSelection(transcriptRef, setToolbar);
   const closeToolbar = useCallback(() => setToolbar(null), []);
   const choose = (kind: PickKind) => {
-    if (!toolbar) return;
+    if (!toolbar || analysisRunning) return;
     setCreating({ kind, pick: toolbar.pick });
     setToolbar(null);
     window.getSelection()?.removeAllRanges();
@@ -538,6 +544,8 @@ export function MeetingDocument({
           hasSpeaker={Boolean(
             meeting.transcriptLines.find((line) => line.n === toolbar.pick.line)?.speaker,
           )}
+          // While the AI reads the transcript, it can't change and nothing new can point at it.
+          lockedReason={analysisRunning ? EDIT_WHILE_ANALYSING_MESSAGE : undefined}
           onClose={closeToolbar}
         />
       )}

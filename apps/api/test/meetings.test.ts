@@ -277,6 +277,7 @@ describe('PATCH /api/meetings/:id/lines/:n (fix a transcript line)', () => {
 
   it('changes the line, marks it as edited, and keeps the original upload untouched', async () => {
     const meeting = await createMeeting(alice);
+    await markAnalysed(meeting.id);
     const res = await editLine(alice, meeting.id, 2, { text: '  Hi there, everyone  ' });
 
     expect(res.status).toBe(200);
@@ -300,6 +301,7 @@ describe('PATCH /api/meetings/:id/lines/:n (fix a transcript line)', () => {
 
   it('sets, changes and removes who said a line without touching its words', async () => {
     const meeting = await createMeeting(alice, 'Hello everyone\nBen: Hi there');
+    await markAnalysed(meeting.id);
     const line = async (n: number, body: object) =>
       (
         (await editLine(alice, meeting.id, n, body)).body.meeting.transcriptLines as {
@@ -320,6 +322,28 @@ describe('PATCH /api/meetings/:id/lines/:n (fix a transcript line)', () => {
       speakerEdited: true,
     });
     expect(await line(1, { speaker: null })).not.toHaveProperty('speaker');
+  });
+
+  it('waits while the AI is reading the transcript (409), and changes nothing', async () => {
+    const meeting = await createMeeting(alice); // tests never run the AI, so it stays "pending"
+    for (const body of [{ text: 'Changed' }, { speaker: 'Someone' }]) {
+      const res = await editLine(alice, meeting.id, 1, body);
+      expect(res.status).toBe(409);
+      expect(res.body.error.code).toBe('ANALYSIS_RUNNING');
+    }
+    await pool.query("update meetings set analysis_status = 'processing' where id = $1", [
+      meeting.id,
+    ]);
+    expect((await editLine(alice, meeting.id, 1, { text: 'Changed' })).status).toBe(409);
+
+    const row = await pool.query('select transcript_lines from meetings where id = $1', [
+      meeting.id,
+    ]);
+    expect(row.rows[0].transcript_lines[0]).toEqual({ n: 1, speaker: 'Ann', text: 'Hello' });
+
+    // A failed analysis isn't running, so the transcript can be fixed before retrying.
+    await pool.query("update meetings set analysis_status = 'failed' where id = $1", [meeting.id]);
+    expect((await editLine(alice, meeting.id, 1, { text: 'Changed' })).status).toBe(200);
   });
 
   it('rejects an empty patch and an over-long speaker', async () => {

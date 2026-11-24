@@ -3,7 +3,14 @@ import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app';
 import { pool } from '../src/db/client';
-import { closeDatabase, resetDatabase, signUp, testAppDeps, WEB_ORIGIN } from './helpers';
+import {
+  closeDatabase,
+  markAnalysed,
+  resetDatabase,
+  signUp,
+  testAppDeps,
+  WEB_ORIGIN,
+} from './helpers';
 
 let app: ReturnType<typeof createApp>;
 let alice: string;
@@ -38,6 +45,7 @@ async function meetingWithItems(
     transcript: 'Ann: hi',
   });
   const meetingId: string = res.body.meeting.id;
+  await markAnalysed(meetingId);
   const { rows } = await pool.query('SELECT user_id FROM meetings WHERE id = $1', [meetingId]);
   const userId = rows[0].user_id;
   const ids: string[] = [];
@@ -267,6 +275,7 @@ describe('items picked from the transcript (select text → create)', () => {
       meetingDate: '2026-11-24',
       transcript: 'Ann: We should ship on Friday.\nBen: I will send the deck to Lerato.',
     });
+    await markAnalysed(res.body.meeting.id);
     return res.body.meeting.id as string;
   }
   const addItem = (meetingId: string, body: object) =>
@@ -286,6 +295,39 @@ describe('items picked from the transcript (select text → create)', () => {
       origin: 'manual',
       needsReview: false,
     });
+  });
+
+  it('waits while the AI is reading the transcript (409), and saves nothing', async () => {
+    const res = await send('post', '/api/meetings', alice, {
+      title: 'Still analysing',
+      meetingDate: '2026-11-24',
+      transcript: 'Ann: We should ship on Friday.',
+    });
+    const meetingId: string = res.body.meeting.id; // tests never run the AI: still "pending"
+
+    for (const status of ['pending', 'processing']) {
+      await pool.query('UPDATE meetings SET analysis_status = $1 WHERE id = $2', [
+        status,
+        meetingId,
+      ]);
+      const item = await addItem(meetingId, { text: 'Ship it', sourceLine: 1 });
+      const decision = await send('post', `/api/meetings/${meetingId}/decisions`, alice, {
+        text: 'Ship on Friday',
+        sourceLine: 1,
+      });
+      for (const blocked of [item, decision]) {
+        expect(blocked.status).toBe(409);
+        expect(blocked.body.error.code).toBe('ANALYSIS_RUNNING');
+      }
+    }
+    const { rows } = await pool.query(
+      'SELECT (SELECT count(*) FROM action_items) AS items, (SELECT count(*) FROM decisions) AS decisions',
+    );
+    expect(rows[0]).toEqual({ items: '0', decisions: '0' });
+
+    // Once it's done, the same requests work.
+    await markAnalysed(meetingId);
+    expect((await addItem(meetingId, { text: 'Ship it', sourceLine: 1 })).status).toBe(201);
   });
 
   it('rejects a line that is not in the transcript, or words that are not on it', async () => {

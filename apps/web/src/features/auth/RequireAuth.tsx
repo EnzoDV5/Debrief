@@ -2,7 +2,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router';
 import { FullPageError } from '@/components/ui/FullPageError';
 import { FullPageSpinner } from '@/components/ui/Spinner';
-import { useMe } from './hooks';
+import { signedOutOnPurpose, useMe } from './hooks';
 
 export function RequireAuth() {
   const { data: user, isPending, isFetching, error, refetch } = useMe();
@@ -23,6 +23,7 @@ export function RequireAuth() {
   }
 
   if (!user) {
+    if (signedOutOnPurpose()) return <Navigate to="/login" replace />;
     const next = encodeURIComponent(location.pathname + location.search);
     return <Navigate to={`/login?next=${next}`} replace />;
   }

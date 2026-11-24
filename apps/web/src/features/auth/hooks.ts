@@ -49,7 +49,10 @@ export function useLogin() {
   return useMutation({
     mutationFn: (input: LoginInput) =>
       request('/auth/login', { method: 'POST', body: input, schema: authResponseSchema }),
-    onSuccess: ({ user }) => queryClient.setQueryData(meQueryKey, user),
+    onSuccess: ({ user }) => {
+      leftOnPurpose = false;
+      queryClient.setQueryData(meQueryKey, user);
+    },
   });
 }
 
@@ -58,13 +61,23 @@ export function useRegister() {
   return useMutation({
     mutationFn: (input: RegisterInput) =>
       request('/auth/register', { method: 'POST', body: input, schema: authResponseSchema }),
-    onSuccess: ({ user }) => queryClient.setQueryData(meQueryKey, user),
+    onSuccess: ({ user }) => {
+      leftOnPurpose = false;
+      queryClient.setQueryData(meQueryKey, user);
+    },
   });
 }
 
-function useSignedOut() {
+// True after you log out or delete your account, until you log in again. RequireAuth then sends you
+// to a plain /login instead of adding ?next= for the page you were on, so logging back in starts on
+// the New meeting page. (An expired session still remembers the page.)
+let leftOnPurpose = false;
+export const signedOutOnPurpose = () => leftOnPurpose;
+
+function useSignedOut({ onPurpose = false } = {}) {
   const queryClient = useQueryClient();
   return () => {
+    if (onPurpose) leftOnPurpose = true;
     queryClient.removeQueries({
       predicate: (query) => !(query.queryKey[0] === 'auth' && query.queryKey[1] === 'me'),
     });
@@ -73,7 +86,7 @@ function useSignedOut() {
 }
 
 export function useLogout() {
-  const signedOut = useSignedOut();
+  const signedOut = useSignedOut({ onPurpose: true });
   return useMutation({
     mutationFn: () => requestNoContent('/auth/logout', { method: 'POST' }),
     onSettled: signedOut,
@@ -116,7 +129,7 @@ export function useRemoveAvatar() {
 }
 
 export function useDeleteAccount() {
-  const signedOut = useSignedOut();
+  const signedOut = useSignedOut({ onPurpose: true });
   return useMutation({
     mutationFn: (input: DeleteAccountInput) =>
       requestNoContent('/auth/account', { method: 'DELETE', body: input }),

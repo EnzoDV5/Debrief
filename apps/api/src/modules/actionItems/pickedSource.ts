@@ -1,7 +1,18 @@
 // When a user picks a quote for their own item, make sure it really is on that transcript line.
-import type { TranscriptLine } from '@debrief/shared';
+import {
+  EDIT_WHILE_ANALYSING_MESSAGE,
+  isAnalysing,
+  type AnalysisStatus,
+  type TranscriptLine,
+} from '@debrief/shared';
 import { AppError } from '../../lib/errors';
 import { quoteIsOnLine } from '../analysis/postChecks';
+
+// New action items and decisions wait until the AI has finished reading the transcript.
+export function assertNotAnalysing(status: AnalysisStatus): void {
+  if (isAnalysing(status))
+    throw new AppError(409, 'ANALYSIS_RUNNING', EDIT_WHILE_ANALYSING_MESSAGE);
+}
 
 export function assertPickedSource(
   lines: TranscriptLine[],

@@ -2,7 +2,14 @@
 import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app';
-import { closeDatabase, resetDatabase, signUp, testAppDeps, WEB_ORIGIN } from './helpers';
+import {
+  closeDatabase,
+  markAnalysed,
+  resetDatabase,
+  signUp,
+  testAppDeps,
+  WEB_ORIGIN,
+} from './helpers';
 
 let app: ReturnType<typeof createApp>;
 let alice: string;
@@ -28,6 +35,7 @@ async function meetingWithNotes(cookie: string) {
     transcript: 'Ann: We keep the 100% budget.\nBen: I will send the invoice to Coastline.',
   });
   const id = res.body.meeting.id as string;
+  await markAnalysed(id);
   await post(cookie, `/api/meetings/${id}/action-items`, {
     text: 'Send the invoice to Coastline',
     owner: 'Ben',

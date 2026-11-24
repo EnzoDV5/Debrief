@@ -1,5 +1,10 @@
 // All the database work for action items. Every query is filtered by the logged-in user.
-import { UNASSIGNED_OWNER, type ActionItemStatus, type TranscriptLine } from '@debrief/shared';
+import {
+  UNASSIGNED_OWNER,
+  type ActionItemStatus,
+  type AnalysisStatus,
+  type TranscriptLine,
+} from '@debrief/shared';
 import { and, asc, desc, eq, inArray, isNotNull, isNull, lt, ne, sql, type SQL } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { actionItems, decisions, meetings, type ActionItemRow } from '../../db/schema';
@@ -11,13 +16,18 @@ export type ActionItemFilters = {
 };
 
 export const actionItemsRepository = {
-  async findTranscriptLines(userId: string, meetingId: string): Promise<TranscriptLine[] | null> {
+  // What adding a note by hand needs to know: the lines it may point at, and whether the AI is
+  // still analysing the meeting.
+  async findForNewNote(
+    userId: string,
+    meetingId: string,
+  ): Promise<{ lines: TranscriptLine[]; analysisStatus: AnalysisStatus } | null> {
     const [row] = await db
-      .select({ lines: meetings.transcriptLines })
+      .select({ lines: meetings.transcriptLines, analysisStatus: meetings.analysisStatus })
       .from(meetings)
       .where(and(eq(meetings.id, meetingId), eq(meetings.userId, userId)))
       .limit(1);
-    return row?.lines ?? null;
+    return row ?? null;
   },
 
   // A task may only point at a decision from the same meeting, owned by the same user.

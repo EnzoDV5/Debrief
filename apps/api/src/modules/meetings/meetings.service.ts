@@ -1,6 +1,7 @@
 // Rules for meetings: save the transcript first, then queue the analysis.
 import {
   ARCHIVE_WHILE_ANALYSING_MESSAGE,
+  EDIT_WHILE_ANALYSING_MESSAGE,
   isAnalysing,
   parseTranscript,
   RENAME_WHILE_ANALYSING_MESSAGE,
@@ -142,6 +143,8 @@ export const meetingsService = {
     const row = await meetingsRepository.findForUser(userId, meetingId);
     if (!row) throw notFound('Meeting');
     if (!row.transcriptLines.some((line) => line.n === n)) throw notFound('Line');
+    if (isAnalysing(row.analysisStatus))
+      throw new AppError(409, 'ANALYSIS_RUNNING', EDIT_WHILE_ANALYSING_MESSAGE);
     const lines = row.transcriptLines.map((line): TranscriptLine => {
       if (line.n !== n) return line;
       let next: TranscriptLine = { ...line };

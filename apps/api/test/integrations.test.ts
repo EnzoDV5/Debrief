@@ -12,7 +12,15 @@ import {
   type GoogleClient,
 } from '../src/modules/integrations/googleClient';
 import { createIntegrationsService } from '../src/modules/integrations/integrations.service';
-import { closeDatabase, PASSWORD, resetDatabase, signUp, testAppDeps, WEB_ORIGIN } from './helpers';
+import {
+  closeDatabase,
+  markAnalysed,
+  PASSWORD,
+  resetDatabase,
+  signUp,
+  testAppDeps,
+  WEB_ORIGIN,
+} from './helpers';
 
 const REFRESH_TOKEN = '1//refresh-token-from-google';
 const key = randomBytes(32);
@@ -85,6 +93,7 @@ async function itemFor(cookie: string, dueDate: string | null = '2026-11-30') {
     .set('Origin', WEB_ORIGIN)
     .set('Cookie', cookie)
     .send({ title: 'Plan', meetingDate: '2026-11-24', transcript: 'Ann: hi' });
+  await markAnalysed(meeting.body.meeting.id);
   const item = await request(app)
     .post(`/api/meetings/${meeting.body.meeting.id}/action-items`)
     .set('Origin', WEB_ORIGIN)

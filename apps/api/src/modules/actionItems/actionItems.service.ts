@@ -11,7 +11,7 @@ import type { z } from 'zod';
 import { notFound } from '../../lib/errors';
 import { toActionItem } from '../meetings/meetings.mappers';
 import { actionItemsRepository } from './actionItems.repository';
-import { assertPickedSource } from './pickedSource';
+import { assertNotAnalysing, assertPickedSource } from './pickedSource';
 
 type CreateInput = z.output<typeof createActionItemSchema>;
 type UpdateInput = z.output<typeof updateActionItemSchema>;
@@ -34,9 +34,10 @@ async function assertDecisionInMeeting(
 
 export const actionItemsService = {
   async create(userId: string, meetingId: string, input: CreateInput): Promise<ActionItem> {
-    const lines = await actionItemsRepository.findTranscriptLines(userId, meetingId);
-    if (!lines) throw notFound('Meeting');
-    assertPickedSource(lines, input.sourceLine, input.sourceQuote);
+    const meeting = await actionItemsRepository.findForNewNote(userId, meetingId);
+    if (!meeting) throw notFound('Meeting');
+    assertNotAnalysing(meeting.analysisStatus);
+    assertPickedSource(meeting.lines, input.sourceLine, input.sourceQuote);
     await assertDecisionInMeeting(userId, meetingId, input.decisionId);
     const row = await actionItemsRepository.create({
       meetingId,

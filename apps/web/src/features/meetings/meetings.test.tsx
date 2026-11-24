@@ -1,6 +1,7 @@
 // Meetings in the UI: new meeting, list, detail and analysis states.
 import {
   ARCHIVE_WHILE_ANALYSING_MESSAGE,
+  EDIT_WHILE_ANALYSING_MESSAGE,
   RENAME_WHILE_ANALYSING_MESSAGE,
   type Meeting,
 } from '@debrief/shared';
@@ -1015,6 +1016,7 @@ describe('meeting detail', () => {
   it('fixes a transcript line in place and marks it as edited', async () => {
     const withText = {
       ...meeting,
+      analysisStatus: 'done' as const,
       transcriptLines: [
         { n: 1, speaker: 'Ann', text: 'Hello all.' },
         { n: 2, speaker: 'Ben', text: 'I will send the deck to Lorato.' },
@@ -1062,6 +1064,7 @@ describe('meeting detail', () => {
   it('lets you say who spoke a line that has no speaker', async () => {
     const withText = {
       ...meeting,
+      analysisStatus: 'done' as const,
       transcriptLines: [
         { n: 1, speaker: 'Ann', text: 'Hello all.' },
         { n: 2, text: 'I will send the deck on Friday.' },
@@ -1103,6 +1106,7 @@ describe('meeting detail', () => {
   it('sets a speaker by clicking one of the people already in the meeting', async () => {
     const withText = {
       ...meeting,
+      analysisStatus: 'done' as const,
       transcriptLines: [
         { n: 1, speaker: 'Ann', text: 'Hello all.' },
         { n: 2, text: 'I will send the deck on Friday.' },
@@ -1144,6 +1148,7 @@ describe('meeting detail', () => {
   it('makes an action item from a line with the keyboard (Enter on the line)', async () => {
     const withText = {
       ...meeting,
+      analysisStatus: 'done' as const,
       transcriptLines: [
         { n: 1, speaker: 'Ann', text: 'Hello all.' },
         { n: 2, speaker: 'Ben', text: 'I will send the deck to Lerato.' },
@@ -1208,6 +1213,50 @@ describe('meeting detail', () => {
         sourceQuote: 'I will send the deck to Lerato.',
       }),
     );
+  });
+
+  it('while the analysis runs, shows the transcript buttons but blocks them, saying why', async () => {
+    // A re-analysis: the earlier results stay on screen while the AI reads the transcript again.
+    const running = {
+      ...meeting,
+      analysisStatus: 'processing' as const,
+      summary: 'The team agreed to ship on Friday.',
+      transcriptLines: [
+        { n: 1, speaker: 'Ann', text: 'We ship on Friday.' },
+        { n: 2, speaker: 'Ben', text: 'I will send the deck to Lerato.' },
+      ],
+      decisions: [
+        {
+          id: crypto.randomUUID(),
+          text: 'Ship on Friday',
+          sourceLine: 1,
+          position: 0,
+          editedAt: null,
+        },
+      ],
+    };
+    mockApi({ ...me, [`GET ${detailUrl}`]: { status: 200, body: { meeting: running } } });
+    const user = userEvent.setup();
+    renderApp(`/meetings/${meeting.id}`);
+
+    const line = (await screen.findByText('I will send the deck to Lerato.')).closest(
+      '[data-line-text]',
+    );
+    (line as HTMLElement).focus();
+    await user.keyboard('{Enter}');
+
+    const toolbar = screen.getByRole('toolbar', { name: 'Create from the transcript' });
+    expect(toolbar).toHaveAccessibleDescription(EDIT_WHILE_ANALYSING_MESSAGE);
+    for (const name of ['Action item', 'Decision', 'Change speaker', 'Edit line']) {
+      expect(within(toolbar).getByRole('button', { name })).toBeDisabled();
+    }
+    // Nothing opens, and Escape still closes the toolbar.
+    await user.click(within(toolbar).getByRole('button', { name: 'Action item' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('toolbar')).not.toBeInTheDocument();
+
+    expect(screen.getByRole('button', { name: 'Add a task for “Ship on Friday”' })).toBeDisabled();
   });
 
   it('adds to a project, archives and offers delete from the meeting bar', async () => {

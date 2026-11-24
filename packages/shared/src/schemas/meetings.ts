@@ -40,6 +40,9 @@ export const ARCHIVE_WHILE_ANALYSING_MESSAGE =
 // Renaming edits the title and the meeting date, and the date is what "next Friday" is resolved against.
 export const RENAME_WHILE_ANALYSING_MESSAGE =
   'You can rename this meeting once the analysis finishes';
+// The AI is reading the transcript right now: an edited line could leave its quotes pointing at
+// words that are no longer there, so the transcript and new notes wait until it's done.
+export const EDIT_WHILE_ANALYSING_MESSAGE = 'You can add or edit once the analysis finishes';
 
 const titleSchema = z
   .string()
