@@ -606,7 +606,9 @@ function CardEntrance({
   return (
     <div>
       {grows ? (
-        <div className="grid grid-rows-[1fr] motion-safe:animate-card-grow">
+        // minmax(0,1fr): without it the grid's one column is as wide as the card's widest
+        // unwrapped line (a decision's task rows don't wrap), and the card spills out sideways.
+        <div className="grid grid-cols-[minmax(0,1fr)] grid-rows-[1fr] motion-safe:animate-card-grow">
           <div className="min-h-0 overflow-clip [overflow-clip-margin:1rem]">{card}</div>
         </div>
       ) : (

@@ -355,15 +355,29 @@ URLs added there (they're listed in `.env.example`).
 
 ## With another week
 
-- **Compare runs:** run a meeting again with another model or prompt and show the two results side
-  by side. Every run is already stored in `analysis_runs`, so most of the data is there.
+### Transcripts that arrive on their own
+
+Today someone has to download a meeting's transcript and upload it. With another week, I'd connect
+Debrief to the meeting tools teams already use, so the transcript is fetched and summarised
+automatically after the meeting ends.
+
+1. **Connect once.** Google Meet first: Debrief already connects to Google for sign-in and Calendar.
+   Then Zoom and Microsoft Teams, which offer their transcripts through their APIs too.
+2. **Fetch it when the meeting ends.** A background job on the existing pg-boss queue picks up the
+   new transcript. Zoom and Teams provide `.vtt` files, which Debrief already reads.
+3. **Analyse it as usual.** The title and date come from the calendar event, and the transcript goes
+   through the same pipeline: the schema, the transcript checks and the review flags.
+4. **The user stays in control.** They choose which meetings are imported (for example, only ones
+   they organise). Upload stays for everyone else, such as Google Meet users without a Workspace plan
+   that records transcripts.
+
+### Smaller things after that
+
 - **Reminders:** a pg-boss job that emails owners the day before an item is due.
+- **Compare runs:** analyse a meeting again with another model and show both results side by side.
+  Every run is already stored in `analysis_runs`.
 - **Shareable read-only links** that expire and can be revoked.
-- **CSV and JSON import and export** for action items.
-- **Stream the summary** to the page as it arrives.
 - **End-to-end tests** in a real browser (Playwright) for the main journeys.
-- **Rate limits in Postgres** so they survive restarts and work across instances.
-- **API docs** (OpenAPI) generated from the Zod schemas.
 
 ## How I used AI
 
@@ -379,8 +393,8 @@ URLs added there (they're listed in `.env.example`).
 
 ### AI in building it
 
-I used **Claude Code** as a helper, not as the author. I owned the plan, the decisions and the code
-that went in. I used it for four things:
+I used **Claude Code** when I got stuck, as a helper, not as the author: it didn't write the app for
+me. I owned the plan, the decisions and the code that went in. I used it for four things:
 
 - **Fixing what was broken:** when a formula, a query or the structure of a piece of code wasn't
   working, it helped me find why and fix it.

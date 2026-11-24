@@ -56,7 +56,11 @@ npm run deploy:cloudflare   build and upload the website
    history or the remote. I review the changes and commit them myself. When a step is done, suggest
    a commit message: Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`, `chore:`,
    `refactor:`), one logical change each.
-7. **Log the step** in `docs/AI_LOG.md`: what you did and what I decided.
+7. **Update my AI log whenever I use you.** Every time you help (fix something, explain something,
+   find why a test failed, or write code), add a dated entry to the **Log** section at the end of
+   `docs/AI_LOG.md` (create the section if it's missing). Say what I asked for, what you did and
+   what I decided or changed. Be accurate: if you wrote the code, say so. If something changes the
+   summary at the top of the log (my workflow, guardrails or decisions), update that too.
 
 ## Code style
 

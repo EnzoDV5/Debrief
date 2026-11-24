@@ -1,7 +1,7 @@
 # How I used AI to build Debrief
 
-I used **Claude Code** as a pair programmer, the way many teams now use AI coding agents: I owned the
-plan, the decisions and the checking; the agent did much of the typing, in small reviewed steps.
+I used **Claude Code** as a helper when I got stuck, not as the author: I owned the plan, the
+decisions and the checking, and reviewed any code it wrote, in small steps.
 Every commit it helped with is marked `Co-Authored-By: Claude` in the git history.
 
 ## My workflow
@@ -57,7 +57,9 @@ Every commit it helped with is marked `Co-Authored-By: Claude` in the git histor
 
 ## Where AI helped most
 
-- Writing code from a clear plan, especially UI, tests and repetitive changes.
+- Getting me unstuck: fixing broken logic or structure, and explaining what I didn't understand
+  until I could explain it myself.
+- Failing tests: finding the cause and explaining it before I fixed it.
 - Debugging: tracing a flaky Windows test to a drive-letter issue, and finding why Google sign-in
   failed (missing redirect addresses).
 - Pointing out risks I hadn't thought of, like the cross-site cookie problem.
@@ -80,3 +82,12 @@ Every commit it helped with is marked `Co-Authored-By: Claude` in the git histor
 
 The full step-by-step log from the build (about 115 lines) is in the git history:
 `git show 3c2f6a5~1:docs/AI_LOG.md`
+
+## Log
+
+- **24 Nov: decision cards spilling sideways after a live analysis.** I noticed that decision cards
+  overflowed their column when an analysis finished while I was on the page, but looked right after
+  a refresh, and asked why. Claude found the cause: cards that appear live use a "grow-in" wrapper
+  that is a one-column CSS grid, and the grid's column stretched to the full width of a task line
+  that never wraps. Claude wrote the one-class fix (`grid-cols-[minmax(0,1fr)]`) after I approved
+  the plan. Tests can't measure layout, so I check it by hand with a re-analysis.
