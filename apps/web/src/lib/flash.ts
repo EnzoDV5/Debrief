@@ -1,5 +1,5 @@
 // One-off messages for the next page, like "Your account has been deleted."
-export type FlashMessage = 'account-deleted' | 'password-reset';
+export type FlashMessage = 'account-deleted' | 'password-reset' | 'session-ended';
 
 let pending: FlashMessage | null = null;
 

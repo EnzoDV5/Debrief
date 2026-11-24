@@ -15,6 +15,7 @@ import { usePageTitle } from '@/lib/usePageTitle';
 const notices: Record<FlashMessage, string> = {
   'account-deleted': 'Your account has been deleted.',
   'password-reset': 'Your password has been changed. Log in with your new password.',
+  'session-ended': 'You’ve been logged out. Please log in again.',
 };
 
 const googleMessages: Record<GoogleSignInError, string> = {
@@ -48,7 +49,7 @@ export function LoginPage() {
 
       {notice && (
         <AuthMessage>
-          <Alert tone="success">{notices[notice]}</Alert>
+          <Alert tone={notice === 'session-ended' ? 'info' : 'success'}>{notices[notice]}</Alert>
         </AuthMessage>
       )}
 

@@ -62,6 +62,51 @@ describe('login', () => {
     expect(router.state.location.pathname).toBe('/account');
   });
 
+  it('logs you out when the session ends while the page is open (e.g. the account was deleted)', async () => {
+    let accountExists = true;
+    mockApi({
+      'GET /api/auth/me': () =>
+        accountExists ? { status: 200, body: { user: testUser } } : unauthenticated,
+      // Any request after the account is gone gets the same answer.
+      'GET /api/action-items': () =>
+        accountExists ? { status: 200, body: { actionItems: [], owners: [] } } : unauthenticated,
+    });
+    const user = userEvent.setup();
+    const { router } = renderApp('/meetings');
+    await screen.findByRole('heading', { name: 'What would you like to debrief?' });
+
+    accountExists = false; // deleted straight from the database
+    await user.click(screen.getByRole('link', { name: /Actions/ }));
+
+    expect(await screen.findByRole('heading', { name: 'Log in to Debrief' })).toBeInTheDocument();
+    expect(screen.getByText('You’ve been logged out. Please log in again.')).toBeInTheDocument();
+    // An ended session, not a deliberate logout: logging back in returns to the page.
+    expect(router.state.location.search).toBe('?next=%2Fitems');
+  });
+
+  it('does not log you out for a wrong password (also a 401, but not an ended session)', async () => {
+    mockApi({
+      'GET /api/auth/me': { status: 200, body: { user: testUser } },
+      'DELETE /api/auth/account': {
+        status: 401,
+        body: { error: { code: 'INVALID_CREDENTIALS', message: 'Invalid email or password' } },
+      },
+    });
+    const user = userEvent.setup();
+    const { router } = renderApp('/account');
+
+    await user.click(await screen.findByRole('button', { name: 'Delete account' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.type(
+      within(dialog).getByLabelText('Enter your password to confirm'),
+      'wrong-password-123',
+    );
+    await user.click(within(dialog).getByRole('button', { name: 'Delete my account' }));
+
+    expect(await within(dialog).findByText('Invalid email or password')).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/account');
+  });
+
   it('after logging out, logging back in starts on the New meeting page', async () => {
     let loggedIn = true;
     mockApi({

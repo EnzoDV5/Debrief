@@ -12,21 +12,31 @@ import {
 } from '@debrief/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, request, requestNoContent } from '@/api/client';
+import { forgetUser, meQueryKey } from '@/api/queryClient';
 import { setFlash } from '@/lib/flash';
 
-export const meQueryKey = ['auth', 'me'] as const;
+// How often an open, visible tab checks that you're still logged in, so a deleted account or an
+// ended session logs out within a minute even if nobody clicks anything.
+const SESSION_CHECK_MS = 60_000;
 
 export function useMe() {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: meQueryKey,
     queryFn: async (): Promise<PublicUser | null> => {
       try {
         return (await request('/auth/me', { schema: authResponseSchema })).user;
       } catch (error) {
-        if (error instanceof ApiError && error.status === 401) return null;
+        if (error instanceof ApiError && error.status === 401) {
+          // Logged in a moment ago: the session ended (for example, the account was deleted).
+          if (queryClient.getQueryData(meQueryKey)) setFlash('session-ended');
+          return null;
+        }
         throw error;
       }
     },
+    // Only while someone is logged in; React Query skips it when the tab is hidden.
+    refetchInterval: (query) => (query.state.data ? SESSION_CHECK_MS : false),
   });
 }
 
@@ -78,10 +88,7 @@ function useSignedOut({ onPurpose = false } = {}) {
   const queryClient = useQueryClient();
   return () => {
     if (onPurpose) leftOnPurpose = true;
-    queryClient.removeQueries({
-      predicate: (query) => !(query.queryKey[0] === 'auth' && query.queryKey[1] === 'me'),
-    });
-    queryClient.setQueryData(meQueryKey, null);
+    forgetUser(queryClient);
   };
 }
 
