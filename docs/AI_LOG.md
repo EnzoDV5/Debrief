@@ -57,6 +57,12 @@ explain each part.
 - Debugging: tracing a flaky Windows test to a drive-letter issue, and finding why Google sign-in
   failed (missing redirect addresses).
 - Pointing out risks I hadn't thought of, like the cross-site cookie problem.
+- Folder structure: planning the layout (web, API, shared package, one folder per feature) so I know
+  where each piece of code goes.
+- The AI design: how a transcript is parsed into numbered lines before the AI sees it, which models to
+  use (a free OpenRouter chain), and how to use fewer credits while getting better answers (focused
+  calls, temperature 0, a strict JSON schema, line numbers instead of long quotes, stopping when the
+  daily quota runs out).
 
 ## What I'd do differently next time
 

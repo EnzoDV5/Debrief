@@ -394,7 +394,7 @@ automatically after the meeting ends.
 ### AI in building it
 
 I used **Claude Code** when I got stuck, as a helper, not as the author: it didn't write the app for
-me. I owned the plan, the decisions and the code that went in. I used it for four things:
+me. I owned the plan, the decisions and the code that went in. I used it for six things:
 
 - **Fixing what was broken:** when a formula, a query or the structure of a piece of code wasn't
   working, it helped me find why and fix it.
@@ -403,6 +403,17 @@ me. I owned the plan, the decisions and the code that went in. I used it for fou
   gone wrong before fixing it.
 - **Code I reviewed:** when it did write code, I reviewed it line by line before it went in, and
   changed or rejected what I didn't agree with.
+- **Folder structure:** it helped me plan how to organise the project (`apps/web`, `apps/api`,
+  `packages/shared`, and one folder per feature split into route → controller → service →
+  repository), so I always know where each piece of code goes.
+- **Parsing transcripts and choosing the AI:** it helped me work out how a transcript gets parsed
+  before it reaches the AI: the shared parser splits it into numbered lines with speakers, so the AI
+  can point to a line and the app can check the quote is really there. It also helped me choose the
+  models (free OpenRouter models in a fallback chain) and get better answers while using fewer
+  credits: three focused calls instead of one big one, temperature 0, a strict JSON schema so replies
+  parse first time, short quotes and line numbers instead of long text, stopping straight away when
+  the daily quota runs out instead of trying every model, and only testing the real AI by hand
+  (`npm run ai:eval`).
 
 How I kept it in check:
 
