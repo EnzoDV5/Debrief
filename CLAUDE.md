@@ -24,7 +24,6 @@ npm run lint                ESLint
 npm run format:check        Prettier
 npm run db:generate         write a migration after changing schema.ts
 npm run db:migrate          apply migrations locally
-npm run db:seed             demo users Alice and Bob
 npm run ai:eval             real AI on tricky transcripts (manual only, uses the OpenRouter key)
 npm run deploy:cloudflare   build and upload the website
 ```

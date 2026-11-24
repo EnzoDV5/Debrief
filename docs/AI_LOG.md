@@ -1,22 +1,18 @@
 # How I used AI to build Debrief
 
-I used **Claude Code** as a helper when I got stuck, not as the author: I owned the plan, the
-decisions and the checking, and reviewed any code it wrote, in small steps.
-Every commit it helped with is marked `Co-Authored-By: Claude` in the git history.
+I used **Claude Code** (and **Codex** for part of 19–20 Nov). The AI wrote most of the code, to my
+plan and my rules. I owned the plan, the decisions and the checking, reviewed every step, and can
+explain each part.
 
 ## My workflow
 
 1. **Rules before code.** On day one, before any code, I wrote `CLAUDE.md`: the stack, the folder
    structure, the security rules and how the agent must work with me.
-2. **Plan, then approve.** For every feature, Claude first listed the files it would change and why.
-   Nothing was written until I said go.
-3. **One small step at a time**, each with a plain-English explanation of every new file, so I
+2. **One small step at a time**, each with a plain-English explanation of every new file, so I
    understood the code before moving on.
-4. **Quality gates.** A step only counted as done when type checks, lint and tests passed. CI runs
+3. **Quality gates.** A step only counted as done when type checks, lint and tests passed. CI runs
    the same checks (plus a migration check, an audit and the Docker builds) on every push.
-5. **I tested by hand** in the browser after each step, on desktop and phone, and reported what was
-   wrong.
-6. **A log of every step**: what the AI did and what I decided (this file).
+4. **A log of every step**: what the AI did and what I decided (this file).
 
 ## Guardrails I set
 
@@ -25,8 +21,6 @@ Every commit it helped with is marked `Co-Authored-By: Claude` in the git histor
 - **The agent never decides security or data rules.** It could suggest options; I chose.
 - **Tests that prove the important rules**, including breaking the code on purpose to check that the
   isolation tests really fail (mutation testing).
-- **Explainable over clever.** I chose our own date picker over a library so I can explain and change
-  every line.
 
 ## Decisions that were mine
 
@@ -44,6 +38,7 @@ Every commit it helped with is marked `Co-Authored-By: Claude` in the git histor
 - **Hosting:** when Netlify's free credits ran out, move the website to Cloudflare, but keep the
   database on Supabase rather than rewrite the schema for Cloudflare D1. Store small profile photos in
   Postgres instead of adding a bucket.
+- **Frontend:** the design direction and the look of every page, from my own style and references.
 
 ## What I set up and did myself
 
@@ -52,13 +47,12 @@ Every commit it helped with is marked `Co-Authored-By: Claude` in the git histor
 - **Found bugs by testing**: a due date resolving to the wrong Friday on the live site, archiving
   during an analysis breaking it, a misplaced text cursor in pop-ups, clipped highlights, the page
   bouncing on Mac.
-- Set the **design direction** from my portfolio and Stack Studio's style.
-- **Studied the whole codebase** so I can explain, change and break any part of it.
+- **Brought in my own frontend work**: reusable components from websites I built before, and
+  components from React Bits that I altered myself to fit Debrief.
 
 ## Where AI helped most
 
-- Getting me unstuck: fixing broken logic or structure, and explaining what I didn't understand
-  until I could explain it myself.
+- Getting me unstuck: fixing broken logic or structure, and explaining what I didn't understand.
 - Failing tests: finding the cause and explaining it before I fixed it.
 - Debugging: tracing a flaky Windows test to a drive-letter issue, and finding why Google sign-in
   failed (missing redirect addresses).
@@ -77,7 +71,6 @@ Every commit it helped with is marked `Co-Authored-By: Claude` in the git histor
 - **20 Nov:** Ask this meeting; Google sign-in; forgot password; first live deploy; design system.
 - **21 Nov:** CI hardening; `npm run ai:eval` stress tests; search; analysis notifications.
 - **22 Nov:** rules for running analyses; speakers; tasks linked to decisions; date picker; light theme.
-- **23 Nov:** moved the website to Cloudflare; profile photos.
 - **24 Nov:** demo seed users; this log; README.
 
 The full step-by-step log from the build (about 115 lines) is in the git history:
@@ -85,15 +78,63 @@ The full step-by-step log from the build (about 115 lines) is in the git history
 
 ## Log
 
-- **24 Nov: decision cards spilling sideways after a live analysis.** I noticed that decision cards
+What I asked for, what the AI did, and what I decided or found, grouped by day. "Claude" means
+Claude Code; Codex entries are marked.
+
+### 19 Nov
+
+- **Rules and review before code.** I chose the stack and wrote `CLAUDE.md` (structure, security
+  rules, how the agent works with me). Claude reviewed it against the brief, found a missing
+  `.gitignore` and a malformed `.env`, and flagged a cross-site cookie risk with the website and API
+  on different hosts. I decided to commit `CLAUDE.md` and to forward `/api` through the website's
+  host so cookies stay same-site.
+
+### 20 Nov
+
+- **Flaky Windows tests.** Claude traced "Invalid Chai property" errors to drive-letter case on
+  Windows loading a second copy of Vitest, and fixed it by registering jest-dom's matchers in our own
+  setup file.
+- **Sign-in screen.** I chose the layout (form on the dark frame, light panel with the blobs) and
+  asked for a fun tutorial instead of a copy of the app. Claude built a looping walkthrough with a
+  pretend pointer that uploads a file, reads the transcript, makes cards and ticks one off.
+
+### 21 Nov
+
+- **Empty results and AI stress tests.** A Zoom transcript came back with nothing found, which looked
+  broken. Claude found the result was correct (summary saved, nothing to action), added a clear
+  "Nothing to action" card, and wrote `npm run ai:eval` with 8 tricky transcripts to test the real AI
+  by hand. I kept my Zoom sample out of the repo.
+- **Analysis in the background.** I asked to keep exploring while an analysis runs. Claude made it
+  visible across the app: a spinner in the sidebar, a notification when one finishes or fails, and a
+  "New" mark until opened. It also confirmed the server job already survives navigation and
+  restarts.
+
+### 22 Nov
+
+- **Bugs I found by testing.** I reported the AI loader drifting before it stopped, faint
+  highlights, clipped highlight rings, and the whole page bouncing on my Mac. Claude found each cause
+  and fixed it (for the Mac, `overscroll-behavior: none` on wide screens).
+- **Text cursor outside the boxes.** I reported the cursor appearing outside the fields in pop-ups.
+  Claude found the first field was focused while the pop-up was still animating in, and now focuses
+  it when the animation ends.
+
+### 24 Nov
+
+- **Decision cards spilling sideways after a live analysis.** I noticed that decision cards
   overflowed their column when an analysis finished while I was on the page, but looked right after
   a refresh, and asked why. Claude found the cause: cards that appear live use a "grow-in" wrapper
   that is a one-column CSS grid, and the grid's column stretched to the full width of a task line
   that never wraps. Claude wrote the one-class fix (`grid-cols-[minmax(0,1fr)]`) after I approved
   the plan. Tests can't measure layout, so I check it by hand with a re-analysis.
-- **24 Nov: live site "offline" while local and Docker work.** I asked why the Cloudflare site
-  looked offline right after a Wrangler deploy. Claude checked the live addresses: the website itself
-  loaded (200), but every `/api/*` call failed with `429` and `Cf-Mitigated: challenge`, both through
-  the Worker and when calling the Render address directly. So the deploy was fine; Render's own edge
-  was showing a bot check that a server-to-server `fetch` can't pass, and the request never reached
+- **Live site "offline" while local and Docker work.** I asked why the Cloudflare site looked
+  offline right after a Wrangler deploy. Claude checked the live addresses: the website itself loaded
+  (200), but every `/api/*` call failed with `429` and `Cf-Mitigated: challenge`, both through the
+  Worker and when calling the Render address directly. So the deploy was fine; Render's own edge was
+  showing a bot check that a server-to-server `fetch` can't pass, and the request never reached
   Express. No code was changed.
+- **Actions cards jumping taller when ticked off.** I asked why a card on the Actions page briefly
+  grew taller when I ticked it, then snapped back. Claude found the cause: the leave animation
+  shrinks the card's slot to zero width, so the text kept re-wrapping onto more lines and the row
+  stretched every card to match. After I approved the plan, Claude wrote the fix: an inner wrapper
+  keeps the card at full width while its slot shrinks and clips it. I check it by hand, since tests
+  can't measure layout.

@@ -210,26 +210,30 @@ export function OpenItemsPage() {
                             'pointer-events-none overflow-hidden motion-safe:animate-card-leave',
                         )}
                       >
-                        <ActionItemCard
-                          fixed
-                          item={item}
-                          onEdit={() => setEditing(item)}
-                          onDelete={() => setDeleting(item)}
-                          source={
-                            item.sourceLine ? (
-                              <Link
-                                to={lineLink(item)}
-                                state={noteLinkState(item.id)}
-                                className="inline-flex items-center gap-1 font-semibold text-accent hover:underline"
-                              >
-                                <TextQuote aria-hidden="true" className="size-3.5" />
-                                Line {item.sourceLine} in the transcript
-                              </Link>
-                            ) : (
-                              <span className="text-muted">Added by hand</span>
-                            )
-                          }
-                        />
+                        {/* Keeps the card at full width while the slot above shrinks away, so its
+                            text never re-wraps and the row doesn't grow taller as it leaves. */}
+                        <div className="h-full w-[min(82vw,22rem)]">
+                          <ActionItemCard
+                            fixed
+                            item={item}
+                            onEdit={() => setEditing(item)}
+                            onDelete={() => setDeleting(item)}
+                            source={
+                              item.sourceLine ? (
+                                <Link
+                                  to={lineLink(item)}
+                                  state={noteLinkState(item.id)}
+                                  className="inline-flex items-center gap-1 font-semibold text-accent hover:underline"
+                                >
+                                  <TextQuote aria-hidden="true" className="size-3.5" />
+                                  Line {item.sourceLine} in the transcript
+                                </Link>
+                              ) : (
+                                <span className="text-muted">Added by hand</span>
+                              )
+                            }
+                          />
+                        </div>
                       </div>
                     ))}
                   </Carousel>
