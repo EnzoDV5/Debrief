@@ -52,7 +52,9 @@ npm run deploy:cloudflare   build and upload the website
 4. **Ask, don't guess.** If two options are reasonable, stop and give me a short recommendation.
    Security, data and product decisions are mine.
 5. **Done means green:** `typecheck`, `lint` and `test` pass. Fix failures before moving on.
-6. **Small commits**, Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`, `chore:`,
+6. **Never commit or push.** No `git commit`, `git push`, or anything else that changes git
+   history or the remote. I review the changes and commit them myself. When a step is done, suggest
+   a commit message: Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`, `chore:`,
    `refactor:`), one logical change each.
 7. **Log the step** in `docs/AI_LOG.md`: what you did and what I decided.
 
