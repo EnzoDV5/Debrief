@@ -398,8 +398,7 @@ me. I owned the plan, the decisions and the code that went in. I used it for fou
 
 - **Fixing what was broken:** when a formula, a query or the structure of a piece of code wasn't
   working, it helped me find why and fix it.
-- **Explaining what I didn't understand:** a library, an error message or a pattern, in plain
-  English, until I could explain it myself.
+- **Explaining what I didn't understand:** a library, an error message or a pattern, until I could explain it myself.
 - **Failing tests:** when a test failed, it found the cause and explained it, so I understood what had
   gone wrong before fixing it.
 - **Code I reviewed:** when it did write code, I reviewed it line by line before it went in, and
