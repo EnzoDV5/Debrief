@@ -11,10 +11,12 @@
 <p>Paste or upload a meeting transcript and get back a summary, the decisions made and the action items:<br />what, who and when. Then edit them, track them and tick them off.</p>
 
 <p>
-  <a href="LIVE_SITE_URL">
+  <a href="https://debrief.enzodv.workers.dev">
     <img src="https://img.shields.io/badge/VIEW_LIVE_SITE-2B36F5?style=for-the-badge&logoColor=white&labelColor=0B0D1A" alt="View the live site" height="42" />
   </a>
 </p>
+
+<p><a href="https://debrief.enzodv.workers.dev">debrief.enzodv.workers.dev</a></p>
 
 <p>
   <a href="#demo-accounts"><strong>Demo accounts</strong></a>
@@ -81,6 +83,9 @@ the meeting shows a plain-English reason, and **Retry analysis** runs the analys
 
 ## Demo accounts
 
+Log in at **[debrief.enzodv.workers.dev](https://debrief.enzodv.workers.dev)**, or on your own
+machine after [running it locally](#run-it-locally).
+
 There is one role (a normal user), so there are two demo users. Two show that nobody can see the
 other's data.
 
@@ -138,16 +143,16 @@ How to try each part of the brief in the app, without reading the code.
 
 ## Built with
 
-| Layer               | Tools                                                                                                                                                                                                                                                                                        |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Website**         | [![React][React-shield]][React-url] [![TypeScript][TS-shield]][TS-url] [![Vite][Vite-shield]][Vite-url] [![Tailwind CSS][Tailwind-shield]][Tailwind-url] [![React Router][Router-shield]][Router-url] [![TanStack Query][Query-shield]][Query-url] [![React Hook Form][RHF-shield]][RHF-url] |
-| **API**             | [![Node.js][Node-shield]][Node-url] [![Express][Express-shield]][Express-url] [![Zod][Zod-shield]][Zod-url] [![Pino][Pino-shield]][Pino-url]                                                                                                                                                 |
-| **Data**            | [![PostgreSQL][Postgres-shield]][Postgres-url] [![Drizzle][Drizzle-shield]][Drizzle-url] [![pg-boss][PgBoss-shield]][PgBoss-url] [![Supabase][Supabase-shield]][Supabase-url]                                                                                                                |
-| **AI**              | [![OpenRouter][OpenRouter-shield]][OpenRouter-url] free models, with a fallback chain                                                                                                                                                                                                        |
-| **Integrations**    | [![Google Calendar][GCal-shield]][GCal-url] [![Google sign-in][Google-shield]][Google-url] [![EmailJS][EmailJS-shield]][EmailJS-url]                                                                                                                                                         |
-| **Hosting**         | [![Cloudflare][Cloudflare-shield]][Cloudflare-url] [![Render][Render-shield]][Render-url] [![Docker][Docker-shield]][Docker-url]                                                                                                                                                             |
-| **Quality**         | [![Vitest][Vitest-shield]][Vitest-url] [![Testing Library][TL-shield]][TL-url] [![ESLint][ESLint-shield]][ESLint-url] [![Prettier][Prettier-shield]][Prettier-url] [![GitHub Actions][GHA-shield]][GHA-url]                                                                                  |
-| **Built alongside** | [![Claude Code][Claude-shield]][Claude-url]                                                                                                                                                                                                                                                  |
+| Layer           | Tools                                                                                                                                                    |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Website**     | [![React][React-shield]][React-url] [![TypeScript][TS-shield]][TS-url] [![Vite][Vite-shield]][Vite-url] [![Tailwind CSS][Tailwind-shield]][Tailwind-url] |
+| **API**         | [![Node.js][Node-shield]][Node-url] [![Express][Express-shield]][Express-url] [![Zod][Zod-shield]][Zod-url]                                              |
+| **Database**    | [![PostgreSQL][Postgres-shield]][Postgres-url] [![Drizzle][Drizzle-shield]][Drizzle-url] [![Supabase][Supabase-shield]][Supabase-url]                    |
+| **AI**          | [![OpenRouter][OpenRouter-shield]][OpenRouter-url]                                                                                                       |
+| **Integration** | [![Google Calendar][GCal-shield]][GCal-url]                                                                                                              |
+| **Hosting**     | [![Cloudflare][Cloudflare-shield]][Cloudflare-url] [![Render][Render-shield]][Render-url] [![Docker][Docker-shield]][Docker-url]                         |
+| **Testing**     | [![Vitest][Vitest-shield]][Vitest-url] [![GitHub Actions][GHA-shield]][GHA-url]                                                                          |
+| **AI helper**   | [![Claude Code][Claude-shield]][Claude-url]                                                                                                              |
 
 ## How it works
 
@@ -339,11 +344,11 @@ npm test         # 309 API tests + 137 web tests
 
 ## Deployment
 
-| Part     | Where                 | How                                                                                                                                      |
-| -------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Website  | Cloudflare Workers    | `npm run deploy:cloudflare` builds the site and uploads it with [`cloudflare/worker.js`](cloudflare/worker.js), which forwards `/api/*`. |
-| API      | Render (Docker, free) | [`render.yaml`](render.yaml). Runs migrations on start, then the server. Secrets are set in Render's dashboard.                          |
-| Database | Supabase Postgres     | Migrations with `npm run db:migrate:supabase`; demo users with `npm run db:seed:supabase`.                                               |
+| Part     | Where                                                                                | How                                                                                                                                      |
+| -------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Website  | Cloudflare Workers: [debrief.enzodv.workers.dev](https://debrief.enzodv.workers.dev) | `npm run deploy:cloudflare` builds the site and uploads it with [`cloudflare/worker.js`](cloudflare/worker.js), which forwards `/api/*`. |
+| API      | Render (Docker, free)                                                                | [`render.yaml`](render.yaml). Runs migrations on start, then the server. Secrets are set in Render's dashboard.                          |
+| Database | Supabase Postgres                                                                    | Migrations with `npm run db:migrate:supabase`; demo users with `npm run db:seed:supabase`.                                               |
 
 Google only redirects to addresses listed in the OAuth client, so a new host needs both callback
 URLs added there (they're listed in `.env.example`).
@@ -374,19 +379,30 @@ URLs added there (they're listed in `.env.example`).
 
 ### AI in building it
 
-I used **Claude Code** as a pair programmer. I owned the plan, the decisions and the checking; it
-did much of the typing, in small steps I reviewed.
+I used **Claude Code** as a helper, not as the author. I owned the plan, the decisions and the code
+that went in. I used it for four things:
+
+- **Fixing what was broken:** when a formula, a query or the structure of a piece of code wasn't
+  working, it helped me find why and fix it.
+- **Explaining what I didn't understand:** a library, an error message or a pattern, in plain
+  English, until I could explain it myself.
+- **Failing tests:** when a test failed, it found the cause and explained it, so I understood what had
+  gone wrong before fixing it.
+- **Code I reviewed:** when it did write code, I reviewed it line by line before it went in, and
+  changed or rejected what I didn't agree with.
+
+How I kept it in check:
 
 - **Rules first.** Before any code I wrote [`CLAUDE.md`](CLAUDE.md): the stack, the structure, the
-  security rules and how the agent must work with me (plan first, wait for my go, one small step,
-  done means green).
+  security rules and how it must work with me (plan first, wait for my go, one small step, done means
+  green).
 - **Decisions stayed mine:** security, data, product and hosting choices. It could suggest; I chose.
 - **I checked the work:** type checks, lint and tests on every step, plus testing by hand on desktop
   and phone. I found and reported bugs such as a due date landing on the wrong Friday.
 - **Secrets never reached it.** It was told never to print, log or commit any `.env` value, and I
   entered every live secret myself.
 
-Commits it helped with are marked `Co-Authored-By: Claude`. The full story, including what I'd do
+Commits it contributed to are marked `Co-Authored-By: Claude`. The full story, including what I'd do
 differently, is in [`docs/AI_LOG.md`](docs/AI_LOG.md).
 
 ## Project map
@@ -427,36 +443,22 @@ docs/                 AI log
 [Vite-url]: https://vite.dev
 [Tailwind-shield]: https://img.shields.io/badge/Tailwind_CSS_v4-0B1120?style=for-the-badge&logo=tailwindcss&logoColor=38BDF8
 [Tailwind-url]: https://tailwindcss.com
-[Router-shield]: https://img.shields.io/badge/React_Router-CA4245?style=for-the-badge&logo=reactrouter&logoColor=white
-[Router-url]: https://reactrouter.com
-[Query-shield]: https://img.shields.io/badge/TanStack_Query-FF4154?style=for-the-badge&logo=reactquery&logoColor=white
-[Query-url]: https://tanstack.com/query
-[RHF-shield]: https://img.shields.io/badge/React_Hook_Form-EC5990?style=for-the-badge&logo=reacthookform&logoColor=white
-[RHF-url]: https://react-hook-form.com
 [Node-shield]: https://img.shields.io/badge/Node.js_24-5FA04E?style=for-the-badge&logo=nodedotjs&logoColor=white
 [Node-url]: https://nodejs.org
 [Express-shield]: https://img.shields.io/badge/Express_5-000000?style=for-the-badge&logo=express&logoColor=white
 [Express-url]: https://expressjs.com
 [Zod-shield]: https://img.shields.io/badge/Zod-3E67B1?style=for-the-badge&logo=zod&logoColor=white
 [Zod-url]: https://zod.dev
-[Pino-shield]: https://img.shields.io/badge/Pino_logs-687634?style=for-the-badge&logo=pino&logoColor=white
-[Pino-url]: https://getpino.io
 [Postgres-shield]: https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white
 [Postgres-url]: https://www.postgresql.org
 [Drizzle-shield]: https://img.shields.io/badge/Drizzle_ORM-121212?style=for-the-badge&logo=drizzle&logoColor=C5F74F
 [Drizzle-url]: https://orm.drizzle.team
-[PgBoss-shield]: https://img.shields.io/badge/pg--boss_queue-336791?style=for-the-badge&logo=postgresql&logoColor=white
-[PgBoss-url]: https://github.com/timgit/pg-boss
 [Supabase-shield]: https://img.shields.io/badge/Supabase-1C1C1C?style=for-the-badge&logo=supabase&logoColor=3ECF8E
 [Supabase-url]: https://supabase.com
 [OpenRouter-shield]: https://img.shields.io/badge/OpenRouter-6566F1?style=for-the-badge&logo=openrouter&logoColor=white
 [OpenRouter-url]: https://openrouter.ai
 [GCal-shield]: https://img.shields.io/badge/Google_Calendar-4285F4?style=for-the-badge&logo=googlecalendar&logoColor=white
 [GCal-url]: https://developers.google.com/calendar
-[Google-shield]: https://img.shields.io/badge/Sign_in_with_Google-FFFFFF?style=for-the-badge&logo=google&logoColor=4285F4
-[Google-url]: https://developers.google.com/identity
-[EmailJS-shield]: https://img.shields.io/badge/EmailJS-FF6C37?style=for-the-badge&logo=maildotru&logoColor=white
-[EmailJS-url]: https://www.emailjs.com
 [Cloudflare-shield]: https://img.shields.io/badge/Cloudflare_Workers-F38020?style=for-the-badge&logo=cloudflare&logoColor=white
 [Cloudflare-url]: https://workers.cloudflare.com
 [Render-shield]: https://img.shields.io/badge/Render-000000?style=for-the-badge&logo=render&logoColor=white
@@ -465,12 +467,6 @@ docs/                 AI log
 [Docker-url]: https://www.docker.com
 [Vitest-shield]: https://img.shields.io/badge/Vitest-6E9F18?style=for-the-badge&logo=vitest&logoColor=white
 [Vitest-url]: https://vitest.dev
-[TL-shield]: https://img.shields.io/badge/Testing_Library-E33332?style=for-the-badge&logo=testinglibrary&logoColor=white
-[TL-url]: https://testing-library.com
-[ESLint-shield]: https://img.shields.io/badge/ESLint-4B32C3?style=for-the-badge&logo=eslint&logoColor=white
-[ESLint-url]: https://eslint.org
-[Prettier-shield]: https://img.shields.io/badge/Prettier-1A2B34?style=for-the-badge&logo=prettier&logoColor=F7B93E
-[Prettier-url]: https://prettier.io
 [GHA-shield]: https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white
 [GHA-url]: https://github.com/features/actions
 [Claude-shield]: https://img.shields.io/badge/Claude_Code-D97757?style=for-the-badge&logo=claude&logoColor=white

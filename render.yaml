@@ -13,7 +13,7 @@ services:
         value: production
       - key: TRUST_PROXY
         value: '2'
-      # The site the browser uses (the Cloudflare Worker URL, e.g. https://debrief.<you>.workers.dev).
+      # The site the browser uses (the Cloudflare Worker URL: https://debrief.enzodv.workers.dev).
       # APP_URL and both Google redirect URIs are derived from it, so don't set them separately.
       - key: WEB_ORIGIN
         sync: false
