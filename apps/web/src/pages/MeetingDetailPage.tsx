@@ -60,13 +60,19 @@ function MeetingDetail({ meeting, loading }: { meeting: Meeting; loading: boolea
 
 function MeetingNotFound() {
   usePageTitle('Meeting not found');
+  // Plain and large like the Projects and Actions empty states, centred where this page's
+  // load error sits.
   return (
-    <EmptyState
-      icon={<FileSearch />}
-      title="Meeting not found"
-      description="It may have been deleted, or the link is wrong. Your meetings are in the sidebar."
-      action={<Button to="/meetings">Start a new meeting</Button>}
-    />
+    <div className="grid min-h-[60dvh] place-items-center lg:min-h-[calc(100dvh-7.5rem)]">
+      <EmptyState
+        icon={<FileSearch />}
+        title="Meeting not found"
+        description="It may have been deleted, or the link is wrong. Your meetings are in the sidebar."
+        action={<Button to="/meetings">Start a new meeting</Button>}
+        variant="plain"
+        size="large"
+      />
+    </div>
   );
 }
 
