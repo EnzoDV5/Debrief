@@ -14,11 +14,17 @@
   <a href="https://debrief.enzodv.workers.dev">
     <img src="https://img.shields.io/badge/VIEW_LIVE_SITE-2B36F5?style=for-the-badge&logoColor=white&labelColor=0B0D1A" alt="View the live site" height="42" />
   </a>
+  &nbsp;
+  <a href="https://drive.google.com/file/d/16vK8YHjV21ctJL9nKPwoH5G2Y_T74cro/view?usp=sharing">
+    <img src="https://img.shields.io/badge/%E2%96%B6_WATCH_THE_DEMO_VIDEO-E5484D?style=for-the-badge&logoColor=white&labelColor=0B0D1A" alt="Watch the demo video" height="42" />
+  </a>
 </p>
 
 <p><a href="https://debrief.enzodv.workers.dev">debrief.enzodv.workers.dev</a></p>
 
 <p>
+  <a href="#demo-video"><strong>Demo video</strong></a>
+  &nbsp;·&nbsp;
   <a href="#demo-accounts"><strong>Demo accounts</strong></a>
   &nbsp;·&nbsp;
   <a href="#run-it-locally"><strong>Run it locally</strong></a>
@@ -46,6 +52,7 @@
 <details>
   <summary><strong>Contents</strong></summary>
 
+- [Demo video](#demo-video)
 - [What Debrief does](#what-debrief-does)
 - [Demo accounts](#demo-accounts)
 - [Check every requirement](#check-every-requirement)
@@ -63,6 +70,15 @@
 - [Project map](#project-map)
 
 </details>
+
+## Demo video
+
+> [!TIP]
+> **[▶ Watch the Debrief demo video](https://drive.google.com/file/d/16vK8YHjV21ctJL9nKPwoH5G2Y_T74cro/view?usp=sharing)**
+> (opens in Google Drive)
+>
+> See Debrief in action before you try it yourself on the
+> [live site](https://debrief.enzodv.workers.dev).
 
 ## What Debrief does
 
