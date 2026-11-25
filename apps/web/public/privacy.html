@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy policy · Debrief</title>
+    <meta name="description" content="How Debrief handles your data." />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #ffffff;
+        --text: #1a1a1a;
+        --muted: #5c5c5c;
+        --link: #1d4ed8;
+        --rule: #e5e5e5;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #121212;
+          --text: #ededed;
+          --muted: #a3a3a3;
+          --link: #93c5fd;
+          --rule: #2a2a2a;
+        }
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      main {
+        max-width: 42rem;
+        margin: 0 auto;
+        padding: 3rem 1rem 4rem;
+      }
+      h1 {
+        font-size: 2rem;
+        line-height: 1.2;
+        margin: 0 0 0.25rem;
+      }
+      h2 {
+        font-size: 1.15rem;
+        margin: 2rem 0 0.5rem;
+      }
+      p,
+      ul {
+        margin: 0 0 1rem;
+      }
+      ul {
+        padding-left: 1.25rem;
+      }
+      .updated {
+        color: var(--muted);
+        margin-bottom: 2rem;
+      }
+      a {
+        color: var(--link);
+      }
+      a:focus-visible {
+        outline: 2px solid var(--link);
+        outline-offset: 2px;
+        border-radius: 2px;
+      }
+      footer {
+        margin-top: 3rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--rule);
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Privacy policy</h1>
+      <p class="updated">Last updated 25 November 2026</p>
+
+      <p>
+        Debrief turns meeting transcripts into a summary, decisions and action items. It is a
+        student project built for the Luckybeard Launchpad 2027 tech challenge. If you have any
+        questions about this policy, email
+        <a href="mailto:enzo.devittorio03@gmail.com">enzo.devittorio03@gmail.com</a>.
+      </p>
+
+      <h2>What we store</h2>
+      <ul>
+        <li>
+          Your name and email address. If you sign up with a password, we store only a secure
+          hash of it, never the password itself.
+        </li>
+        <li>
+          If you sign in with Google: your Google account ID, name, email address and the address
+          of your Google profile photo.
+        </li>
+        <li>A profile photo, if you upload one.</li>
+        <li>
+          The transcripts you add, and the summaries, decisions, action items and projects that
+          come from them, including any changes you make.
+        </li>
+      </ul>
+      <p>Only you can see your data. We never show it to other users.</p>
+
+      <h2>Services that handle your data</h2>
+      <ul>
+        <li>The website is hosted on Cloudflare, the server on Render and the database on Supabase.</li>
+        <li>
+          Transcripts are sent to OpenRouter, which passes them to an AI model to read and
+          summarise. Please don't add anything you wouldn't want shared with that service.
+        </li>
+        <li>Welcome and password-reset emails are sent through EmailJS.</li>
+      </ul>
+
+      <h2>Google</h2>
+      <p>
+        When you sign in with Google, we receive only your basic profile: your name, email address
+        and profile photo.
+      </p>
+      <p>
+        Connecting Google Calendar is optional. We use it only to add events that you choose to
+        create from your action items. We never read, change or delete your existing events. The
+        access Google gives us is stored encrypted. You can disconnect at any time on your Account
+        page, or at
+        <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.
+      </p>
+      <p>
+        Debrief's use and transfer of information received from Google APIs adheres to the
+        <a href="https://developers.google.com/terms/api-services-user-data-policy"
+          >Google API Services User Data Policy</a
+        >, including the Limited Use requirements.
+      </p>
+
+      <h2>What we don't do</h2>
+      <ul>
+        <li>No ads.</li>
+        <li>We don't sell your data or share it with anyone beyond the services listed above.</li>
+        <li>
+          No tracking or analytics cookies. We use cookies only to keep you logged in and to
+          complete Google sign-in safely.
+        </li>
+      </ul>
+
+      <h2>Deleting your data</h2>
+      <p>
+        You can delete any meeting, decision or action item at any time. Deleting your account on
+        the Account page permanently removes your account and everything it owns.
+      </p>
+
+      <footer>
+        <a href="/">Back to Debrief</a>
+      </footer>
+    </main>
+  </body>
+</html>
