@@ -1,6 +1,7 @@
 // HTTP layer for meetings: paste or upload, list, open, edit, delete and re-analyse.
 import {
   createMeetingFromTextSchema,
+  lineEditsSchema,
   lineNumberSchema,
   meetingDetailsSchema,
   reorderMeetingsSchema,
@@ -23,9 +24,25 @@ function meetingId(req: Request): string {
   return result.data;
 }
 
+// An upload is a form, not JSON, so its line edits arrive as one JSON text field.
+const uploadDetailsSchema = meetingDetailsSchema.extend({
+  lineEdits: z
+    .string()
+    .transform((text, ctx) => {
+      try {
+        return JSON.parse(text) as unknown;
+      } catch {
+        ctx.addIssue({ code: 'custom', message: 'Line edits must be valid JSON' });
+        return z.NEVER;
+      }
+    })
+    .pipe(lineEditsSchema)
+    .optional(),
+});
+
 function readCreateInput(req: Request) {
   if (req.file) {
-    const details = meetingDetailsSchema.parse(req.body);
+    const details = uploadDetailsSchema.parse(req.body);
     const { text, sourceType } = readTranscriptFile(req.file);
     return { ...details, transcript: text, sourceType };
   }

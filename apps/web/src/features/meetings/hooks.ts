@@ -11,6 +11,7 @@ import {
   decisionResponseSchema,
   type CreateDecisionInput,
   type Decision,
+  type LineEdit,
   type Meeting,
   type MeetingListItem,
   type MeetingDetailsInput,
@@ -195,24 +196,28 @@ export function useAskMeeting(id: string) {
   });
 }
 
-export type CreateMeetingInput =
-  | (MeetingDetailsInput & { source: 'paste'; transcript: string })
-  | (MeetingDetailsInput & { source: 'upload'; file: File });
+// lineEdits: fixes made on the check step, applied by the server before the AI reads anything.
+export type CreateMeetingInput = MeetingDetailsInput & { lineEdits?: LineEdit[] } & (
+    { source: 'paste'; transcript: string } | { source: 'upload'; file: File }
+  );
 
 export function useCreateMeeting() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: CreateMeetingInput): Promise<Meeting> => {
       const { title, meetingDate } = input;
+      const lineEdits = input.lineEdits?.length ? input.lineEdits : undefined;
       let body: FormData | object;
       if (input.source === 'upload') {
         const form = new FormData();
         form.append('title', title);
         form.append('meetingDate', meetingDate);
+        // A form can't hold a list, so the fixes travel as one JSON field.
+        if (lineEdits) form.append('lineEdits', JSON.stringify(lineEdits));
         form.append('file', input.file);
         body = form;
       } else {
-        body = { title, meetingDate, transcript: input.transcript };
+        body = { title, meetingDate, transcript: input.transcript, lineEdits };
       }
       return (await request('/meetings', { method: 'POST', body, schema: meetingResponseSchema }))
         .meeting;

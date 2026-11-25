@@ -1,9 +1,11 @@
 // Rules for meetings: save the transcript first, then queue the analysis.
 import {
+  applyLineEdit,
   ARCHIVE_WHILE_ANALYSING_MESSAGE,
   EDIT_WHILE_ANALYSING_MESSAGE,
   isAnalysing,
   parseTranscript,
+  type LineEdit,
   RENAME_WHILE_ANALYSING_MESSAGE,
   type Meeting,
   type MeetingListItem,
@@ -26,17 +28,39 @@ async function withResults(userId: string, row: MeetingRow): Promise<Meeting> {
   return toMeeting(row, await meetingsRepository.findResultsForUser(userId, row.id));
 }
 
+function applyLineEdits(lines: TranscriptLine[], edits: LineEdit[]): TranscriptLine[] {
+  const byLine = new Map(edits.map((edit) => [edit.n, edit]));
+  const missing = edits.find((edit) => !lines.some((line) => line.n === edit.n));
+  if (missing) {
+    const message = `Line ${missing.n} isn’t in this transcript`;
+    throw new AppError(400, 'LINE_NOT_FOUND', message, { lineEdits: message });
+  }
+  return lines.map((line) => {
+    const edit = byLine.get(line.n);
+    return edit ? applyLineEdit(line, edit) : line;
+  });
+}
+
 export const meetingsService = {
   async create(
     userId: string,
-    input: { title: string; meetingDate: string; transcript: string; sourceType: SourceType },
+    input: {
+      title: string;
+      meetingDate: string;
+      transcript: string;
+      sourceType: SourceType;
+      lineEdits?: LineEdit[];
+    },
     queue: AnalysisQueue,
   ): Promise<Meeting> {
-    const lines = parseTranscript(input.transcript, input.sourceType);
-    if (lines.length === 0) {
+    const parsed = parseTranscript(input.transcript, input.sourceType);
+    if (parsed.length === 0) {
       const message = 'No readable transcript text was found';
       throw new AppError(400, 'EMPTY_TRANSCRIPT', message, { transcript: message });
     }
+    // Fixes made on the check step go in before the AI reads the lines. The original text is
+    // still saved as it came.
+    const lines = applyLineEdits(parsed, input.lineEdits ?? []);
 
     const row = await meetingsRepository.create({
       userId,
@@ -145,19 +169,9 @@ export const meetingsService = {
     if (!row.transcriptLines.some((line) => line.n === n)) throw notFound('Line');
     if (isAnalysing(row.analysisStatus))
       throw new AppError(409, 'ANALYSIS_RUNNING', EDIT_WHILE_ANALYSING_MESSAGE);
-    const lines = row.transcriptLines.map((line): TranscriptLine => {
-      if (line.n !== n) return line;
-      let next: TranscriptLine = { ...line };
-      if (patch.text !== undefined) next = { ...next, text: patch.text, edited: true };
-      if (patch.speaker !== undefined) {
-        // A removed speaker drops the key, matching how the parser stores lines with no speaker.
-        const { speaker: _old, ...rest } = next;
-        next = patch.speaker
-          ? { ...rest, speaker: patch.speaker, speakerEdited: true }
-          : { ...rest, speakerEdited: true };
-      }
-      return next;
-    });
+    const lines = row.transcriptLines.map((line) =>
+      line.n === n ? applyLineEdit(line, patch) : line,
+    );
     const updated = await meetingsRepository.updateLinesForUser(userId, meetingId, lines);
     if (!updated) throw notFound('Meeting');
     return withResults(userId, updated);

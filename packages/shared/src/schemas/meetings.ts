@@ -58,17 +58,6 @@ export const meetingDetailsSchema = z.object({
 });
 export type MeetingDetailsInput = z.infer<typeof meetingDetailsSchema>;
 
-export const createMeetingFromTextSchema = meetingDetailsSchema.extend({
-  transcript: z
-    .string()
-    .refine((text) => text.trim().length > 0, 'Paste the transcript text')
-    .refine(
-      (text) => utf8ByteLength(text) <= MAX_TRANSCRIPT_BYTES,
-      'Transcript is larger than 1 MB',
-    ),
-});
-export type CreateMeetingFromTextInput = z.infer<typeof createMeetingFromTextSchema>;
-
 export const updateMeetingSchema = z
   .object({
     title: titleSchema,
@@ -100,24 +89,56 @@ export type ReorderMeetingsInput = z.infer<typeof reorderMeetingsSchema>;
 
 // Fixing a line the transcription got wrong. The original upload is never changed.
 export const lineNumberSchema = z.coerce.number().int().positive();
-// Fix a line's words, say who spoke it, or both. An empty speaker removes it.
+const lineTextSchema = z
+  .string()
+  .trim()
+  .min(1, 'A line can’t be empty')
+  .max(2000, 'Use 2000 characters or fewer');
+// An empty speaker removes it.
+const lineSpeakerSchema = z
+  .string()
+  .trim()
+  .max(100, 'Use 100 characters or fewer')
+  .nullable()
+  .transform((value) => value || null);
+// Fix a line's words, say who spoke it, or both.
 export const updateTranscriptLineSchema = z
-  .object({
-    text: z
-      .string()
-      .trim()
-      .min(1, 'A line can’t be empty')
-      .max(2000, 'Use 2000 characters or fewer'),
-    speaker: z
-      .string()
-      .trim()
-      .max(100, 'Use 100 characters or fewer')
-      .nullable()
-      .transform((value) => value || null),
-  })
+  .object({ text: lineTextSchema, speaker: lineSpeakerSchema })
   .partial()
   .refine((patch) => Object.keys(patch).length > 0, 'Nothing to update');
 export type UpdateTranscriptLineInput = z.infer<typeof updateTranscriptLineSchema>;
+
+// The same fixes made on the check step, before the meeting is saved: they're applied before the
+// AI reads anything, and flagged on the line just like a fix made later.
+export const MAX_LINE_EDITS = 500;
+export const lineEditsSchema = z
+  .array(
+    z
+      .object({
+        n: z.number().int().positive(),
+        text: lineTextSchema.optional(),
+        speaker: lineSpeakerSchema.optional(),
+      })
+      .refine((edit) => edit.text !== undefined || edit.speaker !== undefined, 'Nothing to update'),
+  )
+  .max(MAX_LINE_EDITS, `Edit ${MAX_LINE_EDITS} lines or fewer before saving`)
+  .refine(
+    (edits) => new Set(edits.map((edit) => edit.n)).size === edits.length,
+    'Each line can only appear once',
+  );
+export type LineEdit = z.infer<typeof lineEditsSchema>[number];
+
+export const createMeetingFromTextSchema = meetingDetailsSchema.extend({
+  transcript: z
+    .string()
+    .refine((text) => text.trim().length > 0, 'Paste the transcript text')
+    .refine(
+      (text) => utf8ByteLength(text) <= MAX_TRANSCRIPT_BYTES,
+      'Transcript is larger than 1 MB',
+    ),
+  lineEdits: lineEditsSchema.optional(),
+});
+export type CreateMeetingFromTextInput = z.infer<typeof createMeetingFromTextSchema>;
 
 export const meetingListItemSchema = z.object({
   id: z.uuid(),

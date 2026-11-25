@@ -3,37 +3,33 @@
 // Enter saves, Escape cancels.
 import type { TranscriptLine } from '@debrief/shared';
 import { useId, useState, type FormEvent, type KeyboardEvent } from 'react';
-import { ApiError } from '@/api/client';
 import { Button } from '@/components/ui/Button';
 import { NameCombobox } from '@/components/ui/NameCombobox';
-import { useUpdateTranscriptLine } from '../hooks';
+import { useLineSave, type SaveLine } from './useLineSave';
 
 export function SpeakerEditor({
-  meetingId,
   line,
   suggestions,
+  onSave,
   onDone,
 }: {
-  meetingId: string;
   line: TranscriptLine;
   suggestions: string[];
+  onSave: SaveLine;
   onDone: () => void;
 }) {
   const [name, setName] = useState(line.speaker ?? '');
-  const update = useUpdateTranscriptLine(meetingId);
+  const { save, pending, error } = useLineSave(onSave, onDone, 'speaker');
   const listId = useId();
-  const fieldError = update.error instanceof ApiError ? update.error.fields?.speaker : undefined;
-  const error = fieldError ?? update.error?.message;
   const errorId = `line-${line.n}-speaker-error`;
 
-  const save = (speaker: string | null) => {
-    if (update.isPending) return;
+  const submit = (speaker: string | null) => {
     if ((speaker?.trim() || null) === (line.speaker ?? null)) return onDone();
-    update.mutate({ n: line.n, speaker }, { onSuccess: onDone });
+    void save({ speaker });
   };
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
-    save(name);
+    submit(name);
   };
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Escape') onDone();
@@ -59,7 +55,7 @@ export function SpeakerEditor({
           onKeyDown={onKeyDown}
           className="w-64 max-w-full"
         />
-        <Button type="submit" size="sm" loading={update.isPending}>
+        <Button type="submit" size="sm" loading={pending}>
           Save speaker
         </Button>
         {line.speaker && (
@@ -67,8 +63,8 @@ export function SpeakerEditor({
             type="button"
             size="sm"
             variant="ghost"
-            disabled={update.isPending}
-            onClick={() => save(null)}
+            disabled={pending}
+            onClick={() => submit(null)}
           >
             Remove
           </Button>

@@ -4,9 +4,10 @@ import type { RequestHandler } from 'express';
 import multer from 'multer';
 import { AppError } from '../lib/errors';
 
+// fieldSize leaves room for the line edits made on the check step (up to 500 lines, as JSON).
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: MAX_TRANSCRIPT_BYTES, files: 1, fields: 10, fieldSize: 10_000 },
+  limits: { fileSize: MAX_TRANSCRIPT_BYTES, files: 1, fields: 10, fieldSize: 2 * 1024 * 1024 },
 });
 
 export const transcriptUpload: RequestHandler = (req, res, next) => {

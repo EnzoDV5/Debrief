@@ -1,8 +1,11 @@
-// The home screen: drop or paste a transcript, check it, then save and analyse.
+// The home screen: drop or paste a transcript, check (and fix) it, then save and analyse.
 import {
+  applyLineEdit,
   detectMeetingDate,
   meetingDetailsSchema,
   parseTranscript,
+  updateTranscriptLineSchema,
+  type LinePatch,
   type MeetingDetailsInput,
   type TranscriptLine,
 } from '@debrief/shared';
@@ -28,7 +31,7 @@ import { useCreateMeeting } from './hooks';
 import { readTranscriptFile, titleFromFilename } from './readTranscriptFile';
 import { barButtonClass } from './document/MeetingBarActions';
 import { PANEL_INSET, PANEL_INSET_MARGIN } from './document/MeetingDocument';
-import { TranscriptView } from './TranscriptView';
+import { ReviewTranscript } from './ReviewTranscript';
 
 type Draft =
   | { source: 'upload'; file: File; lines: TranscriptLine[]; suggestedTitle: string }
@@ -257,8 +260,33 @@ function ChooseStep({
 function ReviewStep({ draft, onBack }: { draft: Draft; onBack: () => void }) {
   const navigate = useNavigate();
   const create = useCreateMeeting();
-  const speakers = new Set(draft.lines.map((l) => l.speaker).filter(Boolean)).size;
+  // Fixes made here, by line number. They're sent with the transcript and applied by the server
+  // before the AI reads it; the original text is still saved as it came.
+  const [edits, setEdits] = useState<ReadonlyMap<number, LinePatch>>(new Map());
+  const lines = draft.lines.map((line) => {
+    const edit = edits.get(line.n);
+    return edit ? applyLineEdit(line, edit) : line;
+  });
+  const speakerNames = [...new Set(lines.flatMap((line) => (line.speaker ? [line.speaker] : [])))];
+  const speakers = speakerNames.length;
   const detectedDate = detectMeetingDate(draft.lines);
+
+  // Same rules as fixing a line on a saved meeting. A fix that puts a line back the way it came
+  // is dropped, so the line loses its "Edited" badge too.
+  const saveLine = async (n: number, patch: LinePatch) => {
+    const result = updateTranscriptLineSchema.safeParse(patch);
+    if (!result.success) throw new Error(result.error.issues[0]?.message ?? 'Check this line');
+    const original = draft.lines.find((line) => line.n === n);
+    if (!original) return;
+    const merged: LinePatch = { ...edits.get(n), ...result.data };
+    if (merged.text === original.text) delete merged.text;
+    if (merged.speaker !== undefined && merged.speaker === (original.speaker ?? null))
+      delete merged.speaker;
+    const next = new Map(edits);
+    if (merged.text === undefined && merged.speaker === undefined) next.delete(n);
+    else next.set(n, merged);
+    setEdits(next);
+  };
   // The top bar is drawn outside the <form> in the page, so its inputs join it by id (form=…).
   // That keeps Enter in the title field submitting the form.
   const formId = useId();
@@ -275,11 +303,12 @@ function ReviewStep({ draft, onBack }: { draft: Draft; onBack: () => void }) {
   });
 
   const onSubmit = handleSubmit(async (details) => {
+    const lineEdits = [...edits].map(([n, patch]) => ({ n, ...patch }));
     try {
       const meeting = await create.mutateAsync(
         draft.source === 'upload'
-          ? { ...details, source: 'upload', file: draft.file }
-          : { ...details, source: 'paste', transcript: draft.text },
+          ? { ...details, lineEdits, source: 'upload', file: draft.file }
+          : { ...details, lineEdits, source: 'paste', transcript: draft.text },
       );
       navigate(`/meetings/${meeting.id}`, { state: { created: true } });
     } catch (error) {
@@ -312,7 +341,8 @@ function ReviewStep({ draft, onBack }: { draft: Draft; onBack: () => void }) {
                 Check your transcript
               </h1>
               <p className="mt-1 text-sm text-muted lg:text-sidebar-muted">
-                This is how Debrief reads it. Nothing is analysed until you click Save & analyse.
+                This is how Debrief reads it. Fix any line or add a speaker first: nothing is
+                analysed until you click Save & analyse.
               </p>
             </div>
           </div>
@@ -350,12 +380,9 @@ function ReviewStep({ draft, onBack }: { draft: Draft; onBack: () => void }) {
         </header>
       </PageBar>
 
-      <form
-        id={formId}
-        onSubmit={onSubmit}
-        noValidate
-        className={cn(flowColumns, 'flex flex-col pb-10')}
-      >
+      {/* Not a <form>: each line's editor is its own form, and forms can't nest. The form is the
+          Save card below; the title and date join it by id. */}
+      <div className={cn(flowColumns, 'flex flex-col pb-10')}>
         {/* The frame: the whole transcript, drawn like the meeting page. */}
         <section aria-label="Transcript preview" className="xl:col-start-1 xl:row-start-1">
           <div className="px-4 pt-7 sm:px-8 lg:pt-9">
@@ -369,13 +396,14 @@ function ReviewStep({ draft, onBack }: { draft: Draft; onBack: () => void }) {
                   </span>
                 </span>
                 <span role="status" className="text-muted">
-                  {plural(draft.lines.length, 'line')} · {plural(speakers, 'speaker')}
+                  {plural(lines.length, 'line')} · {plural(speakers, 'speaker')}
                   {draft.source === 'upload' && ` · ${formatBytes(draft.file.size)}`}
+                  {edits.size > 0 && ` · ${plural(edits.size, 'line')} fixed by you`}
                 </span>
               </p>
             </div>
           </div>
-          <TranscriptView lines={draft.lines} linkable={false} variant="document" />
+          <ReviewTranscript lines={lines} speakers={speakerNames} onSave={saveLine} />
         </section>
 
         {/* Right column on wide screens: the alerts and the Save card stay put together while the
@@ -391,10 +419,15 @@ function ReviewStep({ draft, onBack }: { draft: Draft; onBack: () => void }) {
               </Alert>
             )}
           </div>
-          <div className="sticky bottom-3 z-20 order-last mx-4 mt-6 rounded-card border border-glass-edge glass-float px-4 py-3 shadow-raised sm:mx-8 xl:static xl:m-0">
+          <form
+            id={formId}
+            onSubmit={onSubmit}
+            noValidate
+            className="sticky bottom-3 z-20 order-last mx-4 mt-6 rounded-card border border-glass-edge glass-float px-4 py-3 shadow-raised sm:mx-8 xl:static xl:m-0"
+          >
             <p className="mb-3 hidden items-start gap-1.5 text-sm text-muted sm:flex">
               <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-              Saving keeps the original text. The AI reads it next.
+              Saving keeps the original text. The AI reads it next, with your fixes.
             </p>
             <div className="flex gap-2">
               <Button
@@ -414,9 +447,9 @@ function ReviewStep({ draft, onBack }: { draft: Draft; onBack: () => void }) {
                 {isSubmitting ? 'Saving…' : 'Save & analyse'}
               </Button>
             </div>
-          </div>
+          </form>
         </div>
-      </form>
+      </div>
     </>
   );
 }

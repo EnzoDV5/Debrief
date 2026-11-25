@@ -159,6 +159,90 @@ describe('POST /api/meetings (upload)', () => {
   });
 });
 
+describe('POST /api/meetings with fixes made before saving (lineEdits)', () => {
+  const transcript = 'Ann: Shall we ship on Fridy?\nYes, I will do the release.\nBen: Great';
+
+  it('applies the fixes and flags them, keeps the original text, then queues the analysis', async () => {
+    const res = await paste(alice, {
+      ...details,
+      transcript,
+      lineEdits: [
+        { n: 1, text: 'Shall we ship on Friday?' },
+        { n: 2, speaker: 'Pieter' },
+        { n: 3, speaker: '' },
+      ],
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.meeting.analysisStatus).toBe('pending');
+    expect(res.body.meeting.transcriptLines).toEqual([
+      { n: 1, speaker: 'Ann', text: 'Shall we ship on Friday?', edited: true },
+      { n: 2, speaker: 'Pieter', text: 'Yes, I will do the release.', speakerEdited: true },
+      { n: 3, text: 'Great', speakerEdited: true },
+    ]);
+    const row = await pool.query('SELECT transcript_original FROM meetings');
+    expect(row.rows[0].transcript_original).toBe(transcript);
+  });
+
+  it('accepts the fixes with an upload, sent as a JSON form field', async () => {
+    const res = await upload(alice, Buffer.from(transcript), 'notes.txt', {
+      ...details,
+      lineEdits: JSON.stringify([{ n: 2, speaker: 'Pieter', text: 'Yes, I’ll do the release.' }]),
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.meeting.sourceType).toBe('txt');
+    expect(res.body.meeting.transcriptLines[1]).toEqual({
+      n: 2,
+      speaker: 'Pieter',
+      text: 'Yes, I’ll do the release.',
+      edited: true,
+      speakerEdited: true,
+    });
+  });
+
+  it('saves nothing when a fix points at a line that isn’t there', async () => {
+    const res = await paste(alice, { ...details, transcript, lineEdits: [{ n: 99, text: 'x' }] });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.fields).toEqual({ lineEdits: 'Line 99 isn’t in this transcript' });
+    expect((await pool.query('SELECT 1 FROM meetings')).rowCount).toBe(0);
+  });
+
+  it.each([
+    ['an empty line', [{ n: 1, text: '  ' }], 'lineEdits.0.text', 'A line can’t be empty'],
+    [
+      'an over-long speaker',
+      [{ n: 1, speaker: 'x'.repeat(101) }],
+      'lineEdits.0.speaker',
+      'Use 100 characters or fewer',
+    ],
+    ['a fix with nothing in it', [{ n: 1 }], 'lineEdits.0', 'Nothing to update'],
+    [
+      'the same line twice',
+      [
+        { n: 1, text: 'a' },
+        { n: 1, text: 'b' },
+      ],
+      'lineEdits',
+      'Each line can only appear once',
+    ],
+  ])('rejects %s', async (_label, lineEdits, field, message) => {
+    const res = await paste(alice, { ...details, transcript, lineEdits });
+    expect(res.status).toBe(400);
+    expect(res.body.error.fields[field]).toBe(message);
+  });
+
+  it('rejects upload fixes that aren’t valid JSON', async () => {
+    const res = await upload(alice, Buffer.from(transcript), 'notes.txt', {
+      ...details,
+      lineEdits: '[{ n: 1',
+    });
+    expect(res.status).toBe(400);
+    expect(res.body.error.fields.lineEdits).toBe('Line edits must be valid JSON');
+  });
+});
+
 describe('reading, updating and deleting meetings', () => {
   it('lists only my meetings, newest first, without transcript text', async () => {
     const first = await createMeeting(alice);

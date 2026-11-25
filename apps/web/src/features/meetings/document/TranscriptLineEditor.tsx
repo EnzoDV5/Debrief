@@ -1,38 +1,34 @@
 // Fix one transcript line in place. Enter saves, Escape cancels. The original upload is kept.
 import type { TranscriptLine } from '@debrief/shared';
 import { useState, type FormEvent, type KeyboardEvent } from 'react';
-import { ApiError } from '@/api/client';
 import { Button } from '@/components/ui/Button';
-import { useUpdateTranscriptLine } from '../hooks';
+import { useLineSave, type SaveLine } from './useLineSave';
 
 export function TranscriptLineEditor({
-  meetingId,
   line,
+  onSave,
   onDone,
 }: {
-  meetingId: string;
   line: TranscriptLine;
+  onSave: SaveLine;
   onDone: () => void;
 }) {
   const [text, setText] = useState(line.text);
-  const update = useUpdateTranscriptLine(meetingId);
-  const fieldError = update.error instanceof ApiError ? update.error.fields?.text : undefined;
-  const error = fieldError ?? update.error?.message;
+  const { save, pending, error } = useLineSave(onSave, onDone, 'text');
   const errorId = `line-${line.n}-error`;
 
-  const save = (event?: FormEvent) => {
+  const submit = (event?: FormEvent) => {
     event?.preventDefault();
-    if (update.isPending) return;
     if (text.trim() === line.text) return onDone();
-    update.mutate({ n: line.n, text }, { onSuccess: onDone });
+    void save({ text });
   };
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Escape') onDone();
-    if (event.key === 'Enter' && !event.shiftKey) save(event);
+    if (event.key === 'Enter' && !event.shiftKey) submit(event);
   };
 
   return (
-    <form onSubmit={save} className="motion-safe:animate-step-in">
+    <form onSubmit={submit} className="motion-safe:animate-step-in">
       <textarea
         aria-label={`Edit line ${line.n}`}
         aria-invalid={error ? true : undefined}
@@ -51,7 +47,7 @@ export function TranscriptLineEditor({
         </p>
       )}
       <div className="mt-2 flex items-center gap-2">
-        <Button type="submit" size="sm" loading={update.isPending}>
+        <Button type="submit" size="sm" loading={pending}>
           Save line
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={onDone}>

@@ -329,6 +329,117 @@ describe('new meeting: drop, review, then analyse', () => {
   });
 });
 
+describe('new meeting: fixing lines before the analysis', () => {
+  async function pasteAndContinue(user: ReturnType<typeof userEvent.setup>, text: string) {
+    await user.click(await screen.findByRole('button', { name: 'Paste text instead' }));
+    await user.click(await screen.findByLabelText('Transcript text'));
+    await user.paste(text);
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await screen.findByRole('heading', { name: 'Check your transcript' });
+  }
+
+  it('fixes a line’s words and adds a speaker, then sends both fixes with the transcript', async () => {
+    let posted: unknown;
+    mockApi({
+      ...me,
+      'POST /api/meetings': (body) => {
+        posted = body;
+        return { status: 201, body: { meeting } };
+      },
+    });
+    const user = userEvent.setup();
+    renderApp('/meetings');
+    await pasteAndContinue(user, 'Ann: Ship on Fridy?\nYes, I will do it.');
+    expect(screen.getByRole('status')).toHaveTextContent('2 lines · 1 speaker');
+
+    await user.click(screen.getByRole('button', { name: 'Edit line 1' }));
+    const box = screen.getByLabelText('Edit line 1');
+    await user.clear(box);
+    await user.type(box, 'Ship on Friday?{Enter}');
+    expect(await screen.findByText('Ship on Friday?')).toBeInTheDocument();
+    expect(screen.getByText('Edited')).toBeInTheDocument();
+    // Enter saved the line, not the meeting.
+    expect(posted).toBeUndefined();
+
+    await user.click(screen.getByRole('button', { name: 'Add a speaker to line 2' }));
+    await user.type(screen.getByLabelText('Who said line 2?'), 'Pieter');
+    await user.click(screen.getByRole('button', { name: 'Save speaker' }));
+    expect(await screen.findByText('Speaker set by you: Pieter')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      '2 lines · 2 speakers · 2 lines fixed by you',
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Save & analyse' }));
+    await screen.findByRole('heading', { name: 'Weekly sync', level: 1 });
+    expect(posted).toMatchObject({
+      transcript: 'Ann: Ship on Fridy?\nYes, I will do it.',
+      lineEdits: [
+        { n: 1, text: 'Ship on Friday?' },
+        { n: 2, speaker: 'Pieter' },
+      ],
+    });
+  });
+
+  it('sends the fixes with an upload as a JSON form field', async () => {
+    let posted: unknown;
+    mockApi({
+      ...me,
+      'POST /api/meetings': (body) => {
+        posted = body;
+        return { status: 201, body: { meeting } };
+      },
+    });
+    const user = userEvent.setup();
+    renderApp('/meetings');
+    await user.upload(
+      await screen.findByLabelText('Transcript file'),
+      new File(['Ann: Hello\nGood morning'], 'notes.txt', { type: 'text/plain' }),
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Add a speaker to line 2' }));
+    await user.type(screen.getByLabelText('Who said line 2?'), 'Ben{Enter}');
+    await screen.findByText('Speaker set by you: Ben');
+    await user.click(screen.getByRole('button', { name: 'Save & analyse' }));
+
+    await screen.findByRole('heading', { name: 'Weekly sync', level: 1 });
+    expect(JSON.parse((posted as FormData).get('lineEdits') as string)).toEqual([
+      { n: 2, speaker: 'Ben' },
+    ]);
+  });
+
+  it('won’t empty a line, and drops a fix that puts the line back as it was', async () => {
+    let posted: unknown;
+    mockApi({
+      ...me,
+      'POST /api/meetings': (body) => {
+        posted = body;
+        return { status: 201, body: { meeting } };
+      },
+    });
+    const user = userEvent.setup();
+    renderApp('/meetings');
+    await pasteAndContinue(user, 'Ann: Hello');
+
+    await user.click(screen.getByRole('button', { name: 'Edit line 1' }));
+    await user.clear(screen.getByLabelText('Edit line 1'));
+    await user.click(screen.getByRole('button', { name: 'Save line' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('A line can’t be empty');
+
+    await user.type(screen.getByLabelText('Edit line 1'), 'Hi{Enter}');
+    await screen.findByText('Edited');
+    await user.click(screen.getByRole('button', { name: 'Edit line 1' }));
+    await user.clear(screen.getByLabelText('Edit line 1'));
+    await user.type(screen.getByLabelText('Edit line 1'), 'Hello{Enter}');
+    await waitFor(() => expect(screen.queryByText('Edited')).not.toBeInTheDocument());
+    // Focus goes back to the button that opened the editor.
+    expect(screen.getByRole('button', { name: 'Edit line 1' })).toHaveFocus();
+
+    await user.click(screen.getByRole('button', { name: 'Save & analyse' }));
+    await screen.findByRole('heading', { name: 'Weekly sync', level: 1 });
+    expect(posted).not.toHaveProperty('lineEdits');
+  });
+});
+
 describe('analysis in the background', () => {
   it('keeps working while you move around, then notifies you and marks the meeting new', async () => {
     let calls = 0;

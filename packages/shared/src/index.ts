@@ -7,5 +7,6 @@ export * from './schemas/health';
 export * from './schemas/meetings';
 export * from './password';
 export * from './transcript/parse';
+export * from './transcript/edit';
 export * from './transcript/meetingDate';
 export * from './schemas/search';

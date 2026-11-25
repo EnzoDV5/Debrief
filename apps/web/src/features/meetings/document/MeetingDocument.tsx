@@ -6,7 +6,7 @@ import {
   type Meeting,
   type TranscriptLine,
 } from '@debrief/shared';
-import { Pencil, Plus, TextSelect, UserRound } from 'lucide-react';
+import { Plus, TextSelect } from 'lucide-react';
 import {
   useCallback,
   useEffect,
@@ -22,12 +22,14 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { ActionItemDialog } from '@/features/actionItems/ActionItemDialog';
 import { cn } from '@/lib/cn';
 import { useLingering } from '@/lib/useLingering';
+import { useUpdateTranscriptLine } from '../hooks';
 import { highlightFrom } from '../noteLink';
 import { AnalysisNotesLoader } from './AnalysisNotesLoader';
 import { AskMeetingPanel } from './AskMeetingPanel';
 import { keepRowCentered, scrollRowToCenter } from './centerRow';
 import { DecisionBubble } from './DecisionBubble';
 import { findPhrase, segment, type Mark } from './highlight';
+import { LineEditBadges } from './LineEditBadges';
 import { MeetingActionCard } from './MeetingActionCard';
 import { NewDecisionDialog } from './NewDecisionDialog';
 import { NoNotesFound } from './NoNotesFound';
@@ -131,6 +133,7 @@ export function MeetingDocument({
   }, []);
   const [toolbar, setToolbar] = useState<PickToolbarState | null>(null);
   const [creating, setCreating] = useState<{ kind: PickKind; pick: TranscriptPick } | null>(null);
+  const updateLine = useUpdateTranscriptLine(meeting.id);
   // One line at a time can be open for fixing its words or for saying who spoke it.
   const [editingLine, setEditingLine] = useState<{ n: number; part: 'text' | 'speaker' } | null>(
     null,
@@ -377,9 +380,9 @@ export function MeetingDocument({
                       <div className="min-w-0">
                         {editingLine?.n === line.n && editingLine.part === 'speaker' ? (
                           <SpeakerEditor
-                            meetingId={meeting.id}
                             line={line}
                             suggestions={ownerSuggestions}
+                            onSave={(patch) => updateLine.mutateAsync({ n: line.n, ...patch })}
                             onDone={() => setEditingLine(null)}
                           />
                         ) : (
@@ -387,8 +390,8 @@ export function MeetingDocument({
                         )}
                         {editingLine?.n === line.n && editingLine.part === 'text' ? (
                           <TranscriptLineEditor
-                            meetingId={meeting.id}
                             line={line}
+                            onSave={(patch) => updateLine.mutateAsync({ n: line.n, ...patch })}
                             onDone={() => setEditingLine(null)}
                           />
                         ) : (
@@ -418,24 +421,7 @@ export function MeetingDocument({
                                 onPick={setToolbar}
                               />
                             </p>
-                            {(line.edited || line.speakerEdited) && (
-                              <p className="mt-1 flex flex-wrap gap-x-3 text-xs font-semibold text-muted">
-                                {line.edited && (
-                                  <span className="inline-flex items-center gap-1">
-                                    <Pencil aria-hidden="true" className="size-3" />
-                                    Edited
-                                  </span>
-                                )}
-                                {line.speakerEdited && (
-                                  <span className="inline-flex items-center gap-1">
-                                    <UserRound aria-hidden="true" className="size-3" />
-                                    {line.speaker
-                                      ? `Speaker set by you: ${line.speaker}`
-                                      : 'Speaker removed by you'}
-                                  </span>
-                                )}
-                              </p>
-                            )}
+                            <LineEditBadges line={line} />
                           </>
                         )}
                       </div>
